@@ -51,25 +51,31 @@ export function AccountSettings({
             );
             return;
           }
-          void action.execute(async (signal) => {
-            const next = await client.updateAccount(
-              {
-                username,
-                currentPassword,
-                ...(newPassword ? { newPassword } : {}),
-              },
-              session.csrfToken,
-              signal,
-            );
-            if (signal.aborted) return;
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmation('');
-            onSaved(next);
-            action.setMessage(
-              appText.webAccountSettingsAccountUpdatedOtherSessionsHaveBeenSignedOut,
-            );
-          });
+          void action
+            .execute(async (signal) => {
+              const next = await client.updateAccount(
+                {
+                  username,
+                  currentPassword,
+                  ...(newPassword ? { newPassword } : {}),
+                },
+                session.csrfToken,
+                signal,
+              );
+              if (signal.aborted) return;
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmation('');
+              onSaved(next);
+              action.setMessage(
+                appText.webAccountSettingsAccountUpdatedOtherSessionsHaveBeenSignedOut,
+              );
+            })
+            .finally(() => {
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmation('');
+            });
         }}
       >
         <label htmlFor="account-username">

@@ -2728,13 +2728,13 @@ export const apiAuthLoginMustOriginateFromTheConfiguredSite =
   'Login must originate from the configured site.';
 
 export const apiAuthTooManySignInAttemptsTryAgainInAMinute =
-  'Too many sign-in attempts. Try again in a minute.';
+  'Too many sign-in attempts. Wait before trying again.';
 
 export const apiAuthIncorrectUsernameOrPassword =
   sharedIncorrectUsernameOrPassword;
 
 export const apiAuthTooManyPasswordAttemptsTryAgainInAMinute =
-  'Too many password attempts. Try again in a minute.';
+  'Too many password attempts. Wait before trying again.';
 
 export const apiAuthSignInAgainBeforeChangingYourAccount =
   'Sign in again before changing your account.';
@@ -4899,3 +4899,9 @@ export const databaseSecretsDbPortMustBeBetween1And65535 =
 
 export const databaseSecretsDbHostMustBeAHostnameOrBracketedIpv6Address =
   'DB_HOST must be a hostname or bracketed IPv6 address';
+
+/** Credential admission and accessible login cooldown. */
+export const apiAuthAdmissionUnavailable =
+  'Sign-in is temporarily unavailable. Try again shortly.';
+export const webAdminPageLoginCooldown = (seconds: number) =>
+  `Too many sign-in attempts. Try again in ${seconds} ${seconds === 1 ? 'second' : 'seconds'}.`;

@@ -2,6 +2,8 @@ import * as appText from '@clog/domain';
 import { insertImage } from './proof-store.js';
 /** Parameterized PostgreSQL persistence; public projections explicitly select safe fields. */
 import { randomUUID } from 'node:crypto';
+import { admitAuthentication } from './auth-rate-store.js';
+import type { AuthAttempt } from './auth-admission.js';
 import { unlink } from 'node:fs/promises';
 import {
   parseHighlightColour,
@@ -779,16 +781,7 @@ export class PgStore implements BackendStore {
       hash,
     ]);
   }
-  async allowLogin(keyHash: string) {
-    await this.pool.query(
-      'DELETE FROM auth_rate_limits WHERE expires_at<=now()',
-    );
-    const row = (
-      await this.pool.query<{ attempts: number }>(
-        `INSERT INTO auth_rate_limits(key_hash,attempts,expires_at) VALUES($1,1,now()+interval '1 minute') ON CONFLICT(key_hash) DO UPDATE SET attempts=auth_rate_limits.attempts+1 RETURNING attempts`,
-        [keyHash],
-      )
-    ).rows[0];
-    return !!row && row.attempts <= 20;
+  async allowLogin(attempt: AuthAttempt) {
+    return admitAuthentication(this.pool, attempt);
   }
 }

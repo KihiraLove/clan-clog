@@ -163,9 +163,14 @@ test(
       await store.createSession(hash('expired-session'), identity, new Date(0));
       assert.equal(await restarted.session(hash('expired-session')), null);
       const limited = await Promise.all(
-        Array.from({ length: 21 }, () => store.allowLogin(hash('ip'))),
+        Array.from({ length: 21 }, (_, index) =>
+          store.allowLogin({
+            sourceHash: hash('ip'),
+            username: 'unknown-' + index,
+          }),
+        ),
       );
-      assert.equal(limited.filter(Boolean).length, 20);
+      assert.equal(limited.filter((result) => result.allowed).length, 20);
     } finally {
       await app.close();
       await pool.end();

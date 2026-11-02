@@ -1,11 +1,6 @@
 import * as appText from '@clog/domain';
 /** Individual staff accounts, expiring sessions, roles and same-origin CSRF. */
-import {
-  createHash,
-  createHmac,
-  randomBytes,
-  timingSafeEqual,
-} from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { AuthConfig } from './config.js';
 import { xpAdminRoutes } from './xp-routes.js';
@@ -19,6 +14,8 @@ import { fetchWomCompetition } from './wom.js';
 import { ApiError } from './types.js';
 import type { ClanKeyStore, ClanKeyUpdate } from './clan-api-key.js';
 import { PasswordHasher } from './passwords.js';
+import { loginSourceHash, type AuthAttempt } from './auth-admission.js';
+import type { OperationalDiagnostics } from '@clog/domain';
 import { PreviewWork } from './preview-work.js';
 import {
   moderatorPagesForRequest,
@@ -31,8 +28,6 @@ import {
   defaultModeratorPages,
   staffPages,
 } from '@clog/domain';
-const hash = (value: string) =>
-  createHash('sha256').update(value).digest('hex');
 const nonce = () => randomBytes(32).toString('base64url');
 const same = (a: string, b: string) =>
   a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -56,7 +51,49 @@ export function authRoutes(
   previews = new PreviewWork(),
   passwords = new PasswordHasher(),
   accessControl?: AccessControlStore,
+  diagnostics?: OperationalDiagnostics,
 ) {
+  async function admit(attempt: AuthAttempt) {
+    let decision;
+    try {
+      decision = await store.allowLogin(attempt);
+    } catch {
+      diagnostics?.record('failure', {
+        operation: 'auth',
+        code: 'AUTH_LIMIT_STORAGE',
+        status: 503,
+      });
+      throw new ApiError(503, appText.apiAuthAdmissionUnavailable);
+    }
+    if (!decision.allowed && decision.scope === 'capacity') {
+      diagnostics?.record('failure', {
+        operation: 'auth',
+        code: 'AUTH_LIMIT_STORAGE',
+        status: 503,
+      });
+      throw new ApiError(503, appText.apiAuthAdmissionUnavailable);
+    }
+    if (!decision.allowed) {
+      const codes = {
+        source: 'AUTH_SOURCE_LIMIT',
+        identity: 'AUTH_IDENTITY_LIMIT',
+        account: 'AUTH_ACCOUNT_LIMIT',
+        capacity: 'AUTH_LIMIT_STORAGE',
+      } as const;
+      diagnostics?.record('throttle', {
+        operation: 'auth',
+        code: codes[decision.scope],
+        status: 429,
+      });
+      throw new ApiError(
+        429,
+        'accountId' in attempt
+          ? appText.apiAuthTooManyPasswordAttemptsTryAgainInAMinute
+          : appText.apiAuthTooManySignInAttemptsTryAgainInAMinute,
+        decision.retryAfterSeconds,
+      );
+    }
+  }
   const moderatorAccess = async () =>
     accessControl
       ? (await accessControl.settings()).moderatorPages
@@ -215,11 +252,10 @@ export function authRoutes(
     },
     async (request, reply) => {
       // Shared database limiter applies to *all* attempts, not just invalid ones.
-      if (!(await store.allowLogin(hash(request.ip))))
-        throw new ApiError(
-          429,
-          appText.apiAuthTooManySignInAttemptsTryAgainInAMinute,
-        );
+      await admit({
+        sourceHash: loginSourceHash(request.ip),
+        username: request.body.username,
+      });
       const account = await store.accountByUsername(request.body.username);
       const valid = await verifyPassword(
         request.body.password,
@@ -279,11 +315,7 @@ export function authRoutes(
     },
     async (request, reply) => {
       const session = await requireAdmin(request, true, true);
-      if (!(await store.allowLogin(hash('account:' + session.id))))
-        throw new ApiError(
-          429,
-          appText.apiAuthTooManyPasswordAttemptsTryAgainInAMinute,
-        );
+      await admit({ accountId: session.id });
       const account = await store.accountById(session.id);
       if (!account || account.credentialVersion !== session.accountVersion)
         throw new ApiError(

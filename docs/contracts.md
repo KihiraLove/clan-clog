@@ -124,3 +124,25 @@ with per-metric `deltas`. Public XP events include a `competition` summary with 
 most three standings; public activity reads expose metadata only. Imports
 are previewed and applied transactionally; refreshing replaces a prior event's
 contribution. [Competition rules](wom-competitions.md) define lifecycle and corrections.
+
+## Credential throttling
+
+`POST /auth/login` requires the exact configured Origin and admits at most
+20 attempts per validated source and 5 password checks per case-insensitive
+username per 60-second window. `PATCH /auth/account` retains Origin/session/CSRF
+validation and independently admits 5 current-password checks per staff account,
+including mandatory first-login changes. Reservations happen before password
+verification, persist across API restarts/workers and count successful attempts.
+
+An exhausted budget returns 429 with `{ error: string }`, `Cache-Control: no-store`
+and `Retry-After: <seconds>`: the remaining blocking window rounded up, from
+1 through 60. Unknown/disabled accounts have the same response shape and dummy
+password verification as other admitted failures. Rejected requests do not
+refresh deadlines. Limiter storage/capacity failures return a sanitized 503 and
+do not allow password work. Password-queue saturation is a separate 429 with
+its existing one-second retry. Session refresh/logout are outside these budgets.
+
+The browser validates bounded positive delta-seconds, falls back to 60 seconds
+for missing/malformed throttle headers, and never retries credentials
+automatically. Its tab-local deadline survives reload/deep links without storing
+a username, password, cookie or CSRF token. API enforcement is authoritative.

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import type { AuthAttempt } from './auth-admission.js';
 import { createHash, createHmac } from 'node:crypto';
 import { test } from 'node:test';
 import { WorkBudget } from '@clog/domain';
@@ -93,10 +94,14 @@ async function fixture(
     deleteSession: async (key: string) => {
       sessions.delete(key);
     },
-    allowLogin: async (key: string) => {
+    allowLogin: async (attempt: AuthAttempt) => {
+      const key =
+        'sourceHash' in attempt ? attempt.sourceHash : attempt.accountId;
       const n = (attempts.get(key) ?? 0) + 1;
       attempts.set(key, n);
-      return n <= 5;
+      return n <= 5
+        ? { allowed: true }
+        : { allowed: false, scope: 'source', retryAfterSeconds: 60 };
     },
   } as unknown as BackendStore;
   const service = {

@@ -326,3 +326,87 @@ test('moderators retain review tools, have no owner controls and can update thei
     page.getByRole('heading', { name: 'Admin sign-in required' }),
   ).toBeVisible();
 });
+
+test('failed login clears the password, cooldown survives deep-link reload and keyboard retry never happens automatically', async ({
+  page,
+}) => {
+  const state = await mockAccounts(page);
+  await page.clock.install({ time: new Date('2026-11-02T12:00:00Z') });
+  let attempts = 0;
+  await page.route('**/api/v1/auth/login', async (route) => {
+    attempts++;
+    if (attempts === 1)
+      return route.fulfill({
+        status: 401,
+        json: { error: 'Incorrect username or password.' },
+      });
+    if (attempts === 2)
+      return route.fulfill({
+        status: 429,
+        headers: { 'Retry-After': '3' },
+        json: { error: 'ignored private error' },
+      });
+    return route.fallback();
+  });
+  await page.goto('/admin/schedules');
+  await signIn(page, 'admin', 'wrong');
+  await expect(page.getByRole('alert')).toHaveText(
+    'Incorrect username or password.',
+  );
+  await expect(page.getByLabel('Password', { exact: true })).toHaveValue('');
+  await signIn(page, 'admin', 'wrong-again');
+  const button = page.getByRole('button', { name: 'Sign in', exact: true });
+  await expect(button).toBeDisabled();
+  await expect(page.getByRole('status')).toHaveText(
+    'Too many sign-in attempts. Try again in 3 seconds.',
+  );
+  await expect(page.getByLabel('Password', { exact: true })).toHaveValue('');
+  await page.locator('.admin-credential-form').dispatchEvent('submit');
+  expect(attempts).toBe(2);
+  await page.reload();
+  await expect(button).toBeDisabled();
+  await page.clock.runFor(3100);
+  await expect(button).toBeEnabled();
+  expect(attempts).toBe(2);
+  await page.getByLabel('Username', { exact: true }).fill('admin');
+  const password = page.getByLabel('Password', { exact: true });
+  await expect(password).toHaveAttribute('autocomplete', 'current-password');
+  await password.fill('correct-password');
+  await password.press('Enter');
+  await expect(
+    page.getByRole('heading', { name: 'Schedule management', exact: true }),
+  ).toBeVisible();
+  expect(attempts).toBe(3);
+  expect(state.authenticated).toBe(true);
+});
+
+for (const retry of [undefined, 'malformed'])
+  test(
+    'login uses a bounded fallback cooldown for ' +
+      (retry ?? 'missing') +
+      ' retry headers',
+    async ({ page }) => {
+      await mockAccounts(page);
+      await page.clock.install({ time: new Date('2026-11-02T12:00:00Z') });
+      let attempts = 0;
+      await page.route('**/api/v1/auth/login', (route) => {
+        attempts++;
+        return route.fulfill({
+          status: 429,
+          headers: retry ? { 'Retry-After': retry } : {},
+          json: { error: 'untrusted' },
+        });
+      });
+      await page.goto('/admin');
+      await signIn(page);
+      const button = page.getByRole('button', { name: 'Sign in', exact: true });
+      await expect(button).toBeDisabled();
+      await expect(page.getByRole('status')).toContainText('60 seconds');
+      await expect(page.getByLabel('Password', { exact: true })).toHaveValue(
+        '',
+      );
+      await page.clock.runFor(60100);
+      await expect(button).toBeEnabled();
+      expect(attempts).toBe(1);
+    },
+  );
