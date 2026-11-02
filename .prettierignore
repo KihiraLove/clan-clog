@@ -3,5 +3,9 @@ node_modules
 coverage
 package-lock.json
 
+# Local runtime data can contain protected secrets and backups.
+.data/
+.clog/
+
 # Captured and generated catalog bytes are checksummed; use catalog:build.
 catalog/**/*.json

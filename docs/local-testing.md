@@ -67,6 +67,11 @@ recognizes text-bearing JSX, known message APIs and authored prose; its explaine
 contract/historical exceptions live in `scripts/application-text.mjs`. Extend those
 only for a specific machine/external value, with a corresponding focused test.
 
+The formatting commands exclude `.data` and `.clog` before expanding file paths.
+These runtime directories can contain protected backups and secrets. Keep the
+negative directory globs in both `format` scripts: `.prettierignore` also excludes
+their files, but does not prevent the CLI's initial directory scan.
+
 Run checks for the behavior/files you changed. Examples:
 
 ```bash
