@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { databaseUrl as readDatabaseUrl } from './secrets.js';
 /** Read-only image/schema preflight and non-secret release evidence. */
 import { readFile } from 'node:fs/promises';
@@ -33,7 +34,7 @@ export async function releaseState(
       : [];
     validateMigrationHistory(manifest.migrations, applied);
     if (exact && applied.length !== manifest.migrations.length)
-      throw new Error('Exact schema manifest required');
+      throw new Error(appText.databaseReleaseStateExactSchemaManifestRequired);
     return {
       databaseVersion: (
         await client.query(
@@ -51,7 +52,10 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   try {
-    if (!readDatabaseUrl()) throw new Error('Database configuration required');
+    if (!readDatabaseUrl())
+      throw new Error(
+        appText.databaseReleaseStateDatabaseConfigurationRequired,
+      );
     console.log(
       JSON.stringify(
         await releaseState(
@@ -64,7 +68,7 @@ if (
     );
   } catch {
     console.error(
-      'Release schema validation failed; inspect the migration ledger against the pinned manifest.',
+      appText.databaseReleaseStateReleaseSchemaValidationFailedInspectTheMigrationLedgerAgainstThe,
     );
     process.exitCode = 1;
   }

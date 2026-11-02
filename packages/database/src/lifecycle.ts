@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { databaseUrl as readDatabaseUrl } from './secrets.js';
 /** Bounded historical reads and explicit owner-operated, reversible archival. */
 import { randomUUID } from 'node:crypto';
@@ -30,7 +31,10 @@ const targets = {
 } as const;
 function target(resource: LifecycleResource) {
   if (!Object.hasOwn(targets, resource))
-    throw new LifecycleError(400, 'Choose schedules or competitions.');
+    throw new LifecycleError(
+      400,
+      appText.databaseLifecycleChooseSchedulesOrCompetitions,
+    );
   return targets[resource];
 }
 function identifier(resource: LifecycleResource, value: string) {
@@ -43,7 +47,10 @@ function identifier(resource: LifecycleResource, value: string) {
       : !/^[1-9][0-9]{0,18}$/u.test(value) ||
         BigInt(value) > 9223372036854775807n)
   )
-    throw new LifecycleError(400, 'Invalid lifecycle record ID.');
+    throw new LifecycleError(
+      400,
+      appText.databaseLifecycleInvalidLifecycleRecordId,
+    );
 }
 const encode = (
   revision: string,
@@ -81,7 +88,7 @@ function decode(
   } catch {
     throw new LifecycleError(
       409,
-      'Lifecycle records changed or cursor expired. Reload the first page.',
+      appText.databaseLifecycleLifecycleRecordsChangedOrCursorExpiredReloadTheFirstPage,
     );
   }
 }
@@ -97,7 +104,11 @@ async function snapshot(
       [id],
     )
   ).rows[0]?.record;
-  if (!record) throw new LifecycleError(404, 'Lifecycle record not found.');
+  if (!record)
+    throw new LifecycleError(
+      404,
+      appText.databaseLifecycleLifecycleRecordNotFound,
+    );
   const pages = async (scheduleId: string) => {
     const rows = (
       await client.query<{ page_id: string }>(
@@ -108,7 +119,7 @@ async function snapshot(
     if (rows.length > 200)
       throw new LifecycleError(
         503,
-        'Schedule page membership exceeds supported limits.',
+        appText.databaseLifecycleSchedulePageMembershipExceedsSupportedLimits,
       );
     return rows.map((row) => row.page_id);
   };
@@ -167,7 +178,7 @@ export class PgLifecycleStore {
     )
       throw new LifecycleError(
         400,
-        'Choose current/archived and a page size of 1–20.',
+        appText.databaseLifecycleChooseCurrentArchivedAndAPageSizeOf120,
       );
     return this.read(async (client) => {
       const version = (
@@ -176,7 +187,10 @@ export class PgLifecycleStore {
         )
       ).rows[0]?.version;
       if (!version)
-        throw new LifecycleError(503, 'Lifecycle state unavailable.');
+        throw new LifecycleError(
+          503,
+          appText.databaseLifecycleLifecycleStateUnavailable,
+        );
       const revision = 'lifecycle-' + version,
         key = decode(cursor, revision, resource, view, limit);
       const rows = (
@@ -239,7 +253,7 @@ export class PgLifecycleStore {
     )
       throw new LifecycleError(
         400,
-        'An archive/restore action, operator name and reason are required.',
+        appText.databaseLifecycleAnArchiveRestoreActionOperatorNameAndReasonAreRequired,
       );
     const client = await this.pool.connect();
     try {
@@ -259,7 +273,11 @@ export class PgLifecycleStore {
           [id],
         )
       ).rows[0];
-      if (!row) throw new LifecycleError(404, 'Lifecycle record not found.');
+      if (!row)
+        throw new LifecycleError(
+          404,
+          appText.databaseLifecycleLifecycleRecordNotFound,
+        );
       const before = await snapshot(client, resource, id);
       if ((action === 'archive') === !!row.archived_at) {
         await client.query('ROLLBACK');
@@ -272,7 +290,10 @@ export class PgLifecycleStore {
         };
       }
       if (action === 'archive' && !row.ended)
-        throw new LifecycleError(409, 'Only ended records can be archived.');
+        throw new LifecycleError(
+          409,
+          appText.databaseLifecycleOnlyEndedRecordsCanBeArchived,
+        );
       if (action === 'restore') {
         const count = (
           await client.query<{ count: number }>(
@@ -282,7 +303,7 @@ export class PgLifecycleStore {
         if (count >= t.capacity)
           throw new LifecycleError(
             409,
-            'Current record capacity reached; archive an ended record before restoring.',
+            appText.databaseLifecycleCurrentRecordCapacityReachedArchiveAnEndedRecordBeforeRestoring,
           );
       }
       if (!apply) {
@@ -342,7 +363,7 @@ if (
         );
       if (!match || values.has(match[1]!))
         throw new Error(
-          'Unknown or duplicate option. See docs/maintenance.md.',
+          appText.databaseLifecycleUnknownOrDuplicateOptionSeeDocsMaintenanceMd,
         );
       values.set(match[1]!, match[2]!);
     }
@@ -350,7 +371,7 @@ if (
   const resource = values.get('resource') as LifecycleResource,
     action = values.get('action') ?? 'list';
   const url = readDatabaseUrl();
-  if (!url) throw new Error('DATABASE_URL is required');
+  if (!url) throw new Error(appText.databaseLifecycleDatabaseUrlIsRequired);
   const pool = new pg.Pool({
     connectionString: url,
     connectionTimeoutMillis: 5000,

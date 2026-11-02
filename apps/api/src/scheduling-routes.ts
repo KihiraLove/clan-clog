@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { CollectionScheduleInput } from '@clog/domain';
 import type { SchedulingStore } from './scheduling-store.js';
@@ -34,11 +35,16 @@ export function schedulingRoutes(
   ) => Promise<AdminIdentity & Pick<StaffAccount, 'role'>>,
 ) {
   const staff = async (request: FastifyRequest, write = false) => {
-    if (!authorize) throw new ApiError(503, 'Staff sign-in is not configured.');
+    if (!authorize)
+      throw new ApiError(
+        503,
+        appText.apiSchedulingRoutesStaffSignInIsNotConfigured,
+      );
     return authorize(request, write);
   };
   const available = () => {
-    if (!store) throw new ApiError(503, 'Scheduling unavailable.');
+    if (!store)
+      throw new ApiError(503, appText.apiSchedulingRoutesSchedulingUnavailable);
     return store;
   };
   app.get('/api/v1/admin/schedules', async (request) => {
@@ -53,7 +59,7 @@ export function schedulingRoutes(
         if (actor.role !== 'admin')
           throw new ApiError(
             403,
-            'Only the administrator can enable or disable scheduling.',
+            appText.apiSchedulingRoutesOnlyTheAdministratorCanEnableOrDisableScheduling,
           );
       },
       schema: {

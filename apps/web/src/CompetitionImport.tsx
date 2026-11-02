@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { UnknownMetricRequestError } from './competition-import-api.ts';
 import { useEffect, useRef, useState } from 'react';
 import { classifyAccessFailure } from './admin-session.ts';
@@ -77,10 +78,10 @@ export function CompetitionImport({
         if (controller.signal.aborted) return;
         setMessage(
           r.outcome === 'unchanged'
-            ? 'Unchanged. No gains or schedules were added.'
+            ? appText.webCompetitionImportUnchangedNoGainsOrSchedulesWereAdded
             : preview.action === 'import-metadata'
-              ? 'Competition metadata imported. No pages were opened or XP added.'
-              : 'Competition imported.',
+              ? appText.webCompetitionImportCompetitionMetadataImportedNoPagesWereOpenedOrXpAdded
+              : appText.webCompetitionImportCompetitionImported,
         );
         setPreview(undefined);
         setPages(undefined);
@@ -109,7 +110,7 @@ export function CompetitionImport({
       }
       if (controller.signal.aborted) {
         setError(
-          'Request timed out. Retry Apply to check the committed result safely.',
+          appText.webCompetitionImportRequestTimedOutRetryApplyToCheckTheCommittedResult,
         );
       } else {
         const failure = classifyAccessFailure(e);
@@ -121,12 +122,12 @@ export function CompetitionImport({
         }
         setError(
           failure === 'denied'
-            ? 'Your account is not allowed to perform this competition import.'
+            ? appText.webCompetitionImportYourAccountIsNotAllowedToPerformThisCompetitionImport
             : e instanceof CompetitionRequestError
               ? e.message
               : e instanceof Error
                 ? e.message
-                : 'Import failed.',
+                : appText.webCompetitionImportImportFailed,
         );
       }
       if (
@@ -163,7 +164,7 @@ export function CompetitionImport({
       saved = true;
       setResolution(undefined);
       setMessage(
-        'Metric definitions saved. Review the competition before applying.',
+        appText.webCompetitionImportMetricDefinitionsSavedReviewTheCompetitionBeforeApplying,
       );
       const p = await client.preview(
         url,
@@ -185,14 +186,16 @@ export function CompetitionImport({
       if (failure instanceof UnknownMetricRequestError)
         setResolution(failure.resolution);
       else if (classifyAccessFailure(failure) === 'denied')
-        setError('Your account is not allowed to save competition metrics.');
+        setError(
+          appText.webCompetitionImportYourAccountIsNotAllowedToSaveCompetitionMetrics,
+        );
       else
         setError(
           saved
-            ? 'Metric definitions were saved, but the competition preview could not be completed. Retry Preview competition.'
+            ? appText.webCompetitionImportMetricDefinitionsWereSavedButTheCompetitionPreviewCouldNot
             : failure instanceof CompetitionRequestError
               ? failure.message
-              : 'Could not confirm the metric save. Retry the same choices to recover its receipt.',
+              : appText.webCompetitionImportCouldNotConfirmTheMetricSaveRetryTheSameChoices,
         );
     } finally {
       clearTimeout(timeout);
@@ -215,7 +218,7 @@ export function CompetitionImport({
             setPreview(undefined);
             setPages(undefined);
             setError(undefined);
-            setMessage('Import discarded.');
+            setMessage(appText.webCompetitionImportImportDiscarded);
             requestAnimationFrame(() => previewButton.current?.focus());
           }}
         />
@@ -228,7 +231,7 @@ export function CompetitionImport({
       >
         <fieldset disabled={busy} className="admin-fieldset">
           <label className="admin-field-label">
-            Wise Old Man competition link
+            {appText.webCompetitionImportWiseOldManCompetitionLink}
             <input
               className="admin-input"
               type="url"
@@ -243,7 +246,9 @@ export function CompetitionImport({
             />
           </label>
           <button ref={previewButton} className="site-button" disabled={!url}>
-            {busy ? 'Please wait…' : 'Preview competition'}
+            {busy
+              ? appText.webCompetitionImportPleaseWait
+              : appText.webCompetitionImportPreviewCompetition}
           </button>
         </fieldset>
       </form>
@@ -261,44 +266,49 @@ export function CompetitionImport({
         <div className="xp-import-preview">
           <h4>{preview.competition.title}</h4>
           <p>
-            Detected kind: {preview.competition.kind} · {preview.lifecycle} ·{' '}
-            {preview.competition.metrics.join(', ')}
+            {appText.webCompetitionImportDetectedKindMessage(
+              preview.competition.kind,
+              preview.lifecycle,
+              preview.competition.metrics.join(', '),
+            )}
           </p>
           <a
             href={preview.competition.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
           >
-            View competition on WOM
+            {appText.webCompetitionImportViewCompetitionOnWom}
           </a>
           <p>
-            Start: {localScheduleLabel(preview.competition.startsAt)}
+            {appText.webCompetitionImportStart}
+            {localScheduleLabel(preview.competition.startsAt)}
             <br />
             <small>{utcScheduleLabel(preview.competition.startsAt)}</small>
             <br />
-            End: {localScheduleLabel(preview.competition.endsAt)}
+            {appText.webCompetitionImportEnd}
+            {localScheduleLabel(preview.competition.endsAt)}
             <br />
             <small>{utcScheduleLabel(preview.competition.endsAt)}</small>
           </p>
           <p>
             {preview.action === 'import-metadata'
-              ? 'Import competition metadata only. No pages will be opened and no XP will be added.'
+              ? appText.webCompetitionImportImportCompetitionMetadataOnlyNoPagesWillBeOpenedAnd
               : preview.action === 'import-results'
-                ? 'Import finished results. No opening window will be created.'
+                ? appText.webCompetitionImportImportFinishedResultsNoOpeningWindowWillBeCreated
                 : preview.action === 'update-schedule'
-                  ? 'Update the linked schedule to the imported dates and add new metric pages.'
+                  ? appText.webCompetitionImportUpdateTheLinkedScheduleToTheImportedDatesAndAdd
                   : preview.action === 'preserve-deletion'
-                    ? 'Keep the linked window closed.'
+                    ? appText.webCompetitionImportKeepTheLinkedWindowClosed
                     : preview.lifecycle === 'running'
-                      ? 'Create an opening window starting immediately when Apply commits, ending at the WOM end time.'
-                      : 'Create an opening window for the WOM start and end times.'}
+                      ? appText.webCompetitionImportCreateAnOpeningWindowStartingImmediatelyWhenApplyCommitsEnding
+                      : appText.webCompetitionImportCreateAnOpeningWindowForTheWomStartAndEnd}
           </p>
           <CompetitionMetrics competition={preview.competition} />
           {preview.competition.kind === 'ACTIVITY' &&
             preview.action === 'create-schedule' && (
               <>
                 <label className="admin-field-label">
-                  Find opening pages
+                  {appText.webCompetitionImportFindOpeningPages}
                   <input
                     className="admin-input"
                     type="search"
@@ -310,7 +320,7 @@ export function CompetitionImport({
                   className="admin-choice-fieldset schedule-page-list"
                   disabled={busy}
                 >
-                  <legend>Opening pages</legend>
+                  <legend>{appText.webCompetitionImportOpeningPages}</legend>
                   {preview.pages
                     .filter((p) =>
                       p.name.toLowerCase().includes(search.toLowerCase()),
@@ -337,8 +347,10 @@ export function CompetitionImport({
                     ))}
                 </fieldset>
                 <p>
-                  {pages?.length ?? 0} pages selected.
-                  {dirty ? ' Update the preview to confirm these pages.' : ''}
+                  {appText.webCompetitionImportPagesSelectedMessage(
+                    pages?.length ?? 0,
+                    dirty,
+                  )}
                 </p>
                 {dirty && (
                   <button
@@ -348,7 +360,7 @@ export function CompetitionImport({
                       void execute(false);
                     }}
                   >
-                    Update preview
+                    {appText.webCompetitionImportUpdatePreview}
                   </button>
                 )}
               </>
@@ -356,24 +368,31 @@ export function CompetitionImport({
           {preview.competition.kind === 'ACTIVITY' &&
             preview.action === 'update-schedule' && (
               <p>
-                Pages:{' '}
-                {preview.pageIds
-                  .map(
-                    (id) => preview.pages.find((p) => p.id === id)?.name ?? id,
-                  )
-                  .join(', ')}
+                {appText.webCompetitionImportPagesMessage(
+                  preview.pageIds
+                    .map(
+                      (id) =>
+                        preview.pages.find((p) => p.id === id)?.name ?? id,
+                    )
+                    .join(', '),
+                )}
               </p>
             )}
           {preview.lifecycle === 'finished' && (
             <details>
               <summary>
-                Eligible participants ({preview.participants.length})
+                {appText.webCompetitionImportEligibleParticipantsMessage(
+                  preview.participants.length,
+                )}
               </summary>
               <ol>
                 {(preview.standings ?? preview.participants).map((p) => (
                   <li key={p.playerId}>
-                    {p.displayName}: {formatCompetitionAmount(p.gained)}{' '}
-                    {competitionUnit(preview.competition)}
+                    {appText.webCompetitionImportMetricAmount(
+                      p.displayName,
+                      formatCompetitionAmount(p.gained),
+                      competitionUnit(preview.competition),
+                    )}
                   </li>
                 ))}
               </ol>
@@ -385,22 +404,34 @@ export function CompetitionImport({
           {!!preview.changes.length && (
             <div className="xp-table-scroll">
               <table className="xp-table">
-                <caption>Change to cumulative site totals</caption>
+                <caption>
+                  {appText.webCompetitionImportChangeToCumulativeSiteTotals}
+                </caption>
                 <thead>
                   <tr>
-                    <th>Skill</th>
-                    <th>Before</th>
-                    <th>After</th>
-                    <th>Change</th>
+                    <th>{appText.webCompetitionImportSkill}</th>
+                    <th>{appText.webCompetitionImportBefore}</th>
+                    <th>{appText.webCompetitionImportAfter}</th>
+                    <th>{appText.webCompetitionImportChange}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {preview.changes.map((c) => (
                     <tr key={c.skill}>
                       <th>{skillName(c.skill)}</th>
-                      <td>{exactXp(c.before)} XP</td>
-                      <td>{exactXp(c.after)} XP</td>
-                      <td>{signedXp(c.change)} XP</td>
+                      <td>
+                        {appText.webCompetitionImportXP(exactXp(c.before))}
+                      </td>
+                      <td>
+                        {appText.webCompetitionImportXPMessage(
+                          exactXp(c.after),
+                        )}
+                      </td>
+                      <td>
+                        {appText.webCompetitionImportXPMessage2(
+                          signedXp(c.change),
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -420,12 +451,16 @@ export function CompetitionImport({
                 checked={ack}
                 onChange={(e) => setAck(e.target.checked)}
               />
-              I reviewed the corrections that reduce recorded XP.
+              {
+                appText.webCompetitionImportIReviewedTheCorrectionsThatReduceRecordedXp
+              }
             </label>
           )}
           {expired && (
             <p role="alert" className="admin-error">
-              Preview expired. Preview this competition again.
+              {
+                appText.webCompetitionImportPreviewExpiredPreviewThisCompetitionAgain
+              }
             </p>
           )}
           <button
@@ -441,7 +476,7 @@ export function CompetitionImport({
               void execute(true);
             }}
           >
-            Apply import
+            {appText.webCompetitionImportApplyImport}
           </button>
         </div>
       )}

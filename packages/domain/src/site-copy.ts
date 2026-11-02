@@ -1,8 +1,9 @@
+import * as appText from './text.js';
 /** Administrator-editable public labels with one shared validation contract. */
 export const defaultSiteCopy = {
-  collectionTitle: 'Clan Collection Log',
-  collectionCaption: 'Collected by clan members',
-  xpTitle: 'XP gained during SOTW events',
+  collectionTitle: appText.domainSiteCopyCollectionTitle,
+  collectionCaption: appText.domainSiteCopyCollectionCaption,
+  xpTitle: appText.domainSiteCopyXpTitle,
 };
 export type SiteCopy = typeof defaultSiteCopy;
 export interface HardcoreAppearance {
@@ -11,7 +12,7 @@ export interface HardcoreAppearance {
 }
 export function parseHardcoreAppearance(value: unknown): HardcoreAppearance {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid hardcore appearance.');
+    throw new Error(appText.domainSiteCopyInvalidHardcoreAppearance);
   const data = value as Record<string, unknown>;
   if (
     Object.keys(data).length !== 2 ||
@@ -24,13 +25,13 @@ export function parseHardcoreAppearance(value: unknown): HardcoreAppearance {
     )
   )
     throw new Error(
-      'Hardcore clan name must contain 1–80 printable characters.',
+      appText.domainSiteCopyHardcoreClanNameMustContain180PrintableCharacters,
     );
   return { clanName: data.clanName.trim(), copy: parseSiteCopy(data.copy) };
 }
 export function parseSiteCopy(value: unknown): SiteCopy {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid website text.');
+    throw new Error(appText.domainSiteCopyInvalidWebsiteText);
   const data = value as Record<string, unknown>;
   const keys = Object.keys(defaultSiteCopy) as (keyof SiteCopy)[];
   if (
@@ -47,7 +48,7 @@ export function parseSiteCopy(value: unknown): SiteCopy {
     )
   )
     throw new Error(
-      'Each website text must contain 1–160 printable characters.',
+      appText.domainSiteCopyEachWebsiteTextMustContain1160PrintableCharacters,
     );
   return Object.fromEntries(
     keys.map((key) => [key, (data[key] as string).trim()]),

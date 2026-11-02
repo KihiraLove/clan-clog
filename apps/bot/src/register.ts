@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Explicit, one-command guild upsert. Never register commands during bot startup. */
 import { REST, Routes } from 'discord.js';
 import { pathToFileURL } from 'node:url';
@@ -25,7 +26,7 @@ export async function registerGuildCommand(
   post: RegisterRequest,
 ): Promise<void> {
   requireSnowflake(appId, 'DISCORD_APPLICATION_ID');
-  requireSnowflake(guildId, 'target guild ID');
+  requireSnowflake(guildId, appText.botRegisterTargetGuildId);
   // Discord POST upserts by command name. PUT would overwrite unrelated commands.
   await post(
     Routes.applicationGuildCommands(appId, guildId),
@@ -47,7 +48,9 @@ export async function registerFromEnv(
   );
   const token = readSecret('DISCORD_BOT_TOKEN', env)?.trim();
   if (!token)
-    throw new Error('DISCORD_BOT_TOKEN is required for command registration');
+    throw new Error(
+      appText.botRegisterDiscordBotTokenIsRequiredForCommandRegistration,
+    );
   const sender =
     post ??
     (async (route: string, body: object) => {
@@ -63,18 +66,22 @@ if (
 ) {
   const mode = process.argv[2];
   if (mode !== 'test' && mode !== 'guild')
-    throw new Error('Run register:test or register:guild explicitly');
+    throw new Error(
+      appText.botRegisterRunRegisterTestOrRegisterGuildExplicitly,
+    );
   if (process.env.BOT_SETTINGS_MODE === 'database') {
     const saved = await loadSavedConfiguration();
     try {
       const config = saved.saved;
       const guild = mode === 'test' ? config.testGuildId : config.guildId;
       if (!config.token)
-        throw new Error('Save a Discord token in administration first');
+        throw new Error(
+          appText.botRegisterSaveADiscordTokenInAdministrationFirst,
+        );
       await registerWithCredentials(config.applicationId, guild, config.token);
     } finally {
       await saved.pool.end();
     }
   } else await registerFromEnv(mode);
-  console.log('Guild command registered in the selected guild.');
+  console.log(appText.botRegisterGuildCommandRegisteredInTheSelectedGuild);
 }

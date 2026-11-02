@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Runtime composition: validated auth config, durable store and graceful shutdown. */
 import { readBotConnectionState } from './readiness.js';
 import { databaseUrl } from '@clog/database/dist/secrets.js';
@@ -57,7 +58,7 @@ async function main() {
   const url = databaseUrl(process.env, 'runtime', false);
   if ((config.auth || config.bot) && !url)
     throw new Error(
-      'DATABASE_URL is required when auth or bot intake is enabled',
+      appText.apiServerDatabaseUrlIsRequiredWhenAuthOrBotIntakeIs,
     );
   const pool = url
     ? new pg.Pool({
@@ -97,9 +98,13 @@ async function main() {
     : undefined;
   if (proofs) await proofs.initialize();
   if (config.auth && !proofs)
-    throw new Error('PROOF_STORAGE_PATH is required when auth is enabled');
+    throw new Error(
+      appText.apiServerProofStoragePathIsRequiredWhenAuthIsEnabled,
+    );
   if (config.auth && !icons)
-    throw new Error('ICON_STORAGE_PATH is required when auth is enabled');
+    throw new Error(
+      appText.apiServerIconStoragePathIsRequiredWhenAuthIsEnabled,
+    );
   const clanKeys =
     pool && proofs
       ? new PgClanKeyStore(pool, await loadClanKeyRoot(proofs.directory))
@@ -201,7 +206,7 @@ async function main() {
     });
   const port = Number(process.env.PORT ?? '3000');
   if (!Number.isInteger(port) || port < 1 || port > 65535)
-    throw new Error('PORT must be a valid TCP port');
+    throw new Error(appText.apiServerPortMustBeAValidTcpPort);
   await app.listen({ host: process.env.HOST ?? '0.0.0.0', port });
 }
 void main().catch(fatal);

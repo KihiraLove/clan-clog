@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Native top-layer dialog preserves the current route, selection and page scroll. */
 import {
   Component,
@@ -22,8 +23,9 @@ class HelpLoadBoundary extends Component<
   render() {
     return this.state.failed ? (
       <p>
-        Instructions could not be displayed. Please ask your clan staff for
-        submission help.
+        {
+          appText.webSubmissionHelpInstructionsCouldNotBeDisplayedPleaseAskYourClanStaff
+        }
       </p>
     ) : (
       this.props.children
@@ -34,7 +36,11 @@ class HelpLoadBoundary extends Component<
 export function SubmissionHelpContent({ text }: { text: string }) {
   return (
     <HelpLoadBoundary>
-      <Suspense fallback={<p role="status">Loading instructions…</p>}>
+      <Suspense
+        fallback={
+          <p role="status">{appText.webSubmissionHelpLoadingInstructions}</p>
+        }
+      >
         <HelpMarkdown text={text.trim() ? text : defaultSubmissionHelp} />
       </Suspense>
     </HelpLoadBoundary>
@@ -90,21 +96,23 @@ export function SubmissionHelp({
       }}
     >
       <header className="submission-help-heading">
-        <h2 id="submission-help-title">How to submit</h2>
+        <h2 id="submission-help-title">
+          {appText.webSubmissionHelpHowToSubmit}
+        </h2>
         <button
           type="button"
           className="site-button"
-          aria-label="Close submission help"
+          aria-label={appText.webSubmissionHelpCloseSubmissionHelp}
           onClick={onClose}
         >
-          ×
+          {appText.webSubmissionHelpCloseSymbol}
         </button>
       </header>
       <div
         className="submission-help-body"
         role="region"
         tabIndex={0}
-        aria-label="Submission instructions"
+        aria-label={appText.webSubmissionHelpSubmissionInstructions}
       >
         <SubmissionHelpContent text={text} />
       </div>

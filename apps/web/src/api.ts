@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Conditional public reads with separate ETags and an all-or-nothing cache commit. */
 import {
   parseCatalog,
@@ -11,7 +12,7 @@ import {
 export class LogUnavailable extends Error {
   readonly status: number;
   constructor(status: number) {
-    super(`Public log request failed (${status})`);
+    super(appText.webApiPublicLogRequestFailed(status));
     this.status = status;
   }
 }
@@ -71,7 +72,8 @@ export class PublicLogClient {
       catalog: catalog.data,
       collections: collections.data,
     });
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (signal.aborted)
+      throw new DOMException(appText.webApiAborted, 'AbortError');
     // Commit both caches only after a complete, mutually valid read.
     this.catalog = catalog;
     this.collections = collections;

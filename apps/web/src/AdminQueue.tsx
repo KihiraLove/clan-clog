@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Load catalog plus paged claims together, retaining cursor history for previous-page navigation. */
 import { useEffect, useId, useRef, useState } from 'react';
 import { AdminRequestError } from './admin-api.ts';
@@ -84,7 +85,7 @@ export function AdminQueue({
       .then(([catalog, queue]) => {
         // Historical claims may reference an item removed from the active catalog.
         if (queue.nextCursor !== null && queue.nextCursor === cursor)
-          throw new Error('Inconsistent review snapshot.');
+          throw new Error(appText.webAdminQueueInconsistentReviewSnapshot);
         if (active) {
           catalogCache.current = { client, refresh, catalog };
           setSnapshot({ catalog, queue, view, cursor });
@@ -105,7 +106,7 @@ export function AdminQueue({
           setError(
             failure instanceof AdminRequestError
               ? failure.message
-              : 'Could not refresh submissions. The last successful view is preserved.',
+              : appText.webAdminQueueCouldNotRefreshSubmissionsTheLastSuccessfulViewIsPreserved,
           );
       })
       .finally(() => {
@@ -122,18 +123,22 @@ export function AdminQueue({
   const ready = snapshot?.view === view && snapshot.cursor === cursor;
   const changing = loading || (!ready && !error);
   const pageProblem = error
-    ? 'The current page could not be loaded. Reload the submissions before paging.'
+    ? appText.webAdminQueueTheCurrentPageCouldNotBeLoadedReloadTheSubmissions
     : !ready
-      ? 'The requested page is not loaded yet.'
+      ? appText.webAdminQueueTheRequestedPageIsNotLoadedYet
       : null;
   const previousReason = loading
-    ? 'Loading submissions…'
+    ? appText.webAdminQueueLoadingSubmissions
     : (pageProblem ??
-      (cursors.length === 1 ? 'Already on the first page.' : null));
+      (cursors.length === 1
+        ? appText.webAdminQueueAlreadyOnTheFirstPage
+        : null));
   const nextReason = loading
-    ? 'Loading submissions…'
+    ? appText.webAdminQueueLoadingSubmissions
     : (pageProblem ??
-      (!snapshot?.queue.nextCursor ? 'Already on the last page.' : null));
+      (!snapshot?.queue.nextCursor
+        ? appText.webAdminQueueAlreadyOnTheLastPage
+        : null));
   const choose = (next: QueueView) => {
     setView(next);
     setCursors([undefined]);
@@ -149,7 +154,7 @@ export function AdminQueue({
           session={session}
           onAccessLost={onAccessLost}
           onCreated={(row) => {
-            setNotice('Manual submission created: ' + row.status + '.');
+            setNotice(appText.webAdminQueueManualSubmissionCreated(row.status));
             setSelected(undefined);
             setView(row.status === 'pending' ? 'pending' : 'reviewed');
             setCursors([undefined]);
@@ -158,7 +163,9 @@ export function AdminQueue({
         />
       )}
       <section className="admin-panel submission-filter-panel">
-        <h2 id="submission-filter-title">Filter out regular duplicates</h2>
+        <h2 id="submission-filter-title">
+          {appText.webAdminQueueFilterOutRegularDuplicates}
+        </h2>
         {session.role === 'admin' ? (
           <button
             type="button"
@@ -188,19 +195,21 @@ export function AdminQueue({
               );
             }}
           >
-            {filters?.filterCollected ? 'On' : 'Off'}
+            {filters?.filterCollected
+              ? appText.webAdminQueueOn
+              : appText.webAdminQueueOff}
           </button>
         ) : (
           <p>
-            Regular duplicate filtering is{' '}
+            {appText.webAdminQueueDuplicateFilterExplanation.beforeState}{' '}
             <strong>
               {filters
                 ? filters.filterCollected
-                  ? 'enabled'
-                  : 'disabled'
-                : 'unavailable'}
+                  ? appText.webAdminQueueDuplicateFilterExplanation.enabled
+                  : appText.webAdminQueueDuplicateFilterExplanation.disabled
+                : appText.webAdminQueueDuplicateFilterExplanation.unavailable}
             </strong>
-            . Only the administrator can change this.
+            {appText.webAdminQueueDuplicateFilterExplanation.afterState}
           </p>
         )}
         {filterAction.error && <p role="alert">{filterAction.error}</p>}
@@ -208,20 +217,20 @@ export function AdminQueue({
       <section className="admin-panel">
         <div className="admin-section-heading">
           <div>
-            <h2>Submissions</h2>
+            <h2>{appText.webAdminQueueSubmissions}</h2>
           </div>
           <button
             className="site-button"
             disabled={loading}
             onClick={() => setRefresh((v) => v + 1)}
           >
-            Refresh submissions
+            {appText.webAdminQueueRefreshSubmissions}
           </button>
         </div>
         <div
           className="admin-filters"
           role="group"
-          aria-label="Submission views"
+          aria-label={appText.webAdminQueueSubmissionViews}
         >
           {(['pending', 'unmatched', 'reviewed'] as const).map((id) => (
             <button
@@ -232,10 +241,10 @@ export function AdminQueue({
               onClick={() => choose(id)}
             >
               {id === 'pending'
-                ? 'Pending'
+                ? appText.webAdminQueuePending
                 : id === 'unmatched'
-                  ? 'Unmatched'
-                  : 'Reviewed'}
+                  ? appText.webAdminQueueUnmatched
+                  : appText.webAdminQueueReviewed}
             </button>
           ))}
         </div>
@@ -254,7 +263,7 @@ export function AdminQueue({
                 setRefresh((v) => v + 1);
               }}
             >
-              Reload current submissions
+              {appText.webAdminQueueReloadCurrentSubmissions}
             </button>
           </div>
         )}
@@ -279,12 +288,10 @@ export function AdminQueue({
                       className="submission-card__open"
                       disabled={changing || !ready || Boolean(error)}
                       onClick={() => setSelected(row.id)}
-                      aria-label={
-                        'Review ' +
-                        row.collectorName +
-                        ' · ' +
-                        (item?.name ?? row.rawItemText)
-                      }
+                      aria-label={appText.webAdminQueueReview(
+                        row.collectorName,
+                        item?.name ?? row.rawItemText,
+                      )}
                     >
                       <span className="submission-card__summary">
                         <span className="submission-card__item">
@@ -295,12 +302,13 @@ export function AdminQueue({
                               className="submission-card__icon-fallback"
                               aria-hidden="true"
                             >
-                              ?
+                              {appText.webAdminQueueQuestionMark}
                             </span>
                           )}
                           <strong>
                             {item?.name ??
-                              (row.rawItemText || 'Needs item match')}
+                              (row.rawItemText ||
+                                appText.webAdminQueueNeedsItemMatch)}
                           </strong>
                         </span>
                         <span className="submission-card__collector">
@@ -308,10 +316,13 @@ export function AdminQueue({
                         </span>
                         {row.itemId === null && (
                           <span>
-                            Unmatched
-                            {row.gameItemId === undefined
-                              ? ''
-                              : ` · Game item ID ${row.gameItemId}`}
+                            {appText.webAdminQueueUnmatchedMessage(
+                              row.gameItemId === undefined
+                                ? ''
+                                : appText.webAdminQueueGameItemId(
+                                    row.gameItemId,
+                                  ),
+                            )}
                           </span>
                         )}
                         <time dateTime={row.submittedAt}>
@@ -319,24 +330,24 @@ export function AdminQueue({
                         </time>
                         <span>
                           {row.collectionType === null
-                            ? 'Awaiting item match'
+                            ? appText.webAdminQueueAwaitingItemMatch
                             : row.collectionType === 'event'
-                              ? 'Event collection'
-                              : 'Regular collection'}
+                              ? appText.webAdminQueueEventCollection
+                              : appText.webAdminQueueRegularCollection}
                         </span>
                       </span>
                       {safeScreenshotPath(row.screenshotPath) && (
                         <img
                           className="submission-card__screenshot"
                           src={row.screenshotPath}
-                          alt="Submission screenshot"
+                          alt={appText.webAdminQueueSubmissionScreenshot}
                           loading="lazy"
                         />
                       )}
                       <span
                         className={'admin-badge admin-badge--' + row.status}
                       >
-                        {row.status}
+                        {appText.domainDisplaySubmissionStatus[row.status]}
                       </span>
                     </button>
                   </li>
@@ -347,13 +358,15 @@ export function AdminQueue({
           {(!snapshot || !snapshot.queue.submissions.length) && (
             <p className="admin-empty" role={changing ? 'status' : undefined}>
               {changing
-                ? `Loading ${view} submissions…`
-                : `No ${snapshot?.view ?? view} submissions in this view.`}
+                ? appText.webAdminQueueLoadingSubmissions3(view)
+                : appText.webAdminQueueNoSubmissionsInThisView(
+                    snapshot?.view ?? view,
+                  )}
             </p>
           )}
           {changing && snapshot && snapshot.queue.submissions.length > 0 && (
             <p className="queue-loading" role="status">
-              Loading {view} submissions…
+              {appText.webAdminQueueLoadingSubmissionsMessage(view)}
             </p>
           )}
         </div>
@@ -370,9 +383,9 @@ export function AdminQueue({
               setSelected(undefined);
             }}
           >
-            Previous page
+            {appText.webAdminQueuePreviousPage}
           </button>
-          <span>Page {cursors.length}</span>
+          <span>{appText.webAdminQueuePageMessage(cursors.length)}</span>
           <button
             className="site-button"
             disabled={Boolean(nextReason)}
@@ -387,7 +400,7 @@ export function AdminQueue({
               setSelected(undefined);
             }}
           >
-            Next page
+            {appText.webAdminQueueNextPage}
           </button>
         </div>
         {previousReason && (
@@ -412,7 +425,7 @@ export function AdminQueue({
           onAccessLost={onAccessLost}
           onClose={() => setSelected(undefined)}
           onChanged={(status) => {
-            setNotice('Saved submission state: ' + status + '.');
+            setNotice(appText.webAdminQueueSavedSubmissionState(status));
             setCursors([undefined]);
             if (status !== 'pending') {
               setView('reviewed');

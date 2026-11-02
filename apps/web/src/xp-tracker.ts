@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Public events need only identity/link, name, skill scope and aggregate gained XP. */
 import { competitionScope, type WomCompetition } from '@clog/domain';
 import { parseWomCompetition } from './competition-api.ts';
@@ -69,16 +70,18 @@ export function parseTracker(value: unknown): XpTracker {
     totals = object(data.totals);
   const result = zeroTotals();
   if (Object.keys(totals).length !== skills.length)
-    throw new Error('Incomplete skill totals.');
+    throw new Error(appText.webXpTrackerIncompleteSkillTotals);
   for (const [id] of skills) result[id] = amount(totals[id]);
   const events = list(data.events).map((entry) => {
     const row = object(entry),
       id = identity(row.id),
       source = competitionUrl(text(row.sourceUrl));
-    if (source.id !== id) throw new Error('Event identity mismatch.');
+    if (source.id !== id)
+      throw new Error(appText.webXpTrackerEventIdentityMismatch);
     const ids = list(row.skills).map(skill);
     unique(ids);
-    if (!ids.length) throw new Error('An event needs supported skills.');
+    if (!ids.length)
+      throw new Error(appText.webXpTrackerAnEventNeedsSupportedSkills);
     const gains = object(row.gains);
     const competition =
       row.competition === undefined
@@ -94,13 +97,13 @@ export function parseTracker(value: unknown): XpTracker {
         ) !== JSON.stringify(ids))
     )
       throw new Error(
-        'XP competition metadata does not match its identity and skill scope.',
+        appText.webXpTrackerXpCompetitionMetadataDoesNotMatchItsIdentityAndSkill,
       );
     if (
       Object.keys(gains).length !== ids.length ||
       Object.keys(gains).some((key) => !ids.includes(skill(key)))
     )
-      throw new Error('Unexpected event skills.');
+      throw new Error(appText.webXpTrackerUnexpectedEventSkills);
     return {
       id,
       title: text(row.title),
@@ -126,7 +129,7 @@ export function parsePodium(value: unknown): PodiumPlayer[] {
     const p = object(r);
     const gained = amount(p.gained);
     if (BigInt(gained) <= 0n)
-      throw new Error('Podium requires positive gains.');
+      throw new Error(appText.webXpTrackerPodiumRequiresPositiveGains);
     return {
       playerId: identity(p.playerId),
       displayName: text(p.displayName),
@@ -144,7 +147,7 @@ export function parsePodium(value: unknown): PodiumPlayer[] {
             players[i - 1]!.playerId > p.playerId)),
     )
   )
-    throw new Error('Invalid podium ranking.');
+    throw new Error(appText.webXpTrackerInvalidPodiumRanking);
   return players;
 }
 export function eventTotals(event: XpEvent): Record<SkillId, Xp | null> {

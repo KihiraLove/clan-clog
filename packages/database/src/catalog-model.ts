@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** The offline import contract. Runtime state and preview credits cannot enter this file. */
 import { createHash } from 'node:crypto';
 import { validateCatalog } from '@clog/domain';
@@ -61,7 +62,7 @@ export function validateSnapshot(
     !value.pages.length ||
     value.pages.length > 2000
   )
-    throw new Error('Invalid catalog snapshot');
+    throw new Error(appText.databaseCatalogModelInvalidCatalogSnapshot);
   for (const item of value.items) {
     if (
       !record(item) ||
@@ -74,7 +75,7 @@ export function validateSnapshot(
       typeof item.iconPath !== 'string' ||
       !/^\/catalog\/items\/[1-9]\d*\.webp$/u.test(item.iconPath)
     )
-      throw new Error('Invalid imported item');
+      throw new Error(appText.databaseCatalogModelInvalidImportedItem);
   }
   let slots = 0;
   for (const page of value.pages) {
@@ -92,10 +93,11 @@ export function validateSnapshot(
       !page.itemIds.length ||
       !page.itemIds.every(integer)
     )
-      throw new Error('Invalid imported page');
+      throw new Error(appText.databaseCatalogModelInvalidImportedPage);
     slots += page.itemIds.length;
   }
-  if (slots > 50000) throw new Error('Catalog slot limit exceeded');
+  if (slots > 50000)
+    throw new Error(appText.databaseCatalogModelCatalogSlotLimitExceeded);
   const snapshot = value as unknown as CatalogSnapshot;
   validateCatalog(snapshot.items, snapshot.pages);
 }

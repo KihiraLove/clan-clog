@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Independent mode appearance, with shared revision-checked administrator writes. */
 import { useEffect, useState } from 'react';
 import { ClanLogoSettings, useClanLogoDraft } from './ClanLogoSettings.tsx';
@@ -116,7 +117,9 @@ export function AdminSettings({
           onAccessLost();
           return;
         }
-        setReadError('Site settings are unavailable. Reload to try again.');
+        setReadError(
+          appText.webAdminSettingsSiteSettingsAreUnavailableReloadToTryAgain,
+        );
       })
       .finally(() => clearTimeout(timer));
     return () => {
@@ -129,7 +132,9 @@ export function AdminSettings({
     <>
       {hardcore && (
         <section className="admin-panel hardcore-release-setting">
-          <h2 id="hardcore-release-title">Enable hardcore worlds</h2>
+          <h2 id="hardcore-release-title">
+            {appText.webAdminSettingsEnableHardcoreWorlds}
+          </h2>
           <button
             type="button"
             role="switch"
@@ -154,8 +159,8 @@ export function AdminSettings({
                     onSaved?.(value);
                     releaseAction.setMessage(
                       next
-                        ? 'Hardcore worlds enabled.'
-                        : 'Hardcore worlds disabled.',
+                        ? appText.webAdminSettingsHardcoreWorldsEnabled
+                        : appText.webAdminSettingsHardcoreWorldsDisabled,
                     );
                   }
                 },
@@ -170,7 +175,7 @@ export function AdminSettings({
               );
             }}
           >
-            {enabled ? 'On' : 'Off'}
+            {enabled ? appText.webAdminSettingsOn : appText.webAdminSettingsOff}
           </button>
           {releaseAction.error && <p role="alert">{releaseAction.error}</p>}
           {releaseAction.message && (
@@ -179,13 +184,21 @@ export function AdminSettings({
         </section>
       )}
       <section className="admin-panel">
-        <h2>{hardcore ? 'Hardcore worlds settings' : 'Site settings'}</h2>
-        {!editable && <p>Only the administrator can change these settings.</p>}
+        <h2>
+          {hardcore
+            ? appText.webAdminSettingsHardcoreWorldsSettings
+            : appText.webAdminSettingsSiteSettings}
+        </h2>
+        {!editable && (
+          <p>
+            {appText.webAdminSettingsOnlyTheAdministratorCanChangeTheseSettings}
+          </p>
+        )}
         {readError && (
           <p role="alert">
             {readError}{' '}
             <button onClick={() => setRefresh((n) => n + 1)}>
-              Retry settings
+              {appText.webAdminSettingsRetrySettings}
             </button>
           </p>
         )}
@@ -231,15 +244,15 @@ export function AdminSettings({
                 } catch (failure) {
                   if (settingsDirty && !signal.aborted)
                     action.setMessage(
-                      'Site settings saved. Logo changes remain unsaved; retry Save to finish.',
+                      appText.webAdminSettingsSiteSettingsSavedLogoChangesRemainUnsavedRetrySaveTo,
                     );
                   throw failure;
                 }
                 if (!signal.aborted) {
                   action.setMessage(
                     hardcore
-                      ? 'Hardcore worlds settings saved.'
-                      : 'Site settings saved.',
+                      ? appText.webAdminSettingsHardcoreWorldsSettingsSaved
+                      : appText.webAdminSettingsSiteSettingsSaved,
                   );
                 }
               },
@@ -255,7 +268,7 @@ export function AdminSettings({
         >
           <ClanLogoSettings draft={logo} disabled={busy || !editable} />
           <label>
-            Displayed clan name
+            {appText.webAdminSettingsDisplayedClanName}
             <input
               required
               maxLength={80}
@@ -265,17 +278,20 @@ export function AdminSettings({
             />
           </label>
           <fieldset className="site-copy-fields">
-            <legend>Website text</legend>
+            <legend>{appText.webAdminSettingsWebsiteText}</legend>
             {(
               [
-                ['collectionTitle', 'Collection log title'],
-                ['collectionCaption', 'Collection log caption'],
-                ['xpTitle', 'XP section title'],
+                ['collectionTitle', appText.webAdminSettingsCollectionLogTitle],
+                [
+                  'collectionCaption',
+                  appText.webAdminSettingsCollectionLogCaption,
+                ],
+                ['xpTitle', appText.webAdminSettingsXpSectionTitle],
               ] as const
             ).map(([key, label]) => (
               <label key={key}>
                 {hardcore && key === 'xpTitle'
-                  ? 'XP section title (section is disabled until WOM adds support)'
+                  ? appText.webAdminSettingsXpSectionTitleSectionIsDisabledUntilWomAddsSupport
                   : label}
                 <input
                   required
@@ -295,8 +311,8 @@ export function AdminSettings({
           <HighlightPicker
             title={
               hardcore
-                ? 'Hardcore collection highlight'
-                : 'Event collection highlight'
+                ? appText.webAdminSettingsHardcoreCollectionHighlight
+                : appText.webAdminSettingsEventCollectionHighlight
             }
             value={highlight}
             onChange={setHighlight}
@@ -304,9 +320,9 @@ export function AdminSettings({
           />
           {!hardcore && (
             <fieldset className="site-copy-fields submission-help-settings">
-              <legend>Submission help</legend>
+              <legend>{appText.webAdminSettingsSubmissionHelp}</legend>
               <label htmlFor="submission-help-markdown">
-                How to submit (Markdown)
+                {appText.webAdminSettingsHowToSubmitMarkdown}
               </label>
               <textarea
                 id="submission-help-markdown"
@@ -324,7 +340,7 @@ export function AdminSettings({
               </p>
               {helpInvalid && (
                 <p role="alert">
-                  Use at most 32 KiB of UTF-8 text with no NUL characters.
+                  {appText.webAdminSettingsUseAtMost32KiBOfUtf8TextWith}
                 </p>
               )}
               <button
@@ -333,10 +349,14 @@ export function AdminSettings({
                 aria-expanded={preview}
                 onClick={() => setPreview(!preview)}
               >
-                {preview ? 'Hide preview' : 'Preview instructions'}
+                {preview
+                  ? appText.webAdminSettingsHidePreview
+                  : appText.webAdminSettingsPreviewInstructions}
               </button>
               {preview && (
-                <section aria-label="Submission help preview">
+                <section
+                  aria-label={appText.webAdminSettingsSubmissionHelpPreview}
+                >
                   <SubmissionHelpContent text={help} />
                 </section>
               )}
@@ -357,7 +377,9 @@ export function AdminSettings({
               Object.values(copy).some((text) => !text.trim())
             }
           >
-            {hardcore ? 'Save hardcore settings' : 'Save site settings'}
+            {hardcore
+              ? appText.webAdminSettingsSaveHardcoreSettings
+              : appText.webAdminSettingsSaveSiteSettings}
           </button>
           <button
             type="button"
@@ -370,7 +392,7 @@ export function AdminSettings({
               action.setMessage(undefined);
             }}
           >
-            Discard changes
+            {appText.webAdminSettingsDiscardChanges}
           </button>
         </form>
         {action.error && <p role="alert">{action.error}</p>}

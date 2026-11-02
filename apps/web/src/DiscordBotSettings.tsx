@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { useEffect, useState } from 'react';
 import {
   parseDiscordFields,
@@ -12,12 +13,12 @@ import { useAdminDraft, usePreparedAdminData } from './admin-route-data.ts';
 import { withAbort } from './with-abort.ts';
 
 const connectionLabels = {
-  checking: 'Checking…',
-  disabled: 'Disabled',
-  connecting: 'Connecting',
-  connected: 'Connected',
-  disconnected: 'Disconnected',
-  unavailable: 'Unavailable',
+  checking: appText.webDiscordBotSettingsChecking,
+  disabled: appText.webDiscordBotSettingsDisabled,
+  connecting: appText.webDiscordBotSettingsConnecting,
+  connected: appText.webDiscordBotSettingsConnected,
+  disconnected: appText.webDiscordBotSettingsDisconnected,
+  unavailable: appText.webDiscordBotSettingsUnavailable,
 };
 
 export function DiscordBotSettings({
@@ -97,24 +98,29 @@ export function DiscordBotSettings({
         );
         if (!signal.aborted)
           action.setMessage(
-            `Commands registered for the ${target === 'test' ? 'test' : 'main'} server.`,
+            appText.webDiscordBotSettingsCommandsRegisteredForTheServer(target),
           );
       },
       reload,
-      'Registering commands',
+      appText.webDiscordBotSettingsRegisteringCommands,
     );
   };
   if (!saved || !fields)
     return (
-      <p role="alert">Discord settings are unavailable. Reload this page.</p>
+      <p role="alert">
+        {
+          appText.webDiscordBotSettingsDiscordSettingsAreUnavailableReloadThisPage
+        }
+      </p>
     );
   return (
     <section className="admin-panel discord-settings">
-      <h2>Discord bot</h2>
+      <h2>{appText.webDiscordBotSettingsDiscordBot}</h2>
       {!editable && (
         <p>
-          Only the administrator can change Discord settings or register
-          commands.
+          {
+            appText.webDiscordBotSettingsOnlyTheAdministratorCanChangeDiscordSettingsOrRegisterCommands
+          }
         </p>
       )}
       <p
@@ -123,7 +129,7 @@ export function DiscordBotSettings({
         aria-live="polite"
         aria-atomic="true"
       >
-        Status:{' '}
+        {appText.webDiscordBotSettingsStatus}{' '}
         <span
           className={
             connection === 'connected'
@@ -153,7 +159,9 @@ export function DiscordBotSettings({
               (!saved.tokenConfigured || clearToken) &&
               !token
             )
-              throw new Error('Add a bot token before enabling Discord.');
+              throw new Error(
+                appText.webDiscordBotSettingsAddABotTokenBeforeEnablingDiscord,
+              );
             const value = await client.saveDiscordSettings(
               input,
               session.csrfToken,
@@ -162,16 +170,18 @@ export function DiscordBotSettings({
             if (!signal.aborted) {
               accept(value);
               action.setMessage(
-                'Discord settings saved. The bot will reload automatically.',
+                appText.webDiscordBotSettingsDiscordSettingsSavedTheBotWillReloadAutomatically,
               );
             }
           }, reload);
         }}
       >
         <fieldset disabled={action.busy || !editable}>
-          <legend>Connection</legend>
+          <legend>{appText.webDiscordBotSettingsConnection}</legend>
           <div>
-            <span id="discord-enable-label">Enable Discord bot</span>{' '}
+            <span id="discord-enable-label">
+              {appText.webDiscordBotSettingsEnableDiscordBot}
+            </span>{' '}
             <button
               type="button"
               className="site-button"
@@ -180,12 +190,14 @@ export function DiscordBotSettings({
               aria-checked={fields.enabled}
               onClick={() => setFields({ ...fields, enabled: !fields.enabled })}
             >
-              {fields.enabled ? 'On' : 'Off'}
+              {fields.enabled
+                ? appText.webDiscordBotSettingsOn
+                : appText.webDiscordBotSettingsOff}
             </button>
           </div>
           <div className="discord-settings-grid">
             <label>
-              Application ID
+              {appText.webDiscordBotSettingsApplicationId}
               <input
                 inputMode="numeric"
                 pattern="[0-9]{17,20}"
@@ -198,7 +210,7 @@ export function DiscordBotSettings({
               />
             </label>
             <label>
-              Server ID
+              {appText.webDiscordBotSettingsServerId}
               <input
                 inputMode="numeric"
                 pattern="[0-9]{17,20}"
@@ -211,7 +223,7 @@ export function DiscordBotSettings({
               />
             </label>
             <label>
-              Test server ID (optional)
+              {appText.webDiscordBotSettingsTestServerIdOptional}
               <input
                 inputMode="numeric"
                 pattern="[0-9]{17,20}"
@@ -223,7 +235,7 @@ export function DiscordBotSettings({
               />
             </label>
             <label>
-              Bot token
+              {appText.webDiscordBotSettingsBotToken}
               <input
                 type="password"
                 autoComplete="new-password"
@@ -233,14 +245,16 @@ export function DiscordBotSettings({
                 disabled={clearToken}
                 placeholder={
                   saved.tokenConfigured
-                    ? 'Stored securely; leave blank to keep it'
-                    : 'Paste the token from Discord'
+                    ? appText.webDiscordBotSettingsStoredSecurelyLeaveBlankToKeepIt
+                    : appText.webDiscordBotSettingsPasteTheTokenFromDiscord
                 }
                 onChange={(e) => setToken(e.target.value)}
               />
             </label>
           </div>
-          {!saved.tokenConfigured && <p>No bot token is stored.</p>}
+          {!saved.tokenConfigured && (
+            <p>{appText.webDiscordBotSettingsNoBotTokenIsStored}</p>
+          )}
           {saved.tokenConfigured && (
             <label>
               <input
@@ -253,19 +267,35 @@ export function DiscordBotSettings({
                     setFields({ ...fields, enabled: false });
                 }}
               />
-              Remove stored token when saving
+              {appText.webDiscordBotSettingsRemoveStoredTokenWhenSaving}
             </label>
           )}
         </fieldset>
         <fieldset disabled={action.busy || !editable}>
-          <legend>Rate limits per minute</legend>
+          <legend>{appText.webDiscordBotSettingsRateLimitsPerMinute}</legend>
           <div className="discord-settings-grid">
             {(
               [
-                ['intakeUser', 'Submissions per user', 120],
-                ['intakeGuild', 'Submissions per server', 120],
-                ['searchUser', 'Searches per user', 600],
-                ['searchGuild', 'Searches per server', 600],
+                [
+                  'intakeUser',
+                  appText.webDiscordBotSettingsSubmissionsPerUser,
+                  120,
+                ],
+                [
+                  'intakeGuild',
+                  appText.webDiscordBotSettingsSubmissionsPerServer,
+                  120,
+                ],
+                [
+                  'searchUser',
+                  appText.webDiscordBotSettingsSearchesPerUser,
+                  600,
+                ],
+                [
+                  'searchGuild',
+                  appText.webDiscordBotSettingsSearchesPerServer,
+                  600,
+                ],
               ] as const
             ).map(([key, label, max]) => (
               <label key={key}>
@@ -295,7 +325,7 @@ export function DiscordBotSettings({
             className="site-button"
             disabled={!editable || action.busy || !dirty}
           >
-            Save Discord settings
+            {appText.webDiscordBotSettingsSaveDiscordSettings}
           </button>
           <button
             type="button"
@@ -303,11 +333,11 @@ export function DiscordBotSettings({
             disabled={!editable || action.busy || !dirty}
             onClick={() => accept(saved)}
           >
-            Discard changes
+            {appText.webDiscordBotSettingsDiscardChanges}
           </button>
         </div>
       </form>
-      <h3>Register slash commands</h3>
+      <h3>{appText.webDiscordBotSettingsRegisterSlashCommands}</h3>
       <div className="admin-actions">
         <button
           className="site-button"
@@ -321,7 +351,7 @@ export function DiscordBotSettings({
           }
           onClick={() => register('guild')}
         >
-          Register for main server
+          {appText.webDiscordBotSettingsRegisterForMainServer}
         </button>
         <button
           className="site-button"
@@ -335,7 +365,7 @@ export function DiscordBotSettings({
           }
           onClick={() => register('test')}
         >
-          Register for test server
+          {appText.webDiscordBotSettingsRegisterForTestServer}
         </button>
       </div>
       {action.error && <p role="alert">{action.error}</p>}

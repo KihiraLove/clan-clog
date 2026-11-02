@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { useEffect, useRef, useState } from 'react';
 import { CompetitionImport } from './CompetitionImport.tsx';
 import type { CompetitionClient } from './competition-api.ts';
@@ -95,7 +96,7 @@ export function AdminScheduling({
       .catch((failure: unknown) => {
         if (!active) return;
         if (classifyAccessFailure(failure) === 'expired') onAccessLost();
-        else setError('Scheduling could not be loaded.');
+        else setError(appText.webAdminSchedulingSchedulingCouldNotBeLoaded);
       })
       .finally(() => clearTimeout(timeout));
     return () => {
@@ -138,13 +139,15 @@ export function AdminScheduling({
     <>
       <section className="admin-panel scheduling-panel">
         <h2 id="scheduling-toggle-title">
-          Track Event collections during scheduled windows
+          {
+            appText.webAdminSchedulingTrackEventCollectionsDuringScheduledWindows
+          }
         </h2>
         {error && (
           <p role="alert">
             {error}{' '}
             <button type="button" onClick={() => setRefresh((n) => n + 1)}>
-              Retry scheduling
+              {appText.webAdminSchedulingRetryScheduling}
             </button>
           </p>
         )}
@@ -154,7 +157,7 @@ export function AdminScheduling({
               type="button"
               className="site-button admin-toggle"
               role="switch"
-              aria-label="Collection log scheduling"
+              aria-label={appText.webAdminSchedulingCollectionLogScheduling}
               aria-describedby="scheduling-toggle-title"
               aria-checked={state?.enabled ?? false}
               disabled={busy}
@@ -171,25 +174,33 @@ export function AdminScheduling({
                   if (!signal.aborted) {
                     setState(saved);
                     action.setMessage(
-                      enabled ? 'Scheduling enabled.' : 'Scheduling disabled.',
+                      enabled
+                        ? appText.webAdminSchedulingSchedulingEnabled
+                        : appText.webAdminSchedulingSchedulingDisabled,
                     );
                   }
                 }, reload);
               }}
             >
-              {state?.enabled ? 'On' : 'Off'}
+              {state?.enabled
+                ? appText.webAdminSchedulingOn
+                : appText.webAdminSchedulingOff}
             </button>
           </div>
         ) : (
           <p>
-            Scheduling is{' '}
-            <strong>{state?.enabled ? 'enabled' : 'disabled'}</strong>. Only the
-            administrator can change this.
+            {appText.webAdminSchedulingSchedulingIs}{' '}
+            <strong>
+              {state?.enabled
+                ? appText.webAdminSchedulingEnabled
+                : appText.webAdminSchedulingDisabled}
+            </strong>
+            {appText.webAdminSchedulingOnlyTheAdministratorCanChangeThis}
           </p>
         )}
       </section>
       <section className="admin-panel scheduling-panel">
-        <h2>Schedule management</h2>
+        <h2>{appText.webAdminSchedulingScheduleManagement}</h2>
         <CompetitionImport
           client={competitionClient}
           session={session}
@@ -219,16 +230,22 @@ export function AdminScheduling({
                 setState(saved);
                 reset();
                 action.setMessage(
-                  editingId ? 'Schedule updated.' : 'Schedule created.',
+                  editingId
+                    ? appText.webAdminSchedulingScheduleUpdated
+                    : appText.webAdminSchedulingScheduleCreated,
                 );
               }
             }, reload);
           }}
         >
-          <h3>{editingId ? 'Edit schedule' : 'New schedule'}</h3>
+          <h3>
+            {editingId
+              ? appText.webAdminSchedulingEditSchedule
+              : appText.webAdminSchedulingNewSchedule}
+          </h3>
           <fieldset className="admin-fieldset" disabled={busy}>
             <label htmlFor="schedule-title">
-              Schedule name
+              {appText.webAdminSchedulingScheduleName}
               <input
                 id="schedule-title"
                 value={title}
@@ -239,7 +256,7 @@ export function AdminScheduling({
             </label>
             <div className="schedule-datetime-field">
               <label htmlFor="schedule-start">
-                Start date and time (local)
+                {appText.webAdminSchedulingStartDateAndTimeLocal}
               </label>
               <div className="schedule-datetime-row">
                 <input
@@ -252,13 +269,15 @@ export function AdminScheduling({
                 />
                 {previewUtc(startLocal) && (
                   <span className="schedule-utc" aria-live="polite">
-                    Start UTC: {previewUtc(startLocal)}
+                    {appText.webAdminSchedulingStartUTC(previewUtc(startLocal))}
                   </span>
                 )}
               </div>
             </div>
             <div className="schedule-datetime-field">
-              <label htmlFor="schedule-end">End date and time (local)</label>
+              <label htmlFor="schedule-end">
+                {appText.webAdminSchedulingEndDateAndTimeLocal}
+              </label>
               <div className="schedule-datetime-row">
                 <input
                   id="schedule-end"
@@ -270,13 +289,13 @@ export function AdminScheduling({
                 />
                 {previewUtc(endLocal) && (
                   <span className="schedule-utc" aria-live="polite">
-                    End UTC: {previewUtc(endLocal)}
+                    {appText.webAdminSchedulingEndUTC(previewUtc(endLocal))}
                   </span>
                 )}
               </div>
             </div>
             <label htmlFor="schedule-pages-search">
-              Find collection log pages
+              {appText.webAdminSchedulingFindCollectionLogPages}
               <input
                 id="schedule-pages-search"
                 type="search"
@@ -285,9 +304,9 @@ export function AdminScheduling({
               />
             </label>
             <fieldset className="schedule-page-list catalog-picker">
-              <legend>Collection log pages</legend>
+              <legend>{appText.webAdminSchedulingCollectionLogPages}</legend>
               <div className="catalog-choice-list">
-                {!catalog && <p>Loading pages…</p>}
+                {!catalog && <p>{appText.webAdminSchedulingLoadingPages}</p>}
                 {catalog?.pages
                   .filter((p) =>
                     (p.name + ' ' + p.category)
@@ -307,7 +326,10 @@ export function AdminScheduling({
                           )
                         }
                       />
-                      {page.name} ({page.category})
+                      {page.name}
+                      {appText.webAdminSchedulingOpenParenthesis}
+                      {page.category}
+                      {appText.webAdminSchedulingCloseParenthesis}
                     </label>
                   ))}
                 {pageIds
@@ -321,12 +343,16 @@ export function AdminScheduling({
                           setPageIds(pageIds.filter((value) => value !== id))
                         }
                       />
-                      Unavailable page: {id} (remove before saving)
+                      {appText.webAdminSchedulingUnavailablePage}
+                      {id}
+                      {appText.webAdminSchedulingRemoveBeforeSaving}
                     </label>
                   ))}
               </div>
             </fieldset>
-            <p className="admin-note">{pageIds.length} pages selected.</p>
+            <p className="admin-note">
+              {appText.webAdminSchedulingPagesSelectedMessage(pageIds.length)}
+            </p>
             <div className="admin-actions">
               <button
                 className="site-button"
@@ -334,18 +360,22 @@ export function AdminScheduling({
                   !title.trim() || !startLocal || !endLocal || !pageIds.length
                 }
               >
-                {editingId ? 'Save schedule' : 'Create schedule'}
+                {editingId
+                  ? appText.webAdminSchedulingSaveSchedule
+                  : appText.webAdminSchedulingCreateSchedule}
               </button>
               {editingId && (
                 <button type="button" className="site-button" onClick={reset}>
-                  Cancel edit
+                  {appText.webAdminSchedulingCancelEdit}
                 </button>
               )}
             </div>
           </fieldset>
         </form>
-        <h3>Saved schedules</h3>
-        {state?.schedules.length === 0 && <p>No schedules yet.</p>}
+        <h3>{appText.webAdminSchedulingSavedSchedules}</h3>
+        {state?.schedules.length === 0 && (
+          <p>{appText.webAdminSchedulingNoSchedulesYet}</p>
+        )}
         <div className="schedule-list">
           {state?.schedules.map((schedule) => (
             <article className="schedule-card" key={schedule.id}>
@@ -353,24 +383,26 @@ export function AdminScheduling({
                 <h4>{schedule.title}</h4>
                 <span className="admin-badge">
                   {!state.enabled
-                    ? 'Inactive while scheduling is disabled'
+                    ? appText.webAdminSchedulingInactiveWhileSchedulingIsDisabled
                     : now < schedule.startsAt
-                      ? 'Upcoming'
+                      ? appText.webAdminSchedulingUpcoming
                       : now < schedule.endsAt
-                        ? 'Open now'
-                        : 'Ended'}
+                        ? appText.webAdminSchedulingOpenNow
+                        : appText.webAdminSchedulingEnded}
                 </span>
               </div>
               <div className="schedule-card__times">
                 <p>
-                  Start: {localScheduleLabel(schedule.startsAt)}
+                  {appText.webAdminSchedulingStart}
+                  {localScheduleLabel(schedule.startsAt)}
                   <br />
                   <span className="schedule-utc">
                     {utcScheduleLabel(schedule.startsAt)}
                   </span>
                 </p>
                 <p>
-                  End: {localScheduleLabel(schedule.endsAt)}
+                  {appText.webAdminSchedulingEnd}
+                  {localScheduleLabel(schedule.endsAt)}
                   <br />
                   <span className="schedule-utc">
                     {utcScheduleLabel(schedule.endsAt)}
@@ -378,14 +410,15 @@ export function AdminScheduling({
                 </p>
               </div>
               <p>
-                Pages:{' '}
-                {schedule.pageIds
-                  .map(
-                    (id) =>
-                      catalog?.pages.find((p) => p.id === id)?.name ??
-                      'Unavailable page: ' + id,
-                  )
-                  .join(', ')}
+                {appText.webAdminSchedulingPagesMessage(
+                  schedule.pageIds
+                    .map(
+                      (id) =>
+                        catalog?.pages.find((p) => p.id === id)?.name ??
+                        appText.webAdminSchedulingUnavailablePage2(id),
+                    )
+                    .join(', '),
+                )}
               </p>
               <div className="admin-actions">
                 <button
@@ -394,7 +427,7 @@ export function AdminScheduling({
                   disabled={busy}
                   onClick={() => edit(schedule)}
                 >
-                  Edit
+                  {appText.webAdminSchedulingEdit}
                 </button>
                 <button
                   type="button"
@@ -402,7 +435,7 @@ export function AdminScheduling({
                   disabled={busy}
                   onClick={() => setRemoving(schedule)}
                 >
-                  Delete
+                  {appText.webAdminSchedulingDelete}
                 </button>
               </div>
             </article>
@@ -411,13 +444,14 @@ export function AdminScheduling({
         {removing && (
           <dialog
             ref={deleteDialog}
-            aria-label="Delete schedule"
+            aria-label={appText.webAdminSchedulingDeleteSchedule}
             className="schedule-delete-confirm"
             onCancel={() => setRemoving(undefined)}
           >
             <p>
-              Delete “{removing.title}”? Pages will follow the remaining
-              schedules.
+              {appText.webAdminSchedulingDeletePagesWillFollowTheRemainingSchedules(
+                removing.title,
+              )}
             </p>
             <div className="admin-actions">
               <button
@@ -437,12 +471,14 @@ export function AdminScheduling({
                       setState(saved);
                       if (editingId === removing.id) reset();
                       setRemoving(undefined);
-                      action.setMessage('Schedule deleted.');
+                      action.setMessage(
+                        appText.webAdminSchedulingScheduleDeleted,
+                      );
                     }
                   }, reload);
                 }}
               >
-                Confirm delete schedule
+                {appText.webAdminSchedulingConfirmDeleteSchedule}
               </button>
               <button
                 type="button"
@@ -450,7 +486,7 @@ export function AdminScheduling({
                 disabled={busy}
                 onClick={() => setRemoving(undefined)}
               >
-                Keep schedule
+                {appText.webAdminSchedulingKeepSchedule}
               </button>
             </div>
           </dialog>

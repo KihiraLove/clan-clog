@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import type pg from 'pg';
 import type { LogoRecord } from './branding-storage.js';
 import { ApiError } from './types.js';
@@ -34,7 +35,8 @@ export class PgBrandingStore implements BrandingStore {
         `SELECT b.${prefix}version AS version,b.${prefix}logo_asset_id AS logo_asset_id,a.favicon_id FROM clan_branding b LEFT JOIN clan_logo_assets a ON a.id=b.${prefix}logo_asset_id WHERE singleton=true`,
       )
     ).rows[0];
-    if (!row) throw new ApiError(503, 'Clan branding unavailable.');
+    if (!row)
+      throw new ApiError(503, appText.apiBrandingStoreClanBrandingUnavailable);
     return {
       revision: 'branding-' + row.version,
       logoPath: row.logo_asset_id
@@ -86,7 +88,7 @@ export class PgBrandingStore implements BrandingStore {
       if (!old || 'branding-' + old.version !== revision)
         throw new ApiError(
           409,
-          'The clan logo changed. Reload before trying again.',
+          appText.apiBrandingStoreTheClanLogoChangedReloadBeforeTryingAgain,
         );
       if (record) {
         const { logo: l, favicon: f } = record;

@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 import {
   blockedRuneLiteWorldTypes,
   hardcoreRuneLiteWorldTypes,
@@ -46,7 +47,7 @@ export const normalizePlayerName = (name: string) =>
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid RuneLite settings.');
+    throw new Error(appText.domainRuneliteRulesInvalidRuneLiteSettings);
   return value as Record<string, unknown>;
 }
 const validName = (value: unknown): value is string =>
@@ -90,7 +91,7 @@ export function parseRuneLiteRules(value: unknown): RuneLiteRules {
     )
   )
     throw new Error(
-      'Invalid RuneLite settings. Use valid names and world policies, with up to 200 whitelist entries.',
+      appText.domainRuneliteRulesInvalidRuneLiteSettingsUseValidNamesAndWorldPoliciesWith,
     );
   const names = new Map<string, string>();
   for (const name of data.playerWhitelist as string[])
@@ -110,7 +111,7 @@ export function parseRuneLiteRules(value: unknown): RuneLiteRules {
 export function parseRuneLiteSettings(value: unknown): RuneLiteSettings {
   const { revision, clanKeyRequirement, ...rules } = record(value);
   if (typeof revision !== 'string' || !/^runelite-[1-9][0-9]*$/u.test(revision))
-    throw new Error('Invalid RuneLite settings revision.');
+    throw new Error(appText.domainRuneliteRulesInvalidRuneLiteSettingsRevision);
   let requirement: RuneLiteSettings['clanKeyRequirement'];
   if (clanKeyRequirement !== undefined) {
     const key = record(clanKeyRequirement);
@@ -122,7 +123,7 @@ export function parseRuneLiteSettings(value: unknown): RuneLiteSettings {
       typeof key.revision !== 'string' ||
       !/^clan-key-[1-9][0-9]*$/u.test(key.revision)
     )
-      throw new Error('Invalid clan API key requirement.');
+      throw new Error(appText.domainRuneliteRulesInvalidClanApiKeyRequirement);
     requirement = { enabled: key.enabled, revision: key.revision };
   }
   return {
@@ -143,7 +144,8 @@ export function runeLiteDecision(
   if (blocked)
     return {
       action: 'reject' as const,
-      reason: `Submissions from ${blocked} worlds are not allowed.`,
+      reason:
+        appText.domainRuneliteRulesSubmissionsFromWorldsAreNotAllowed(blocked),
     };
   const policies: [string, WorldPolicy][] = [];
   if (types.includes('F2P')) policies.push(['F2P', rules.worldPolicies.f2p]);
@@ -160,7 +162,9 @@ export function runeLiteDecision(
   if (rejected)
     return {
       action: 'reject' as const,
-      reason: `Submissions from ${rejected[0]} worlds are not allowed.`,
+      reason: appText.domainRuneliteRulesSubmissionsFromWorldsAreNotAllowed2(
+        rejected[0],
+      ),
     };
   if (
     rules.playerWhitelist.some(
@@ -169,15 +173,17 @@ export function runeLiteDecision(
   )
     return {
       action: 'allow' as const,
-      reason: 'Automatically approved: player whitelist.',
+      reason: appText.domainRuneliteRulesAutomaticallyApprovedPlayerWhitelist,
     };
   if (policies.length && policies.every(([, action]) => action === 'allow'))
     return {
       action: 'allow' as const,
-      reason:
-        'Automatically approved: world policies (' +
-        policies.map(([type]) => type).join(', ') +
-        ').',
+      reason: appText.domainRuneliteRulesAutomaticallyApprovedWorldPolicies(
+        policies.map(([type]) => type).join(', '),
+      ),
     };
-  return { action: 'review' as const, reason: 'Awaiting staff review.' };
+  return {
+    action: 'review' as const,
+    reason: appText.domainRuneliteRulesAwaitingStaffReview,
+  };
 }

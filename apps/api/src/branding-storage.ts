@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Rasterise arbitrary supported images, keeping GIF/WebP timing and loop metadata. */
 import sharp from 'sharp';
 import { IconStorage, type IconRecord } from './icon-storage.js';
@@ -11,7 +12,7 @@ export interface LogoRecord {
 }
 export async function decodeLogo(input: Buffer) {
   if (!input.length || input.length > MAX_LOGO_BYTES)
-    throw new ApiError(413, 'Choose a logo up to 10 MiB.');
+    throw new ApiError(413, appText.apiBrandingStorageChooseALogoUpTo10MiB);
   try {
     const options = {
       limitInputPixels: MAX_PIXELS,
@@ -19,7 +20,7 @@ export async function decodeLogo(input: Buffer) {
     };
     const metadata = await sharp(input, options).metadata();
     if (!metadata.format || !formats.has(metadata.format))
-      throw new Error('Format');
+      throw new Error(appText.apiBrandingStorageFormat);
     const animated = ['gif', 'webp'].includes(metadata.format);
     const frames = animated ? (metadata.pages ?? 1) : 1;
     if (
@@ -30,7 +31,7 @@ export async function decodeLogo(input: Buffer) {
       frames > 300 ||
       metadata.width * metadata.height * frames > MAX_PIXELS
     )
-      throw new Error('Dimensions');
+      throw new Error(appText.apiBrandingStorageDimensions);
     const decoder = sharp(input, { ...options, animated });
     if (!animated) decoder.autoOrient();
     const { data, info } = await decoder
@@ -43,7 +44,8 @@ export async function decodeLogo(input: Buffer) {
       .webp({ lossless: true, effort: 2 })
       .timeout({ seconds: 5 })
       .toBuffer({ resolveWithObject: true });
-    if (data.length > MAX_LOGO_BYTES) throw new Error('Output size');
+    if (data.length > MAX_LOGO_BYTES)
+      throw new Error(appText.apiBrandingStorageOutputSize);
     return {
       bytes: data,
       width: info.width,
@@ -52,7 +54,7 @@ export async function decodeLogo(input: Buffer) {
   } catch {
     throw new ApiError(
       400,
-      'Choose a readable JPEG, PNG, GIF, WebP, SVG, AVIF or TIFF logo (up to 8192 pixels per side, 300 frames and 64 megapixels total).',
+      appText.apiBrandingStorageChooseAReadableJpegPngGifWebPSvgAvifOr,
     );
   }
 }

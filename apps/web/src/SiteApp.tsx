@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Public collection/XP routes share their branding, world controls and navigation. */
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import { XpPage } from './XpPage.tsx';
@@ -79,14 +80,20 @@ function Skull({
       className={
         'hardcore-toggle' + (enabled ? ' hardcore-toggle--active' : '')
       }
-      aria-label="Hardcore worlds"
+      aria-label={appText.webSiteAppHardcoreWorlds}
       aria-pressed={enabled}
-      title={enabled ? 'Switch to normal worlds' : 'Switch to hardcore worlds'}
+      title={
+        enabled
+          ? appText.webSiteAppSwitchToNormalWorlds
+          : appText.webSiteAppSwitchToHardcoreWorlds
+      }
       onClick={onChange}
     >
       <img src="/brand/skull.webp" alt="" />
       <span className="sr-only">
-        {enabled ? 'Hardcore worlds' : 'Normal worlds'}
+        {enabled
+          ? appText.webSiteAppHardcoreWorlds
+          : appText.webSiteAppNormalWorlds}
       </span>
     </button>
   );
@@ -144,15 +151,15 @@ export function SiteApp({
   );
   const settings = usePublicPolling(
     readSettings,
-    'Settings could not be refreshed.',
+    appText.webSiteAppSettingsCouldNotBeRefreshed,
   );
   const normalBrand = usePublicPolling(
     readNormal,
-    'Logo could not be refreshed.',
+    appText.webSiteAppLogoCouldNotBeRefreshed,
   );
   const hardcoreBrand = usePublicPolling(
     readHardcore,
-    'Logo could not be refreshed.',
+    appText.webSiteAppLogoCouldNotBeRefreshed,
   );
   useEffect(() => {
     if (normalBrand.data)
@@ -237,7 +244,7 @@ export function SiteApp({
     document.title =
       (clanName ? clanName + ' · ' : '') +
       (admin
-        ? 'Clan administration'
+        ? appText.webSiteAppClanAdministration
         : xp
           ? copy.xpTitle
           : copy.collectionTitle);
@@ -267,14 +274,14 @@ export function SiteApp({
               colorInterpolationFilters="sRGB"
             >
               <feMorphology
-                in="SourceAlpha"
+                in={'SourceAlpha'}
                 operator="dilate"
                 radius="0.65"
                 result="expanded"
               />
               <feComposite
                 in="expanded"
-                in2="SourceAlpha"
+                in2={'SourceAlpha'}
                 operator="out"
                 result="edge"
               />
@@ -285,7 +292,7 @@ export function SiteApp({
               <feComposite in2="edge" operator="in" result="colored-edge" />
               <feMerge>
                 <feMergeNode in="colored-edge" />
-                <feMergeNode in="SourceGraphic" />
+                <feMergeNode in={'SourceGraphic'} />
               </feMerge>
             </filter>
           ))}
@@ -309,8 +316,13 @@ export function SiteApp({
           main?.scrollIntoView();
         }}
       >
-        Skip to{' '}
-        {admin ? 'clan administration' : xp ? 'XP tracker' : 'collection log'}
+        {appText.webSiteAppSkipToMessage(
+          admin
+            ? appText.webSiteAppClanAdministration2
+            : xp
+              ? appText.webSiteAppXpTracker
+              : appText.webSiteAppCollectionLog,
+        )}
       </a>
       <div className="site-shell">
         <header className="site-header">
@@ -318,13 +330,13 @@ export function SiteApp({
             className="clan-brand"
             href={collectionHref}
             onClick={navigate}
-            aria-label={
-              (clanName ? clanName + ' ' : '') + 'clan collection log'
-            }
+            aria-label={appText.webSiteAppClanCollectionLog(clanName)}
           >
             <img className="clan-logo" src={branding.logoPath} alt="" />
             <div>
-              <span className="clan-name">{clanName || 'Clan name'}</span>
+              <span className="clan-name">
+                {clanName || appText.webSiteAppClanName}
+              </span>
               <span className="clan-subtitle">{copy.collectionTitle}</span>
             </div>
           </a>
@@ -341,8 +353,16 @@ export function SiteApp({
               className="site-button site-header-link"
               href={admin ? collectionHref : '/admin'}
               onClick={navigate}
-              aria-label={admin ? 'Main site' : 'Admin panel'}
-              title={admin ? 'Main site' : 'Admin panel'}
+              aria-label={
+                admin
+                  ? appText.webSiteAppMainSite
+                  : appText.webSiteAppAdminPanel
+              }
+              title={
+                admin
+                  ? appText.webSiteAppMainSite
+                  : appText.webSiteAppAdminPanel
+              }
             >
               <svg
                 className="site-header-link__icon"
@@ -365,7 +385,9 @@ export function SiteApp({
                 )}
               </svg>
               <span className="site-header-link__label">
-                {admin ? 'Main site' : 'Admin panel'}
+                {admin
+                  ? appText.webSiteAppMainSite
+                  : appText.webSiteAppAdminPanel}
               </span>
             </a>
           </div>
@@ -377,7 +399,7 @@ export function SiteApp({
                 'public-navigation' +
                 (hardcore ? ' public-navigation--hidden' : '')
               }
-              aria-label="Public pages"
+              aria-label={appText.webSiteAppPublicPages}
               aria-hidden={hardcore || undefined}
               inert={hardcore}
             >
@@ -387,7 +409,7 @@ export function SiteApp({
                 onClick={navigate}
                 aria-current={!xp ? 'page' : undefined}
               >
-                Collection log
+                {appText.webSiteAppCollectionLog2}
               </a>
               <a
                 className="site-button"
@@ -395,7 +417,7 @@ export function SiteApp({
                 onClick={navigate}
                 aria-current={xp ? 'page' : undefined}
               >
-                Xp tracker
+                {appText.webSiteAppXpTracker2}
               </a>
             </nav>
             <button
@@ -406,7 +428,7 @@ export function SiteApp({
                 setHelpOpen(true);
               }}
             >
-              How to submit
+              {appText.webSiteAppHowToSubmit}
             </button>
           </div>
         )}
@@ -445,9 +467,9 @@ export function SiteApp({
               requestedPage={requestedPage}
               captions={{
                 normal: liveCopy.collectionCaption,
-                hardcore:
-                  (liveHardcoreAppearance?.copy ?? liveCopy).collectionCaption +
-                  ' Hardcore worlds',
+                hardcore: appText.webSiteAppHardcoreWorlds3(
+                  (liveHardcoreAppearance?.copy ?? liveCopy).collectionCaption,
+                ),
               }}
               onViewChange={(view, selectedPageId) => {
                 setLogView(view);
@@ -471,7 +493,7 @@ export function SiteApp({
                 width="22"
                 height="22"
               />
-              <span>GitHub</span>
+              <span>{appText.webSiteAppGitHub}</span>
             </a>
             <a
               href="https://ko-fi.com/kihiralove"
@@ -488,17 +510,21 @@ export function SiteApp({
               >
                 <image href="/brand/ko-fi-blue.webp" width="980" height="198" />
               </svg>
-              Support this project
+              {appText.webSiteAppSupportThisProject}
             </a>
           </div>
           <p className="footer-catalog">
-            Catalog data:{' '}
-            <a href="https://templeosrs.com/api_doc.php">TempleOSRS</a> and{' '}
+            {appText.webSiteAppFooterCredits.prefix}{' '}
+            <a href="https://templeosrs.com/api_doc.php">
+              {appText.webSiteAppFooterCredits.templeLabel}
+            </a>
+            {appText.webSiteAppFooterCredits.betweenLinks}{' '}
             <a href="https://oldschool.runescape.wiki/w/Module:Collection_log/data.json?oldid=15347607">
-              OSRS Wiki
+              {appText.webSiteAppFooterCredits.wikiLabel}
             </a>
             <br />
-            App version {__APP_VERSION__}
+            {appText.webSiteAppFooterCredits.versionPrefix}
+            {__APP_VERSION__}
           </p>
         </footer>
       </div>

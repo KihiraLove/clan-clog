@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Fetch only the fixed official WOM API and reject incomplete, unsafe source rows. */
 import { createHash } from 'node:crypto';
 import {
@@ -35,7 +36,7 @@ const decimal = (value: unknown): string => {
     return value;
   throw new ApiError(
     422,
-    'WOM contains missing or non-integer gained XP; import was not changed.',
+    appText.apiWomWomContainsMissingOrNonIntegerGainedXpImportWas,
   );
 };
 export function parseCompetitionUrl(input: string): {
@@ -46,7 +47,7 @@ export function parseCompetitionUrl(input: string): {
   try {
     uri = new URL(input.trim());
   } catch {
-    throw new ApiError(400, 'Enter a WOM competition link.');
+    throw new ApiError(400, appText.apiWomEnterAWomCompetitionLink);
   }
   const match = /^\/competitions\/([1-9]\d*)\/?$/u.exec(uri.pathname);
   const id = Number(match?.[1]);
@@ -60,19 +61,19 @@ export function parseCompetitionUrl(input: string): {
     !Number.isSafeInteger(id) ||
     id <= 0
   )
-    throw new ApiError(400, 'Use https://wiseoldman.net/competitions/<id>.');
+    throw new ApiError(400, appText.apiWomUseHttpsWiseoldmanNetCompetitionsId);
   return { id, url: 'https://wiseoldman.net/competitions/' + id };
 }
 function metricNames(value: unknown): string[] {
   if (!Array.isArray(value) || !value.length)
-    throw new ApiError(422, 'WOM competition has no metric scope.');
+    throw new ApiError(422, appText.apiWomWomCompetitionHasNoMetricScope);
   const names = value.map((v: unknown) =>
     record(v) && typeof v.metric === 'string' ? v.metric : null,
   );
   if (names.some((x) => x === null) || new Set(names).size !== names.length)
     throw new ApiError(
       422,
-      'WOM returned invalid or duplicate competition metrics.',
+      appText.apiWomWomReturnedInvalidOrDuplicateCompetitionMetrics,
     );
   return names as string[];
 }
@@ -88,7 +89,7 @@ export function strictScope(
   }
   throw new ApiError(
     422,
-    'SKILL competitions must track supported XP skills; computed metrics are unsupported.',
+    appText.apiWomSkillCompetitionsMustTrackSupportedXpSkillsComputedMetricsAre,
   );
 }
 function metadata(source: unknown, requestedId: number) {
@@ -108,7 +109,7 @@ function metadata(source: unknown, requestedId: number) {
   )
     throw new ApiError(
       422,
-      'Incomplete WOM competition metadata or participants.',
+      appText.apiWomIncompleteWomCompetitionMetadataOrParticipants,
     );
   return source as {
     id: number;
@@ -144,16 +145,16 @@ export function parseWomSnapshot(
   )
     throw new ApiError(
       422,
-      'WOM per-skill breakdown does not match the source competition.',
+      appText.apiWomWomPerSkillBreakdownDoesNotMatchTheSourceCompetition,
     );
   const seen = new Set<number>();
   const participants: XpParticipant[] = [];
   const sourceIds = new Set<number>();
   for (const p of source.participations) {
     if (!record(p) || !positive(p.playerId))
-      throw new ApiError(422, 'Invalid WOM player identity.');
+      throw new ApiError(422, appText.apiWomInvalidWomPlayerIdentity);
     if (sourceIds.has(p.playerId))
-      throw new ApiError(422, 'Duplicate WOM participants.');
+      throw new ApiError(422, appText.apiWomDuplicateWomParticipants);
     sourceIds.add(p.playerId);
   }
   for (const p of details.participations) {
@@ -168,7 +169,10 @@ export function parseWomSnapshot(
       seen.has(p.playerId) ||
       !sourceIds.has(p.playerId)
     )
-      throw new ApiError(422, 'Incomplete or duplicate WOM participant.');
+      throw new ApiError(
+        422,
+        appText.apiWomIncompleteOrDuplicateWomParticipant,
+      );
     seen.add(p.playerId);
     const gains: Gains = {};
     const metrics = new Set<string>();
@@ -192,7 +196,7 @@ export function parseWomSnapshot(
               ) &&
               !competition.metrics.includes(d.metric))))
       )
-        throw new ApiError(422, 'Unexpected WOM delta metric.');
+        throw new ApiError(422, appText.apiWomUnexpectedWomDeltaMetric);
       metrics.add(String(target));
       if (d.metric !== 'total')
         gains[target as Skill] = decimal(d.values.gained);
@@ -200,7 +204,7 @@ export function parseWomSnapshot(
     if (!scope.every((skill) => Object.hasOwn(gains, skill)))
       throw new ApiError(
         422,
-        'WOM competition has unavailable skill XP; prior totals are preserved.',
+        appText.apiWomWomCompetitionHasUnavailableSkillXpPriorTotalsArePreserved,
       );
     if (Object.values(gains).some((gain) => BigInt(gain!) > 0n))
       participants.push({
@@ -210,7 +214,7 @@ export function parseWomSnapshot(
       });
   }
   if (seen.size !== sourceIds.size)
-    throw new ApiError(422, 'WOM returned partial participant data.');
+    throw new ApiError(422, appText.apiWomWomReturnedPartialParticipantData);
   participants.sort((a, b) => a.playerId - b.playerId);
   const gains: Gains = {};
   for (const skill of scope)
@@ -249,7 +253,7 @@ export function parseWomSnapshot(
 export const womResponseBytes = 8 * 1024 * 1024;
 function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   return new Promise((resolve, reject) => {
-    const abort = () => reject(new Error('WOM request canceled'));
+    const abort = () => reject(new Error(appText.apiWomWomRequestCanceled));
     signal.addEventListener('abort', abort, { once: true });
     if (signal.aborted) abort();
     void promise
@@ -269,7 +273,7 @@ export async function getWom(
     target.password ||
     !/^\/v2\/competitions\/[1-9]\d*$/u.test(target.pathname)
   )
-    throw new ApiError(422, 'Invalid WOM upstream address.');
+    throw new ApiError(422, appText.apiWomInvalidWomUpstreamAddress);
   const signal = AbortSignal.any([
     AbortSignal.timeout(6500),
     ...(cancellation ? [cancellation] : []),
@@ -290,7 +294,7 @@ export async function getWom(
   } catch {
     throw new ApiError(
       503,
-      'WOM is temporarily unavailable; no data was changed.',
+      appText.apiWomWomIsTemporarilyUnavailableNoDataWasChanged,
     );
   }
   if (!response.ok || response.redirected) {
@@ -299,25 +303,26 @@ export async function getWom(
       const seconds = Number(response.headers.get('retry-after'));
       throw new ApiError(
         429,
-        'WOM rate limit reached; no data was changed.',
+        appText.apiWomWomRateLimitReachedNoDataWasChanged,
         Number.isInteger(seconds) && seconds > 0 ? Math.min(seconds, 300) : 60,
       );
     }
     throw new ApiError(
       response.status === 404 ? 422 : 503,
-      'WOM competition could not be fetched.',
+      appText.apiWomWomCompetitionCouldNotBeFetched,
     );
   }
   const tooLarge = () =>
     new ApiError(
       422,
-      'WOM response exceeds the 8 MiB limit. No results were imported.',
+      appText.apiWomWomResponseExceedsThe8MiBLimitNoResultsWere,
     );
   if (Number(response.headers.get('content-length')) > womResponseBytes) {
     void response.body?.cancel().catch(() => undefined);
     throw tooLarge();
   }
-  if (!response.body) throw new ApiError(422, 'WOM returned invalid JSON.');
+  if (!response.body)
+    throw new ApiError(422, appText.apiWomWomReturnedInvalidJson);
   const reader = response.body.getReader(),
     chunks: Buffer[] = [];
   let bytes = 0;
@@ -343,13 +348,13 @@ export async function getWom(
         ),
       ) as unknown;
     } catch {
-      throw new ApiError(422, 'WOM returned invalid JSON.');
+      throw new ApiError(422, appText.apiWomWomReturnedInvalidJson);
     }
   } catch (error) {
     if (error instanceof ApiError) throw error;
     throw new ApiError(
       503,
-      'WOM is temporarily unavailable; no data was changed.',
+      appText.apiWomWomIsTemporarilyUnavailableNoDataWasChanged,
     );
   } finally {
     void reader.cancel().catch(() => undefined);
@@ -366,7 +371,7 @@ export async function fetchWomCompetition(
   const base = 'https://api.wiseoldman.net/v2/competitions/' + id;
   const original = await get(base);
   if (!record(original))
-    throw new ApiError(422, 'WOM returned invalid competition details.');
+    throw new ApiError(422, appText.apiWomWomReturnedInvalidCompetitionDetails);
   const scope = strictScope(metricNames(original.metrics));
   // WOM documents one request for a metric batch, not a request per player/skill.
   const query = new URLSearchParams();

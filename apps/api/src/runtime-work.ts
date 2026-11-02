@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { WorkDrain, type OperationalDiagnostics } from '@clog/domain';
 /** Count transport completion and handler completion separately, including disconnects. */
@@ -20,7 +21,8 @@ export function trackHttpWork(
         .header('Cache-Control', 'no-store')
         .code(503)
         .send({
-          error: 'Service is draining. Retry the same request identity.',
+          error:
+            appText.apiRuntimeWorkServiceIsDrainingRetryTheSameRequestIdentity,
         });
     const state = { release, handled: false };
     requests.set(request, state);

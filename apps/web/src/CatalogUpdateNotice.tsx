@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Administrator review of pending release changes, grouped by repair. */
 import { useEffect, useRef, useState } from 'react';
 import type { CatalogUpdateReview, CatalogUpdateSelection } from '@clog/domain';
@@ -50,7 +51,7 @@ export function CatalogUpdateNotice({
       setError(
         failure instanceof Error
           ? failure.message
-          : 'Catalog update review could not be loaded.',
+          : appText.webCatalogUpdateNoticeCatalogUpdateReviewCouldNotBeLoaded,
       );
   };
   const load = async (signal: AbortSignal) => {
@@ -75,7 +76,9 @@ export function CatalogUpdateNotice({
       .catch((e) => {
         if (!active) return;
         if (controller.signal.aborted)
-          setError('Catalog update review timed out. Retry catalog updates.');
+          setError(
+            appText.webCatalogUpdateNoticeCatalogUpdateReviewTimedOutRetryCatalogUpdates,
+          );
         else fail(e);
       })
       .finally(() => {
@@ -209,7 +212,7 @@ export function CatalogUpdateNotice({
           : undefined;
       if (saved) {
         setError(
-          'Changes saved, but the updated review could not be loaded. Retry catalog updates.',
+          appText.webCatalogUpdateNoticeChangesSavedButTheUpdatedReviewCouldNotBeLoaded,
         );
       } else if (status === 409) {
         retry.current = { payload: '', key: '' };
@@ -220,12 +223,12 @@ export function CatalogUpdateNotice({
         } catch {
           setLoading(true);
           setError(
-            'The catalog changed, but refreshing failed. Cancel and retry catalog updates.',
+            appText.webCatalogUpdateNoticeTheCatalogChangedButRefreshingFailedCancelAndRetryCatalog,
           );
           return;
         }
         setError(
-          'The catalog changed. Review the refreshed problems and choose your fixes again.',
+          appText.webCatalogUpdateNoticeTheCatalogChangedReviewTheRefreshedProblemsAndChooseYour,
         );
       } else if (
         status === 401 ||
@@ -238,7 +241,7 @@ export function CatalogUpdateNotice({
       } else {
         setUncertain(true);
         setError(
-          'Save could not be confirmed. Click Save to retry the same choices and recover its receipt.',
+          appText.webCatalogUpdateNoticeSaveCouldNotBeConfirmedClickSaveToRetryThe,
         );
       }
     } finally {
@@ -248,7 +251,10 @@ export function CatalogUpdateNotice({
   };
   if (!pending && !error && !open) return null;
   return (
-    <section className="catalog-update-notice" aria-label="Catalog updates">
+    <section
+      className="catalog-update-notice"
+      aria-label={appText.webCatalogUpdateNoticeCatalogUpdates}
+    >
       {pending && (
         <button
           ref={button}
@@ -258,8 +264,9 @@ export function CatalogUpdateNotice({
             setOpen(true);
           }}
         >
-          Review catalog update (
-          {review!.proposals.length + review!.conflicts.length})
+          {appText.webCatalogUpdateNoticeReviewCatalogUpdateMessage(
+            review!.proposals.length + review!.conflicts.length,
+          )}
         </button>
       )}
       {error && !open && (
@@ -269,7 +276,7 @@ export function CatalogUpdateNotice({
             className="site-button"
             onClick={() => setRefresh((n) => n + 1)}
           >
-            Retry catalog updates
+            {appText.webCatalogUpdateNoticeRetryCatalogUpdates}
           </button>
         </p>
       )}
@@ -300,10 +307,13 @@ export function CatalogUpdateNotice({
             }
           }}
         >
-          <h2 id="catalog-update-title">Catalog update available</h2>
+          <h2 id="catalog-update-title">
+            {appText.webCatalogUpdateNoticeCatalogUpdateAvailable}
+          </h2>
           <p>
-            Choose the groups to fix. Unchecked groups keep their current values
-            and remain available for later review.
+            {
+              appText.webCatalogUpdateNoticeChooseTheGroupsToFixUncheckedGroupsKeepTheirCurrent
+            }
           </p>
           <fieldset
             className="admin-fieldset"
@@ -313,8 +323,10 @@ export function CatalogUpdateNotice({
               <table className="catalog-update-table">
                 <thead>
                   <tr>
-                    <th scope="col">Detected problem</th>
-                    <th scope="col">Fix?</th>
+                    <th scope="col">
+                      {appText.webCatalogUpdateNoticeDetectedProblem}
+                    </th>
+                    <th scope="col">{appText.webCatalogUpdateNoticeFix}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -342,7 +354,9 @@ export function CatalogUpdateNotice({
                         </ul>
                         {group.conflicts.map((c) => (
                           <p key={c.kind + c.entityKey}>
-                            <strong>{c.label}</strong>: {c.reason}{' '}
+                            <strong>{c.label}</strong>
+                            {appText.webCatalogUpdateNoticeColon}
+                            {c.reason}{' '}
                             {c.candidates
                               .map((p) => `${p.name} (#${p.id})`)
                               .join(', ')}
@@ -352,7 +366,8 @@ export function CatalogUpdateNotice({
                           review.pageMatches?.map((m) => (
                             <div key={m.entityKey}>
                               <label>
-                                Page identity for {m.label}
+                                {appText.webCatalogUpdateNoticePageIdentityFor}
+                                {m.label}
                                 <select
                                   value={identities[m.entityKey] ?? ''}
                                   onChange={(e) =>
@@ -363,7 +378,9 @@ export function CatalogUpdateNotice({
                                   }
                                 >
                                   <option value="">
-                                    Choose an existing page or a separate page
+                                    {
+                                      appText.webCatalogUpdateNoticeChooseAnExistingPageOrASeparatePage
+                                    }
                                   </option>
                                   {review.proposals
                                     .filter(
@@ -376,19 +393,30 @@ export function CatalogUpdateNotice({
                                     .map((p) => (
                                       <option value={p.id} key={p.id}>
                                         {p.kind === 'createPage'
-                                          ? 'Create separate page: ' + m.label
-                                          : 'Adopt ' + p.label}
+                                          ? appText.webCatalogUpdateNoticeCreateSeparatePage(
+                                              m.label,
+                                            )
+                                          : appText.webCatalogUpdateNoticeAdoptPage(
+                                              p.label,
+                                            )}
                                       </option>
                                     ))}
                                 </select>
                               </label>
                               {m.candidates.map((p) => (
                                 <p key={p.id}>
-                                  {p.name} ({p.id}, {p.category})
-                                  {!p.active && ' — retired'}. Matching items:{' '}
-                                  {p.matchedItems.join(', ') || 'None'}.
-                                  Missing: {p.missingItems.join(', ') || 'None'}
-                                  . Extra: {p.extraItems.join(', ') || 'None'}.
+                                  {appText.webCatalogUpdateNoticeMatchingItemsMissingExtra(
+                                    p.name,
+                                    p.id,
+                                    p.category,
+                                    p.active,
+                                    p.matchedItems.join(', ') ||
+                                      appText.webCatalogUpdateNoticeNone,
+                                    p.missingItems.join(', ') ||
+                                      appText.webCatalogUpdateNoticeNone,
+                                    p.extraItems.join(', ') ||
+                                      appText.webCatalogUpdateNoticeNone,
+                                  )}
                                 </p>
                               ))}
                             </div>
@@ -397,7 +425,9 @@ export function CatalogUpdateNotice({
                       <td>
                         <input
                           type="checkbox"
-                          aria-label={'Fix ' + group.title}
+                          aria-label={appText.webCatalogUpdateNoticeFix2(
+                            group.title,
+                          )}
                           checked={groups.has(group.key)}
                           disabled={!group.proposals.length}
                           onChange={(e) =>
@@ -422,14 +452,22 @@ export function CatalogUpdateNotice({
                   checked={icons}
                   onChange={(e) => setIcons(e.target.checked)}
                 />
-                Use project supplied item icons (recommended)
+                {
+                  appText.webCatalogUpdateNoticeUseProjectSuppliedItemIconsRecommended
+                }
               </label>
             )}
           </fieldset>
-          {!pending && <p>No catalog corrections are pending.</p>}
+          {!pending && (
+            <p>
+              {appText.webCatalogUpdateNoticeNoCatalogCorrectionsArePending}
+            </p>
+          )}
           {missingIdentity && (
             <p role="status">
-              Choose the page identity before saving Missing pages.
+              {
+                appText.webCatalogUpdateNoticeChooseThePageIdentityBeforeSavingMissingPages
+              }
             </p>
           )}
           {error && <p role="alert">{error}</p>}
@@ -439,14 +477,16 @@ export function CatalogUpdateNotice({
               disabled={busy || loading || !apply.length || missingIdentity}
               onClick={() => void save()}
             >
-              {busy ? 'Saving…' : 'Save'}
+              {busy
+                ? appText.webCatalogUpdateNoticeSaving
+                : appText.webCatalogUpdateNoticeSave}
             </button>
             <button
               className="site-button"
               disabled={busy || uncertain}
               onClick={cancel}
             >
-              Cancel
+              {appText.webCatalogUpdateNoticeCancel}
             </button>
           </div>
         </dialog>

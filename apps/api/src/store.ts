@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { insertImage } from './proof-store.js';
 /** Parameterized PostgreSQL persistence; public projections explicitly select safe fields. */
 import { randomUUID } from 'node:crypto';
@@ -37,7 +38,8 @@ import {
   type StaffAccount,
   type StoredAccount,
 } from './types.js';
-const unavailable = () => new ApiError(503, 'The catalog is not ready.');
+const unavailable = () =>
+  new ApiError(503, appText.apiStoreTheCatalogIsNotReady);
 const accountFields = `id, username, role, must_change_password AS "mustChangePassword", disabled, credential_version AS version`;
 const credentialFields = `${accountFields}, password_hash AS "passwordHash", credential_version AS "credentialVersion"`;
 const duplicateUsername = (error: unknown) => {
@@ -47,7 +49,7 @@ const duplicateUsername = (error: unknown) => {
     'code' in error &&
     error.code === '23505'
   )
-    throw new ApiError(409, 'That username is already in use.');
+    throw new ApiError(409, appText.apiStoreThatUsernameIsAlreadyInUse);
   throw error;
 };
 export async function ensureDefaultAdministrator(
@@ -71,7 +73,9 @@ export async function ensureDefaultAdministrator(
   // The single-admin unique index chooses one concurrent initializer. Other
   // uniqueness conflicts (such as a moderator named admin) must fail closed.
   if (!(await hasAdministrator()))
-    throw new Error('Administrator provisioning did not create an account.');
+    throw new Error(
+      appText.apiStoreAdministratorProvisioningDidNotCreateAnAccount,
+    );
 }
 
 export class PgStore implements BackendStore {
@@ -160,7 +164,7 @@ export class PgStore implements BackendStore {
       if (!account)
         throw new ApiError(
           409,
-          'Your account changed. Sign in again before retrying.',
+          appText.apiStoreYourAccountChangedSignInAgainBeforeRetrying,
         );
       await client.query('DELETE FROM admin_sessions WHERE account_id=$1', [
         id,
@@ -200,16 +204,17 @@ export class PgStore implements BackendStore {
           [id],
         )
       ).rows[0];
-      if (!old) throw new ApiError(404, 'Moderator account not found.');
+      if (!old)
+        throw new ApiError(404, appText.apiStoreModeratorAccountNotFound);
       if (old.role !== 'moderator')
         throw new ApiError(
           403,
-          'The administrator account cannot be disabled or deleted.',
+          appText.apiStoreTheAdministratorAccountCannotBeDisabledOrDeleted,
         );
       if (old.credentialVersion !== expectedVersion)
         throw new ApiError(
           409,
-          'This account changed. Reload the account list.',
+          appText.apiStoreThisAccountChangedReloadTheAccountList,
         );
       const saved = (
         await client.query<StaffAccount>(
@@ -243,7 +248,8 @@ export class PgStore implements BackendStore {
         "SELECT version::text FROM projection_state WHERE resource='matches'",
       )
     ).rows[0]?.version;
-    if (!version) throw new ApiError(503, 'Matching revision unavailable.');
+    if (!version)
+      throw new ApiError(503, appText.apiStoreMatchingRevisionUnavailable);
     const hit = this.matchCache.peek(version);
     if (hit) return hit.data;
     // One SQL snapshot also supports READ COMMITTED submission transactions.
@@ -257,7 +263,7 @@ export class PgStore implements BackendStore {
       )
     ).rows[0];
     if (!packet || packet.items.length > 10000 || packet.aliases.length > 20000)
-      throw new ApiError(503, 'Bot catalog exceeds supported limits.');
+      throw new ApiError(503, appText.apiStoreBotCatalogExceedsSupportedLimits);
     const mapped = new Map<number, MatchItem>(
       packet.items.map((item) => [item.id, { ...item, aliases: [] }]),
     );
@@ -320,7 +326,7 @@ export class PgStore implements BackendStore {
         if (prior.hash !== payloadHash || !prior.receipt)
           throw new ApiError(
             409,
-            'Discord interaction ID was used for a different claim.',
+            appText.apiStoreDiscordInteractionIdWasUsedForADifferentClaim,
           );
         return {
           created: false,
@@ -335,7 +341,7 @@ export class PgStore implements BackendStore {
         return result;
       }
       if (!input.image || input.proofUrl)
-        throw new ApiError(422, 'Supply a PNG screenshot as proof.');
+        throw new ApiError(422, appText.apiStoreSupplyAPngScreenshotAsProof);
       const submittedAt = (
         await client.query<{ timestamp: Date }>(
           'SELECT clock_timestamp() AS timestamp',
@@ -347,7 +353,10 @@ export class PgStore implements BackendStore {
         input.itemId !== undefined &&
         !matches.some((item) => item.id === input.itemId)
       )
-        throw new ApiError(422, 'Selected canonical item is unavailable.');
+        throw new ApiError(
+          422,
+          appText.apiStoreSelectedCanonicalItemIsUnavailable,
+        );
       const matched = resolveMatch(matches, input.rawItemText, input.itemId);
       const itemId = matched.itemId;
       if (
@@ -359,7 +368,10 @@ export class PgStore implements BackendStore {
           )
         ).rowCount !== 1
       )
-        throw new ApiError(422, 'Selected canonical item is unavailable.');
+        throw new ApiError(
+          422,
+          appText.apiStoreSelectedCanonicalItemIsUnavailable,
+        );
       // A same-interaction writer may have committed while this request waited
       // for the item lock. Recover its receipt before applying current filters.
       const committed = await readReceipt();
@@ -448,7 +460,10 @@ export class PgStore implements BackendStore {
         await client.query('ROLLBACK TO SAVEPOINT discord_image');
         const winner = await readReceipt();
         if (!winner)
-          throw new ApiError(503, 'Claim receipt is temporarily unavailable.');
+          throw new ApiError(
+            503,
+            appText.apiStoreClaimReceiptIsTemporarilyUnavailable,
+          );
         const result = replay(winner);
         await client.query('COMMIT');
         return result;
@@ -599,7 +614,7 @@ export class PgStore implements BackendStore {
         'SELECT hardcore_enabled, version, clan_name, public_copy, hardcore_name, hardcore_copy, how_to_submit_markdown, event_highlight, hardcore_highlight FROM site_settings WHERE singleton=true',
       )
     ).rows[0];
-    if (!row) throw new ApiError(503, 'Settings unavailable.');
+    if (!row) throw new ApiError(503, appText.apiStoreSettingsUnavailable);
     return {
       revision: 'settings-' + row.version,
       hardcoreEnabled: row.hardcore_enabled,
@@ -635,7 +650,7 @@ export class PgStore implements BackendStore {
       clanName !== undefined &&
       (!clanName.trim() || clanName.trim().length > 80)
     )
-      throw new ApiError(422, 'Clan name must contain 1–80 characters.');
+      throw new ApiError(422, appText.apiStoreClanNameMustContain180Characters);
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');

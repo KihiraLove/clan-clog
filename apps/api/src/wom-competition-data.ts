@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Normalize official WOM metadata and finished scores without retaining raw responses. */
 import {
   competitionScope,
@@ -23,7 +24,10 @@ export const womInstant = (value: unknown): value is string =>
 
 export class UnknownCompetitionMetrics extends ApiError {
   constructor(readonly discovery: CompetitionMetricDiscovery) {
-    super(422, 'Unknown competition metrics need a saved definition.');
+    super(
+      422,
+      appText.apiWomCompetitionDataUnknownCompetitionMetricsNeedASavedDefinition,
+    );
   }
 }
 export function womCompetitionDiscovery(
@@ -43,7 +47,10 @@ export function womCompetitionDiscovery(
     !source.metrics.length ||
     source.metrics.length > 64
   )
-    throw new ApiError(422, 'Incomplete WOM competition metadata.');
+    throw new ApiError(
+      422,
+      appText.apiWomCompetitionDataIncompleteWomCompetitionMetadata,
+    );
   const metrics = source.metrics.map((m: unknown) =>
     womObject(m) && typeof m.metric === 'string' ? m.metric : '',
   );
@@ -51,7 +58,10 @@ export function womCompetitionDiscovery(
     metrics.some((metric) => !/^[a-z][a-z0-9_]{0,79}$/u.test(metric)) ||
     new Set(metrics).size !== metrics.length
   )
-    throw new ApiError(422, 'Invalid or duplicate WOM metric scope.');
+    throw new ApiError(
+      422,
+      appText.apiWomCompetitionDataInvalidOrDuplicateWomMetricScope,
+    );
   try {
     return {
       id,
@@ -139,7 +149,10 @@ export function womCompetitionStandings(
     source.participations.length > 10000 ||
     source.participantCount !== source.participations.length
   )
-    throw new ApiError(422, 'Incomplete WOM participant roster.');
+    throw new ApiError(
+      422,
+      appText.apiWomCompetitionDataIncompleteWomParticipantRoster,
+    );
   try {
     const rows = source.participations.map((participant: unknown, index) => {
       if (
@@ -147,10 +160,14 @@ export function womCompetitionStandings(
         !womObject(participant.player) ||
         !Array.isArray(participant.deltas)
       )
-        throw new Error('Incomplete WOM participant results.');
+        throw new Error(
+          appText.apiWomCompetitionDataIncompleteWomParticipantResults,
+        );
       const deltas = participant.deltas.map((delta: unknown) => {
         if (!womObject(delta) || !womObject(delta.values))
-          throw new Error('Unavailable WOM metric result.');
+          throw new Error(
+            appText.apiWomCompetitionDataUnavailableWomMetricResult,
+          );
         return { metric: delta.metric, gained: delta.values.gained };
       });
       const scoreMetric =

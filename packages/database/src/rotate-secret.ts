@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Resumable explicit rotation; pending credentials stay only in the protected owner volume. */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
@@ -17,12 +18,14 @@ export async function rotateSecret(
   env: NodeJS.ProcessEnv = process.env,
 ) {
   if (!Object.hasOwn(managedSecrets, kind))
-    throw new Error('Choose postgres, app or session');
+    throw new Error(appText.databaseRotateSecretChoosePostgresAppOrSession);
   const pendingFile = join(root, 'postgres', 'rotation.json');
   let pending: { kind: SecretKind; previous: string; next: string };
   if (existsSync(pendingFile)) {
     if (!resume)
-      throw new Error('Rotation is pending; repeat the command with --resume');
+      throw new Error(
+        appText.databaseRotateSecretRotationIsPendingRepeatTheCommandWithResume,
+      );
     try {
       pending = JSON.parse(readFileSync(pendingFile, 'utf8')) as typeof pending;
       if (
@@ -33,11 +36,12 @@ export async function rotateSecret(
         throw new Error();
     } catch {
       throw new Error(
-        'Invalid pending rotation; restore the protected secret backup',
+        appText.databaseRotateSecretInvalidPendingRotationRestoreTheProtectedSecretBackup,
       );
     }
   } else {
-    if (resume) throw new Error('No rotation is pending');
+    if (resume)
+      throw new Error(appText.databaseRotateSecretNoRotationIsPending);
     pending = {
       kind,
       previous: readSecret(managedSecrets[kind], {
@@ -75,7 +79,7 @@ export async function rotateSecret(
     }
     if (!connection)
       throw new Error(
-        'Cannot authenticate database owner; retain pending rotation and restore access',
+        appText.databaseRotateSecretCannotAuthenticateDatabaseOwnerRetainPendingRotationAndRestoreAccess,
       );
     try {
       const role = kind === 'postgres' ? env.DB_USER || 'clog' : 'clog_runtime';

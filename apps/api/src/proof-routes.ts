@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Public RuneLite intake and staff uploads share bounded multipart PNG handling. */
 import { randomUUID } from 'node:crypto';
 import multipart from '@fastify/multipart';
@@ -24,7 +25,7 @@ function requestKey(request: FastifyRequest, required: boolean) {
   const value = request.headers['idempotency-key'];
   if (value === undefined && !required) return randomUUID();
   if (typeof value !== 'string' || !uuidPattern.test(value))
-    throw new ApiError(400, 'Use a UUID Idempotency-Key.');
+    throw new ApiError(400, appText.apiProofRoutesUseAUuidIdempotencyKey);
   return value.toLowerCase();
 }
 function manualFields(json: string): ManualSubmissionInput {
@@ -32,10 +33,10 @@ function manualFields(json: string): ManualSubmissionInput {
   try {
     value = JSON.parse(json);
   } catch {
-    throw new ApiError(400, 'Invalid submission JSON.');
+    throw new ApiError(400, appText.apiProofRoutesInvalidSubmissionJson);
   }
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new ApiError(400, 'Invalid submission fields.');
+    throw new ApiError(400, appText.apiProofRoutesInvalidSubmissionFields);
   const row = value as Record<string, unknown>;
   if (
     Object.keys(row).some(
@@ -68,7 +69,7 @@ function manualFields(json: string): ManualSubmissionInput {
     (row.reason !== undefined &&
       (typeof row.reason !== 'string' || row.reason.length > 1000))
   )
-    throw new ApiError(400, 'Invalid submission fields.');
+    throw new ApiError(400, appText.apiProofRoutesInvalidSubmissionFields);
   return row as unknown as ManualSubmissionInput;
 }
 export function proofRoutes(
@@ -79,7 +80,8 @@ export function proofRoutes(
   authorize?: RequireAdmin,
 ) {
   const staff = async (request: FastifyRequest, write = false) => {
-    if (!authorize) throw new ApiError(503, 'Staff sign-in is not configured.');
+    if (!authorize)
+      throw new ApiError(503, appText.apiProofRoutesStaffSignInIsNotConfigured);
     return authorize(request, write);
   };
   // If commit acknowledgement was lost, retain the file unless absence is confirmed.
@@ -94,9 +96,10 @@ export function proofRoutes(
     },
     async (req, reply) => {
       if (!assetIdPattern.test(req.params.id))
-        throw new ApiError(404, 'Screenshot not found.');
+        throw new ApiError(404, appText.apiProofRoutesScreenshotNotFound);
       const image = await store.image(req.params.id);
-      if (!image) throw new ApiError(404, 'Screenshot not found.');
+      if (!image)
+        throw new ApiError(404, appText.apiProofRoutesScreenshotNotFound);
       return reply
         .header('Cache-Control', 'private, no-store')
         .header('Content-Disposition', 'inline; filename="screenshot.webp"')
@@ -116,7 +119,7 @@ export function proofRoutes(
           if (!(await store.allowIntake(req.ip)))
             throw new ApiError(
               429,
-              'Submission rate limit reached. Try again later.',
+              appText.apiProofRoutesSubmissionRateLimitReachedTryAgainLater,
             );
           await store.authorizeIntake(suppliedClanKey(req.headers));
         },
@@ -139,7 +142,7 @@ export function proofRoutes(
         )
           throw new ApiError(
             422,
-            'Invalid username, clan name or game item ID.',
+            appText.apiProofRoutesInvalidUsernameClanNameOrGameItemId,
           );
         const world = runeLiteWorld(fields.worldType!);
         const submission = {
@@ -185,7 +188,11 @@ export function proofRoutes(
           const key = requestKey(req, true);
           const { fields, file } = await parts(req, ['submission']);
           const input = manualFields(fields.submission!);
-          if (!file) throw new ApiError(400, 'Supply one screenshot file.');
+          if (!file)
+            throw new ApiError(
+              400,
+              appText.apiProofRoutesSupplyOneScreenshotFile,
+            );
           const image = await storage.save(file.bytes, file.mime);
           try {
             const result = await review.createManual(

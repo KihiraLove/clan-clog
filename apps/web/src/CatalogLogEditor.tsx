@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** The shared catalog presented as an editable collection log. Reordering stays local until explicitly saved. */
 import {
   useEffect,
@@ -102,7 +103,10 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
   }, [editor]);
   const open = (next: CatalogEditor | undefined) => {
     if (locked) return false;
-    if (formState.dirty && !window.confirm('Discard the unsaved catalog edit?'))
+    if (
+      formState.dirty &&
+      !window.confirm(appText.webCatalogLogEditorDiscardTheUnsavedCatalogEdit)
+    )
       return false;
     setFormState({ dirty: false, busy: false });
     setEditor(next);
@@ -185,7 +189,7 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
         }
         if (!signal.aborted) {
           setDraftOrder({ pages: {}, items: {} });
-          action.setMessage('Item order saved.');
+          action.setMessage(appText.webCatalogLogEditorItemOrderSaved);
         }
       },
       async (signal) => {
@@ -231,8 +235,8 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
     <button
       type="button"
       className="catalog-grip order-grip"
-      aria-label={`Reorder ${kind} ${name}`}
-      title="Drag to reorder; Alt + arrow keys also move"
+      aria-label={appText.webCatalogLogEditorReorder(kind, name)}
+      title={appText.webCatalogLogEditorDragToReorderAltArrowKeysAlsoMove}
       disabled={locked}
       draggable={!locked}
       onDragStart={(event) => {
@@ -258,7 +262,7 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
         if (ids[next]) move(kind, id, ids[next]!);
       }}
     >
-      <span aria-hidden="true">⋮⋮</span>
+      <span aria-hidden="true">{appText.webCatalogLogEditorDragHandle}</span>
     </button>
   );
   const gear = (label: string, next: CatalogEditor) => (
@@ -270,7 +274,7 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
       disabled={locked}
       onClick={() => open(next)}
     >
-      <span aria-hidden="true">⚙</span>
+      <span aria-hidden="true">{appText.webCatalogLogEditorSettingsIcon}</span>
     </button>
   );
   const target = (kind: DragKind, id: string) => ({
@@ -288,16 +292,16 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
     >
       <section
         className="catalog-log-wrap"
-        aria-label="Items catalog collection log"
+        aria-label={appText.webCatalogLogEditorItemsCatalogCollectionLog}
       >
         <div className="game-window catalog-log">
           <header className="catalog-titlebar">
-            <h2>Items catalog</h2>
+            <h2>{appText.webCatalogLogEditorItemsCatalog}</h2>
           </header>
           <div
             className="game-tabs catalog-tabs"
             role="tablist"
-            aria-label="Catalog sections"
+            aria-label={appText.webCatalogLogEditorCatalogSections}
           >
             {sections.map((entry, index) => (
               <div
@@ -340,7 +344,7 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
                 >
                   {entry.name}
                 </button>
-                {gear(`Edit section ${entry.name}`, {
+                {gear(appText.webCatalogLogEditorEditSection(entry.name), {
                   kind: 'section-edit',
                   id: entry.id,
                 })}
@@ -352,7 +356,10 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
               disabled={locked}
               onClick={() => open({ kind: 'section-add' })}
             >
-              <span className="catalog-add-plus">+</span> Add section
+              <span className="catalog-add-plus">
+                {appText.webCatalogLogEditorAddSymbol}
+              </span>
+              {appText.webCatalogLogEditorAddSection}
             </button>
           </div>
           <div
@@ -363,7 +370,7 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
           >
             <aside
               className="game-sidebar"
-              aria-label={`${section?.name ?? 'Catalog'} pages`}
+              aria-label={appText.webCatalogLogEditorPages(section?.name)}
             >
               <div className="page-list game-scroll catalog-page-list">
                 {pages.map((entry) => {
@@ -388,7 +395,7 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
                       >
                         {entry.name}
                       </button>
-                      {gear(`Edit page ${entry.name}`, {
+                      {gear(appText.webCatalogLogEditorEditPage(entry.name), {
                         kind: 'page-edit',
                         id: entry.id,
                       })}
@@ -402,7 +409,10 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
                     disabled={locked}
                     onClick={() => open({ kind: 'page-add', id: section.id })}
                   >
-                    <span className="catalog-add-plus">+</span> Add page
+                    <span className="catalog-add-plus">
+                      {appText.webCatalogLogEditorAddSymbol}
+                    </span>
+                    {appText.webCatalogLogEditorAddPage}
                   </button>
                 )}
               </div>
@@ -416,7 +426,7 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
                   <div className="item-area game-scroll">
                     <div
                       className="item-grid"
-                      aria-label={`${page.name} items`}
+                      aria-label={appText.webCatalogLogEditorItems(page.name)}
                     >
                       {page.itemIds.map((id) => {
                         const item = items.get(id)!;
@@ -431,7 +441,9 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
                             <button
                               type="button"
                               className="item-slot"
-                              aria-label={`Edit item ${item.name}`}
+                              aria-label={appText.webCatalogLogEditorEditItem(
+                                item.name,
+                              )}
                               disabled={locked}
                               onClick={() => open({ kind: 'item-edit', id })}
                             >
@@ -441,10 +453,15 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
                                 draggable={false}
                               />
                             </button>
-                            {gear(`Item settings for ${item.name}`, {
-                              kind: 'item-edit',
-                              id,
-                            })}
+                            {gear(
+                              appText.webCatalogLogEditorItemSettingsFor(
+                                item.name,
+                              ),
+                              {
+                                kind: 'item-edit',
+                                id,
+                              },
+                            )}
                           </div>
                         );
                       })}
@@ -454,7 +471,10 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
                         disabled={locked}
                         onClick={() => open({ kind: 'item-add', id: page.id })}
                       >
-                        <span className="catalog-add-plus">+</span> Add item
+                        <span className="catalog-add-plus">
+                          {appText.webCatalogLogEditorAddSymbol}
+                        </span>
+                        {appText.webCatalogLogEditorAddItem}
                       </button>
                     </div>
                   </div>
@@ -463,8 +483,8 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
                 <div className="log-state">
                   <p>
                     {section
-                      ? 'Add a page to this section.'
-                      : 'Add a section to start.'}
+                      ? appText.webCatalogLogEditorAddAPageToThisSection
+                      : appText.webCatalogLogEditorAddASectionToStart}
                   </p>
                 </div>
               )}
@@ -479,7 +499,9 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
               disabled={locked || !orderDirty}
               onClick={saveOrder}
             >
-              {action.busy ? 'Saving…' : 'Save changes'}
+              {action.busy
+                ? appText.webCatalogLogEditorSaving
+                : appText.webCatalogLogEditorSaveChanges}
             </button>
           </div>
         )}
@@ -498,16 +520,16 @@ export function CatalogLogEditor(props: CatalogEditorProps) {
         <aside
           ref={panelRef}
           className="catalog-inspector admin-panel"
-          aria-label="Catalog editor"
+          aria-label={appText.webCatalogLogEditorCatalogEditor}
         >
           <button
             type="button"
             className="site-button catalog-close"
-            aria-label="Close editor"
+            aria-label={appText.webCatalogLogEditorCloseEditor}
             disabled={locked}
             onClick={() => open(undefined)}
           >
-            ×
+            {appText.webCatalogLogEditorCloseSymbol}
           </button>
           <CatalogInspector
             key={`${editor.kind}-${'id' in editor ? editor.id : ''}`}

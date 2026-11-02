@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Historical source/results stay private; archive writes are owner CLI operations. */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import {
@@ -17,15 +18,23 @@ export function lifecycleRoutes(
     | undefined,
 ) {
   const guard = async (request: FastifyRequest) => {
-    if (!authorize) throw new ApiError(503, 'Staff sign-in is not configured.');
+    if (!authorize)
+      throw new ApiError(
+        503,
+        appText.apiLifecycleRoutesStaffSignInIsNotConfigured,
+      );
     if ((await authorize(request)).role !== 'admin')
       throw new ApiError(
         403,
-        'Only the administrator can read lifecycle history.',
+        appText.apiLifecycleRoutesOnlyTheAdministratorCanReadLifecycleHistory,
       );
   };
   const call = async <T>(run: (service: LifecycleReader) => Promise<T>) => {
-    if (!store) throw new ApiError(503, 'Lifecycle history unavailable.');
+    if (!store)
+      throw new ApiError(
+        503,
+        appText.apiLifecycleRoutesLifecycleHistoryUnavailable,
+      );
     try {
       return await run(store);
     } catch (error) {

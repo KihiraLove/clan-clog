@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Bundled runtime reads the same encrypted settings as the API, never a public endpoint. */
 import pg from 'pg';
 import { readFile } from 'node:fs/promises';
@@ -18,7 +19,9 @@ export async function loadSavedConfiguration(
   pool.on('error', () => {}); // The supervisor retries; driver diagnostics never contain credentials.
   try {
     if (!env.PROOF_STORAGE_PATH)
-      throw new Error('Private integration storage is required');
+      throw new Error(
+        appText.botSavedConfigPrivateIntegrationStorageIsRequired,
+      );
     const root = await readFile(
       join(env.PROOF_STORAGE_PATH, '.clan-api-key.secret'),
     );

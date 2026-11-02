@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Only the attachment supplied by Discord may be downloaded; never forward bot credentials. */
 export const maxScreenshotBytes = 10 * 1024 * 1024;
 export interface ScreenshotAttachment {
@@ -19,12 +20,16 @@ export function validateScreenshot(attachment: ScreenshotAttachment) {
     attachment.size < 1 ||
     attachment.size > maxScreenshotBytes
   )
-    throw new ScreenshotError('Choose a PNG screenshot up to 10 MiB.');
+    throw new ScreenshotError(
+      appText.botScreenshotChooseAPngScreenshotUpTo10MiB,
+    );
   let url: URL;
   try {
     url = new URL(attachment.url);
   } catch {
-    throw new ScreenshotError('The screenshot attachment is unavailable.');
+    throw new ScreenshotError(
+      appText.botScreenshotTheScreenshotAttachmentIsUnavailable,
+    );
   }
   const path = /^\/attachments\/(\d{17,20})\/(\d{17,20})\/[^/]+$/u.exec(
     url.pathname,
@@ -40,7 +45,7 @@ export function validateScreenshot(attachment: ScreenshotAttachment) {
     path[2] !== attachment.id
   )
     throw new ScreenshotError(
-      'Use the PNG attachment supplied with this Discord command.',
+      appText.botScreenshotUseThePngAttachmentSuppliedWithThisDiscordCommand,
     );
   return url;
 }
@@ -60,7 +65,7 @@ export async function downloadScreenshot(
     });
     if (!response.ok || !response.body) {
       await response.body?.cancel().catch(() => {});
-      throw new Error('Unavailable');
+      throw new Error(appText.botScreenshotUnavailable);
     }
     const contentType = response.headers
       .get('content-type')
@@ -73,7 +78,7 @@ export async function downloadScreenshot(
         (!/^\d+$/u.test(length) || Number(length) !== attachment.size))
     ) {
       await response.body.cancel();
-      throw new Error('Invalid metadata');
+      throw new Error(appText.botScreenshotInvalidMetadata);
     }
     const reader = response.body.getReader();
     const chunks: Uint8Array[] = [];
@@ -84,7 +89,7 @@ export async function downloadScreenshot(
         if (chunk.done) break;
         size += chunk.value.length;
         if (size > maxScreenshotBytes || size > attachment.size)
-          throw new Error('Too large');
+          throw new Error(appText.botScreenshotTooLarge);
         chunks.push(chunk.value);
       }
     } catch (error) {
@@ -103,12 +108,12 @@ export async function downloadScreenshot(
       size !== attachment.size ||
       ![137, 80, 78, 71, 13, 10, 26, 10].every((value, i) => bytes[i] === value)
     )
-      throw new Error('Invalid PNG');
+      throw new Error(appText.botScreenshotInvalidPng);
     // The API performs bounded full decoding and strips metadata before WebP storage.
     return bytes;
   } catch {
     throw new ScreenshotError(
-      'The PNG screenshot could not be downloaded. Try attaching it again.',
+      appText.botScreenshotThePngScreenshotCouldNotBeDownloadedTryAttachingIt,
     );
   }
 }

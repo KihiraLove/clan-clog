@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Offline release validation and conservative identity discovery. */
 import { createHash } from 'node:crypto';
 import type {
@@ -31,7 +32,7 @@ const fields = (row: Record<string, unknown>, names: string) =>
 export function parseCatalogUpdate(value: unknown): CatalogUpdateBatch {
   if (
     !record(value) ||
-    !fields(value, 'id,items,pages,title') ||
+    !fields(value, appText.databaseCatalogUpdateModelIdItemsPagesTitle) ||
     !key(value.id) ||
     !name(value.title) ||
     !Array.isArray(value.items) ||
@@ -40,22 +41,27 @@ export function parseCatalogUpdate(value: unknown): CatalogUpdateBatch {
     value.pages.length > 2000 ||
     (!value.items.length && !value.pages.length)
   )
-    throw new Error('Invalid catalog update batch.');
+    throw new Error(
+      appText.databaseCatalogUpdateModelInvalidCatalogUpdateBatch,
+    );
   const pages: CatalogUpdatePage[] = value.pages.map((p) => {
     if (
       !record(p) ||
-      !fields(p, 'category,key,name') ||
+      !fields(p, appText.databaseCatalogUpdateModelCategoryKeyName) ||
       !key(p.key) ||
       !name(p.name) ||
       !key(p.category)
     )
-      throw new Error('Invalid update page.');
+      throw new Error(appText.databaseCatalogUpdateModelInvalidUpdatePage);
     return { key: p.key, name: p.name, category: p.category };
   });
   const items: CatalogUpdateItem[] = value.items.map((i) => {
     if (
       !record(i) ||
-      !fields(i, 'gameItemIds,image,key,name,pageKeys') ||
+      !fields(
+        i,
+        appText.databaseCatalogUpdateModelGameItemIdsImageKeyNamePageKeys,
+      ) ||
       !key(i.key) ||
       !name(i.name) ||
       !Array.isArray(i.gameItemIds) ||
@@ -71,7 +77,7 @@ export function parseCatalogUpdate(value: unknown): CatalogUpdateBatch {
       i.pageKeys.some((p) => !key(p)) ||
       new Set(i.pageKeys).size !== i.pageKeys.length ||
       !record(i.image) ||
-      !fields(i.image, 'height,sha256,width') ||
+      !fields(i.image, appText.databaseCatalogUpdateModelHeightSha256Width) ||
       typeof i.image.sha256 !== 'string' ||
       !/^[a-f0-9]{64}$/u.test(i.image.sha256) ||
       !Number.isInteger(i.image.width) ||
@@ -81,7 +87,9 @@ export function parseCatalogUpdate(value: unknown): CatalogUpdateBatch {
       Number(i.image.height) < 1 ||
       Number(i.image.height) > 512
     )
-      throw new Error('Invalid update item or image.');
+      throw new Error(
+        appText.databaseCatalogUpdateModelInvalidUpdateItemOrImage,
+      );
     return {
       key: i.key,
       name: i.name,
@@ -100,7 +108,9 @@ export function parseCatalogUpdate(value: unknown): CatalogUpdateBatch {
     new Set(items.flatMap((i) => i.gameItemIds)).size !==
       items.flatMap((i) => i.gameItemIds).length
   )
-    throw new Error('Duplicate update identities.');
+    throw new Error(
+      appText.databaseCatalogUpdateModelDuplicateUpdateIdentities,
+    );
   return { id: value.id, title: value.title, items, pages };
 }
 export interface UpdateLocalItem {
@@ -278,8 +288,8 @@ export function matchCatalogUpdate(
           kind,
           label: entry.name,
           reason: candidates.some((r) => !r.active)
-            ? 'A matching entry was retired. Resolve it in Items catalog before adopting it.'
-            : 'Conflicting identity evidence. Resolve game IDs or duplicate entries in Items catalog, then rescan.',
+            ? appText.databaseCatalogUpdateModelAMatchingEntryWasRetiredResolveItInItemsCatalog
+            : appText.databaseCatalogUpdateModelConflictingIdentityEvidenceResolveGameIdsOrDuplicateEntriesIn,
           candidates: candidates.map((r) => ({
             id: String(r.id),
             name: r.name,
@@ -301,7 +311,7 @@ export function matchCatalogUpdate(
         kind: m.kind,
         label: m.key,
         reason:
-          'Several supplied entries match the same local identity. Explicitly resolve the catalog before continuing.',
+          appText.databaseCatalogUpdateModelSeveralSuppliedEntriesMatchTheSameLocalIdentityExplicitlyResolve,
         candidates: [],
       };
   }

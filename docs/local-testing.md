@@ -46,6 +46,27 @@ version with a `v` prefix. The footer uses the same root version.
 
 ## Focused checks
 
+For wording changes, edit `packages/domain/src/text.ts` and consume its named
+feature export through `@clog/domain`. Rebuild the domain after editing text.
+The production web build compiles direct `appText.<entry>` reads to the same
+values and formatter expressions, preserving bundle budgets and lazy routes.
+Keep the namespace local to direct member reads; do not spread it or use dynamic keys.
+Use typed formatters for whole dynamic
+messages and structured parts for words separated by links/emphasis. Keep React
+markup and data formatting in the component. Shipped defaults are separate from
+persisted administrator overrides; do not replace saved settings during extraction.
+
+Run `npm run check:text` (also enforced by the normal ESLint rule),
+`node --test scripts/application-text.test.mjs scripts/inline-application-text.test.mjs`, the domain build and
+`node --test packages/domain/dist/text.test.js`. Then select affected validation,
+redaction, bot and browser tests. Keep some explicit wording assertions so tests
+can detect accidental changes instead of deriving all expectations from the catalog.
+For public text, check the web build's `.data/local-checks/web-bundle.json` and
+the emitted HTML title as well as the relevant accessible names. The AST guard
+recognizes text-bearing JSX, known message APIs and authored prose; its explained
+contract/historical exceptions live in `scripts/application-text.mjs`. Extend those
+only for a specific machine/external value, with a corresponding focused test.
+
 Run checks for the behavior/files you changed. Examples:
 
 ```bash

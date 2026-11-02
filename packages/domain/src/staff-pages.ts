@@ -1,20 +1,41 @@
+import * as appText from './text.js';
 /** Page access is independent of administrator-only actions within a page. */
 export const staffPages = [
-  { id: 'submissions', label: 'Submissions', path: '/admin' },
-  { id: 'catalog', label: 'Items catalog', path: '/admin/catalog' },
+  {
+    id: 'submissions',
+    label: appText.domainStaffPagesSubmissions,
+    path: '/admin',
+  },
+  {
+    id: 'catalog',
+    label: appText.domainStaffPagesItemsCatalog,
+    path: '/admin/catalog',
+  },
   {
     id: 'schedules',
-    label: 'Scheduling and Competitions',
+    label: appText.domainStaffPagesSchedulingAndCompetitions,
     path: '/admin/schedules',
   },
-  { id: 'runelite', label: 'RuneLite submissions', path: '/admin/runelite' },
-  { id: 'settings', label: 'Site settings', path: '/admin/settings' },
+  {
+    id: 'runelite',
+    label: appText.domainStaffPagesRuneLiteSubmissions,
+    path: '/admin/runelite',
+  },
+  {
+    id: 'settings',
+    label: appText.domainStaffPagesSiteSettings,
+    path: '/admin/settings',
+  },
   {
     id: 'hardcore',
-    label: 'Hardcore worlds',
+    label: appText.domainStaffPagesHardcoreWorlds,
     path: '/admin/settings/hardcore',
   },
-  { id: 'discord', label: 'Discord bot', path: '/admin/discord' },
+  {
+    id: 'discord',
+    label: appText.domainStaffPagesDiscordBot,
+    path: '/admin/discord',
+  },
 ] as const;
 export type StaffPage = (typeof staffPages)[number]['id'];
 export const defaultModeratorPages: readonly StaffPage[] = [
@@ -34,20 +55,22 @@ export function parseStaffPages(value: unknown): StaffPage[] {
     value.some((id) => !staffPages.some((page) => page.id === id)) ||
     new Set(value).size !== value.length
   )
-    throw new Error('Choose valid moderator pages without duplicates.');
+    throw new Error(
+      appText.domainStaffPagesChooseValidModeratorPagesWithoutDuplicates,
+    );
   return staffPages
     .filter((page) => value.includes(page.id))
     .map((page) => page.id);
 }
 export function parseAccessControl(value: unknown): AccessControlSettings {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid access control settings.');
+    throw new Error(appText.domainStaffPagesInvalidAccessControlSettings);
   const data = value as Record<string, unknown>;
   if (
     typeof data.revision !== 'string' ||
     !/^access-control-[1-9][0-9]{0,9}$/u.test(data.revision)
   )
-    throw new Error('Invalid access control revision.');
+    throw new Error(appText.domainStaffPagesInvalidAccessControlRevision);
   return {
     revision: data.revision,
     moderatorPages: parseStaffPages(data.moderatorPages),

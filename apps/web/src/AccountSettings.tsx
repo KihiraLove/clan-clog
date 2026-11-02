@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Self-service credentials and mandatory first-login setup. */
 import { useState } from 'react';
 import type { AdminClient } from './admin-model.ts';
@@ -30,13 +31,14 @@ export function AccountSettings({
     <section className="admin-panel">
       <h2>
         {session.mustChangePassword
-          ? 'Change your password to continue'
-          : 'Your account'}
+          ? appText.webAccountSettingsChangeYourPasswordToContinue
+          : appText.webAccountSettingsYourAccount}
       </h2>
       {session.mustChangePassword && (
         <p>
-          Choose a new password before using the staff tools. You can also
-          change your username here.
+          {
+            appText.webAccountSettingsChooseANewPasswordBeforeUsingTheStaffToolsYou
+          }
         </p>
       )}
       <form
@@ -44,7 +46,9 @@ export function AccountSettings({
         onSubmit={(event) => {
           event.preventDefault();
           if (newPassword !== confirmation) {
-            action.setError('The new passwords do not match.');
+            action.setError(
+              appText.webAccountSettingsTheNewPasswordsDoNotMatch,
+            );
             return;
           }
           void action.execute(async (signal) => {
@@ -63,12 +67,14 @@ export function AccountSettings({
             setConfirmation('');
             onSaved(next);
             action.setMessage(
-              'Account updated. Other sessions have been signed out.',
+              appText.webAccountSettingsAccountUpdatedOtherSessionsHaveBeenSignedOut,
             );
           });
         }}
       >
-        <label htmlFor="account-username">Username</label>
+        <label htmlFor="account-username">
+          {appText.webAccountSettingsUsername}
+        </label>
         <input
           id="account-username"
           autoComplete="username"
@@ -80,9 +86,13 @@ export function AccountSettings({
           onChange={(event) => setUsername(event.target.value)}
         />
         <p className="admin-note">
-          3–32 letters, numbers, dots, underscores or hyphens.
+          {
+            appText.webAccountSettingsText332LettersNumbersDotsUnderscoresOrHyphens
+          }
         </p>
-        <label htmlFor="account-current-password">Current password</label>
+        <label htmlFor="account-current-password">
+          {appText.webAccountSettingsCurrentPassword}
+        </label>
         <input
           id="account-current-password"
           type="password"
@@ -92,7 +102,9 @@ export function AccountSettings({
           value={currentPassword}
           onChange={(event) => setCurrentPassword(event.target.value)}
         />
-        <label htmlFor="account-new-password">New password</label>
+        <label htmlFor="account-new-password">
+          {appText.webAccountSettingsNewPassword}
+        </label>
         <input
           id="account-new-password"
           type="password"
@@ -103,8 +115,12 @@ export function AccountSettings({
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
         />
-        <p className="admin-note">Use at least 12 characters.</p>
-        <label htmlFor="account-confirm-password">Confirm new password</label>
+        <p className="admin-note">
+          {appText.webAccountSettingsUseAtLeast12Characters}
+        </p>
+        <label htmlFor="account-confirm-password">
+          {appText.webAccountSettingsConfirmNewPassword}
+        </label>
         <input
           id="account-confirm-password"
           type="password"
@@ -115,7 +131,9 @@ export function AccountSettings({
           onChange={(event) => setConfirmation(event.target.value)}
         />
         <button className="site-button" disabled={action.busy}>
-          {action.busy ? 'Saving…' : 'Save account'}
+          {action.busy
+            ? appText.webAccountSettingsSaving
+            : appText.webAccountSettingsSaveAccount}
         </button>
       </form>
       {action.error && (

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Decode a local icon, stage its upload, then create one item with multiple memberships. */
 import { useCallback, useEffect, useState } from 'react';
 import { AdminRequestError } from './admin-api.ts';
@@ -59,7 +60,7 @@ export function IconPicker({
           setError(
             failure instanceof Error && !('code' in failure)
               ? failure.message
-              : 'The file could not be decoded as a PNG/WebP icon.',
+              : appText.webItemCreatorTheFileCouldNotBeDecodedAsAPngWebP,
           );
       })
       .finally(() => {
@@ -73,7 +74,9 @@ export function IconPicker({
   return (
     <div className="icon-picker">
       <label>
-        {optional ? 'Replace item icon' : 'Item icon (required)'}
+        {optional
+          ? appText.webItemCreatorReplaceItemIcon
+          : appText.webItemCreatorItemIconRequired}
         <input
           type="file"
           accept="image/png,image/webp,.png,.webp"
@@ -81,8 +84,8 @@ export function IconPicker({
           onChange={(event) => setFile(event.target.files?.[0])}
         />
       </label>
-      <p className="admin-note">PNG or WebP</p>
-      {checking && <p role="status">Checking icon…</p>}
+      <p className="admin-note">{appText.webItemCreatorPngOrWebP}</p>
+      {checking && <p role="status">{appText.webItemCreatorCheckingIcon}</p>}
       {error && (
         <p role="alert" className="admin-error">
           {error}
@@ -90,7 +93,7 @@ export function IconPicker({
       )}
       {url && (
         <div className="icon-picker__preview">
-          <img src={url} alt="New item icon preview" />
+          <img src={url} alt={appText.webItemCreatorNewItemIconPreview} />
           <span>{size}</span>
         </div>
       )}
@@ -138,7 +141,10 @@ export function ItemCreator({
       // Preserve payload and idempotency key after an uncertain response to avoid duplicates.
       let request = pending;
       if (!request) {
-        if (!file) throw new Error('Choose a valid item icon before saving.');
+        if (!file)
+          throw new Error(
+            appText.webItemCreatorChooseAValidItemIconBeforeSaving,
+          );
         validateItem(
           {
             name,
@@ -197,9 +203,9 @@ export function ItemCreator({
       setStaged(undefined);
       setReset((n) => n + 1);
       action.setMessage(
-        'Item #' +
-          result.item.id +
-          ' created. Every selected page starts uncollected.',
+        appText.webItemCreatorItemCreatedEverySelectedPageStartsUncollected(
+          result.item.id,
+        ),
       );
       try {
         await refresh(signal);
@@ -210,7 +216,7 @@ export function ItemCreator({
         )
           throw failure;
         action.setError(
-          'The item was created, but the catalog could not be refreshed. Reload the page before adding another item.',
+          appText.webItemCreatorTheItemWasCreatedButTheCatalogCouldNotBe,
         );
       }
     });
@@ -220,7 +226,7 @@ export function ItemCreator({
       className="admin-panel item-creator"
       aria-labelledby="add-item-title"
     >
-      <h2 id="add-item-title">Add new item</h2>
+      <h2 id="add-item-title">{appText.webItemCreatorAddNewItem}</h2>
       {action.error && (
         <p role="alert" className="admin-error">
           {action.error}
@@ -236,7 +242,10 @@ export function ItemCreator({
           <img src={created.item.iconPath} alt="" />
           <div>
             <strong>
-              {created.item.name} · #{created.item.id}
+              {appText.webItemCreatorItemIdentity(
+                created.item.name,
+                created.item.id,
+              )}
             </strong>
             <p>
               {created.pageIds
@@ -246,7 +255,9 @@ export function ItemCreator({
                 )
                 .join(', ')}
             </p>
-            <span className="admin-badge">Manual item · uncollected</span>
+            <span className="admin-badge">
+              {appText.webItemCreatorManualItemUncollected}
+            </span>
           </div>
         </div>
       )}
@@ -259,7 +270,7 @@ export function ItemCreator({
         <fieldset className="admin-fieldset" disabled={locked}>
           <IconPicker key={reset} disabled={locked} onValid={iconChanged} />
           <label>
-            Item name
+            {appText.webItemCreatorItemName}
             <input
               required
               maxLength={200}
@@ -268,7 +279,7 @@ export function ItemCreator({
             />
           </label>
           <label>
-            In-game item ID (required)
+            {appText.webItemCreatorInGameItemIdRequired}
             <input
               required
               inputMode="numeric"
@@ -279,16 +290,17 @@ export function ItemCreator({
         </fieldset>
         {pending && !action.busy && (
           <p className="admin-note">
-            The previous save has an uncertain result. Retry the same request
-            before changing these details.
+            {
+              appText.webItemCreatorThePreviousSaveHasAnUncertainResultRetryTheSame
+            }
           </p>
         )}
         <button className="site-button" type="submit" disabled={action.busy}>
           {action.busy
-            ? 'Saving item…'
+            ? appText.webItemCreatorSavingItem
             : pending
-              ? 'Retry item save'
-              : 'Create item'}
+              ? appText.webItemCreatorRetryItemSave
+              : appText.webItemCreatorCreateItem}
         </button>
       </form>
     </section>

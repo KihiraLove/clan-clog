@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Individual staff accounts, expiring sessions, roles and same-origin CSRF. */
 import {
   createHash,
@@ -111,7 +112,10 @@ export function authRoutes(
   ) {
     const session = await current(request);
     if (!session)
-      throw new ApiError(401, 'Sign in with your staff account to continue.');
+      throw new ApiError(
+        401,
+        appText.apiAuthSignInWithYourStaffAccountToContinue,
+      );
     if (write) {
       const supplied = request.headers['x-csrf-token'];
       if (
@@ -122,11 +126,14 @@ export function authRoutes(
       )
         throw new ApiError(
           403,
-          'The request could not be verified. Reload and try again.',
+          appText.apiAuthTheRequestCouldNotBeVerifiedReloadAndTryAgain,
         );
     }
     if (session.mustChangePassword && !allowSetup)
-      throw new ApiError(403, 'Change your password before using staff tools.');
+      throw new ApiError(
+        403,
+        appText.apiAuthChangeYourPasswordBeforeUsingStaffTools,
+      );
     const path = request.routeOptions.url ?? request.url.split('?')[0]!;
     if (session.role === 'moderator' && path.startsWith('/api/v1/admin/')) {
       const required = moderatorPagesForRequest(path, request.method);
@@ -134,7 +141,7 @@ export function authRoutes(
       if (!required.some((page) => allowed.includes(page)))
         throw new ApiError(
           403,
-          'Your account is not allowed to access this page.',
+          appText.apiAuthYourAccountIsNotAllowedToAccessThisPage,
         );
     }
     return session;
@@ -142,7 +149,10 @@ export function authRoutes(
   async function requireOwner(request: FastifyRequest, write = false) {
     const session = await requireAdmin(request, write);
     if (session.role !== 'admin')
-      throw new ApiError(403, 'Only the administrator can use this tool.');
+      throw new ApiError(
+        403,
+        appText.apiAuthOnlyTheAdministratorCanUseThisTool,
+      );
     return session;
   }
   const receipt = async (session: {
@@ -199,7 +209,7 @@ export function authRoutes(
         if (request.headers.origin !== config.origin)
           throw new ApiError(
             403,
-            'Login must originate from the configured site.',
+            appText.apiAuthLoginMustOriginateFromTheConfiguredSite,
           );
       },
     },
@@ -208,7 +218,7 @@ export function authRoutes(
       if (!(await store.allowLogin(hash(request.ip))))
         throw new ApiError(
           429,
-          'Too many sign-in attempts. Try again in a minute.',
+          appText.apiAuthTooManySignInAttemptsTryAgainInAMinute,
         );
       const account = await store.accountByUsername(request.body.username);
       const valid = await verifyPassword(
@@ -216,7 +226,7 @@ export function authRoutes(
         account && !account.disabled ? account.passwordHash : dummyHash,
       );
       if (!account || account.disabled || !valid)
-        throw new ApiError(401, 'Incorrect username or password.');
+        throw new ApiError(401, appText.apiAuthIncorrectUsernameOrPassword);
       const old = cookieValue(request, sessionName);
       if (old) await store.deleteSession(key(old));
       const token = await signIn(account);
@@ -272,23 +282,26 @@ export function authRoutes(
       if (!(await store.allowLogin(hash('account:' + session.id))))
         throw new ApiError(
           429,
-          'Too many password attempts. Try again in a minute.',
+          appText.apiAuthTooManyPasswordAttemptsTryAgainInAMinute,
         );
       const account = await store.accountById(session.id);
       if (!account || account.credentialVersion !== session.accountVersion)
-        throw new ApiError(401, 'Sign in again before changing your account.');
+        throw new ApiError(
+          401,
+          appText.apiAuthSignInAgainBeforeChangingYourAccount,
+        );
       if (
         !(await verifyPassword(
           request.body.currentPassword,
           account.passwordHash,
         ))
       )
-        throw new ApiError(400, 'The current password is incorrect.');
+        throw new ApiError(400, appText.apiAuthTheCurrentPasswordIsIncorrect);
       const { newPassword } = request.body;
       if (account.mustChangePassword && !newPassword)
         throw new ApiError(
           400,
-          'Choose a new password to finish account setup.',
+          appText.apiAuthChooseANewPasswordToFinishAccountSetup,
         );
       if (
         newPassword &&
@@ -296,7 +309,7 @@ export function authRoutes(
       )
         throw new ApiError(
           400,
-          'Choose a password different from your current password.',
+          appText.apiAuthChooseAPasswordDifferentFromYourCurrentPassword,
         );
       const saved = await store.updateAccount(
         account.id,
@@ -377,7 +390,7 @@ export function authRoutes(
       async (request) => {
         const actor = await requireOwner(request, true);
         if (!store.manageModerator)
-          throw new ApiError(503, 'Account management unavailable.');
+          throw new ApiError(503, appText.apiAuthAccountManagementUnavailable);
         return store.manageModerator(
           request.params.id,
           request.body.expectedVersion,
@@ -393,7 +406,7 @@ export function authRoutes(
   app.get('/api/v1/admin/access-control', async (request) => {
     await requireOwner(request);
     if (!accessControl)
-      throw new ApiError(503, 'Access control is unavailable.');
+      throw new ApiError(503, appText.apiAuthAccessControlIsUnavailable);
     return accessControl.settings();
   });
   app.put<{
@@ -430,7 +443,7 @@ export function authRoutes(
     async (request) => {
       const actor = await requireOwner(request, true);
       if (!accessControl)
-        throw new ApiError(503, 'Access control is unavailable.');
+        throw new ApiError(503, appText.apiAuthAccessControlIsUnavailable);
       return accessControl.update(
         request.body.moderatorPages,
         request.body.expectedRevision,
@@ -548,7 +561,7 @@ export function authRoutes(
       if (!saved)
         throw new ApiError(
           409,
-          'Settings changed. Reload before saving again.',
+          appText.apiAuthSettingsChangedReloadBeforeSavingAgain,
         );
       return saved;
     },
@@ -556,7 +569,7 @@ export function authRoutes(
   app.get('/api/v1/admin/clan-api-key', async (request) => {
     await requireAdmin(request);
     if (!clanKeys)
-      throw new ApiError(503, 'Clan API key storage is unavailable.');
+      throw new ApiError(503, appText.apiAuthClanApiKeyStorageIsUnavailable);
     return clanKeys.settings();
   });
   app.put<{ Body: ClanKeyUpdate }>(
@@ -586,7 +599,7 @@ export function authRoutes(
     async (request) => {
       const actor = await requireOwner(request, true);
       if (!clanKeys)
-        throw new ApiError(503, 'Clan API key storage is unavailable.');
+        throw new ApiError(503, appText.apiAuthClanApiKeyStorageIsUnavailable);
       return clanKeys.update(request.body, actor.id);
     },
   );

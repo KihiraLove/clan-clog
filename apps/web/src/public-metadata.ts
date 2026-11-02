@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { parseSettings } from './site-settings.ts';
 import { parseBranding } from './branding.ts';
 /** Three independent conditional resources; failed/canceled reads never replace a good value. */
@@ -28,7 +29,8 @@ export class PublicMetadataClient {
       void response.body?.cancel();
       return prior.data as T;
     }
-    if (!response.ok) throw new Error('Public settings unavailable');
+    if (!response.ok)
+      throw new Error(appText.webPublicMetadataPublicSettingsUnavailable);
     const data = parse(await response.json());
     signal.throwIfAborted();
     this.cache.set(path, { etag: response.headers.get('ETag'), data });

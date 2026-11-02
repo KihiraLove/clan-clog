@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Restrict Discord data access to two bot-only API routes. No direct database access. */
 import {
   closedCollectionPageMessage,
@@ -42,7 +43,7 @@ export class BotApiError extends Error {
   }
   constructor(
     readonly status: number,
-    message = 'Bot intake API unavailable',
+    message = appText.botApiBotIntakeApiUnavailable,
   ) {
     super(message);
   }
@@ -59,7 +60,7 @@ export class UnconfirmedSubmissionError extends Error {
     readonly interactionId: string,
     readonly reason: 'retry-rejected' | 'retries-exhausted' | 'invalid-receipt',
   ) {
-    super('Submission receipt unconfirmed');
+    super(appText.botApiSubmissionReceiptUnconfirmed);
     this.name = 'UnconfirmedSubmissionError';
   }
 }
@@ -118,7 +119,10 @@ function parseReceipt(value: unknown, interactionId: string): Receipt {
     (value.resolution === 'resolved') !== (value.itemId !== null) ||
     (value.itemId === null && value.creditOccupied)
   )
-    throw new BotApiError(502, 'Invalid durable receipt from the intake API');
+    throw new BotApiError(
+      502,
+      appText.botApiInvalidDurableReceiptFromTheIntakeApi,
+    );
   return value as unknown as Receipt;
 }
 export class HttpBotApi implements BotApi {
@@ -176,7 +180,7 @@ export class HttpBotApi implements BotApi {
       body.items.length > 25 ||
       !body.items.every(candidate)
     )
-      throw new BotApiError(502, 'Invalid autocomplete response');
+      throw new BotApiError(502, appText.botApiInvalidAutocompleteResponse);
     return body.items;
   }
 

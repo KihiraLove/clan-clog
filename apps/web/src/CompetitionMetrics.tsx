@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import {
   competitionDefinitions,
   competitionMetricName,
@@ -12,15 +13,21 @@ export function CompetitionMetrics({
   competition: WomCompetition;
 }) {
   return (
-    <p className="competition-metrics" aria-label="Competition metrics">
-      Metrics:{' '}
-      {competitionDefinitions(competition)
-        .map(
-          (d) =>
-            (d.definition?.name ?? competitionMetricName(d.metric)) +
-            (d.weight === '1' ? '' : ' × ' + formatCompetitionAmount(d.weight)),
-        )
-        .join(' · ')}
+    <p
+      className="competition-metrics"
+      aria-label={appText.webCompetitionMetricsCompetitionMetrics}
+    >
+      {appText.webCompetitionMetricsMetricsMessage(
+        competitionDefinitions(competition)
+          .map(
+            (d) =>
+              (d.definition?.name ?? competitionMetricName(d.metric)) +
+              (d.weight === '1'
+                ? ''
+                : ' × ' + formatCompetitionAmount(d.weight)),
+          )
+          .join(' · '),
+      )}
     </p>
   );
 }
@@ -32,7 +39,7 @@ export function CompetitionBreakdown({
   if (!players.some((p) => p.deltas?.length)) return null;
   return (
     <details className="competition-breakdown">
-      <summary>Metric breakdown</summary>
+      <summary>{appText.webCompetitionMetricsMetricBreakdown}</summary>
       <ul>
         {players.map((p) => (
           <li key={p.playerId}>
@@ -42,8 +49,10 @@ export function CompetitionBreakdown({
                 ?.filter((d) => d.metric !== 'total')
                 .map((d) => (
                   <li key={d.metric}>
-                    {competitionMetricName(d.metric)}:{' '}
-                    {formatCompetitionAmount(d.gained)}
+                    {appText.webCompetitionMetricsMetricAmount(
+                      competitionMetricName(d.metric),
+                      formatCompetitionAmount(d.gained),
+                    )}
                   </li>
                 ))}
             </ul>

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Maintainer command: validate cumulative manifests and decode/hash every supplied WebP. */
 import { readCatalogUpdates } from './catalog-update-bundle.js';
 import type { CatalogUpdateItem } from '@clog/domain';
@@ -14,19 +15,21 @@ for (const batch of batches) {
   for (const item of items.values()) {
     for (const id of item.gameItemIds) {
       if (ids.has(id))
-        throw new Error('Game ID is assigned to multiple release identities.');
+        throw new Error(
+          appText.databaseCatalogUpdateCheckGameIdIsAssignedToMultipleReleaseIdentities,
+        );
       ids.add(id);
     }
     if (item.pageKeys.some((k: string) => !pages.has(k)))
-      throw new Error('Missing page definition in catalog update.');
+      throw new Error(
+        appText.databaseCatalogUpdateCheckMissingPageDefinitionInCatalogUpdate,
+      );
   }
 }
 console.log(
-  'Catalog updates verified: ' +
-    batches.length +
-    ' batches, ' +
-    items.size +
-    ' items, ' +
-    images.length +
-    ' images.',
+  appText.databaseCatalogUpdateCheckCatalogUpdatesVerifiedBatchesItemsImages(
+    batches.length,
+    items.size,
+    images.length,
+  ),
 );

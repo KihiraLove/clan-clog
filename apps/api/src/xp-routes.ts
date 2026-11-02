@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Coherent public tracker and authenticated, CSRF-bound import endpoints. */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { ApiError } from './types.js';
@@ -111,7 +112,10 @@ export function xpAdminRoutes(
           key,
         )
       )
-        throw new ApiError(400, 'A UUID Idempotency-Key is required.');
+        throw new ApiError(
+          400,
+          appText.apiXpRoutesAUuidIdempotencyKeyIsRequired,
+        );
       return store.apply(
         req.body.previewToken,
         req.body.expectedRevision,

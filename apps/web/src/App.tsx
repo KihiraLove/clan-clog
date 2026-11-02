@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Public entry keeps staff screens behind explicit route preparation. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SiteApp } from './SiteApp.tsx';
@@ -34,27 +35,30 @@ export function App() {
   return (
     <>
       {pending && (
-        <aside className="admin-route-status" aria-label="Page navigation">
+        <aside
+          className="admin-route-status"
+          aria-label={appText.webAppPageNavigation}
+        >
           <p role={pending.error ? 'alert' : 'status'}>
-            {pending.error ?? 'Loading page…'}
+            {pending.error ?? appText.webAppLoadingPage}
           </p>
           {pending.codeFailure ? (
             <button
               className="site-button"
               onClick={() => window.location.reload()}
             >
-              Reload page
+              {appText.webAppReloadPage}
             </button>
           ) : (
             pending.error && (
               <button className="site-button" onClick={pending.retry}>
-                Retry navigation
+                {appText.webAppRetryNavigation}
               </button>
             )
           )}
           {resources && (
             <button className="site-button" onClick={pending.cancel}>
-              Cancel navigation
+              {appText.webAppCancelNavigation}
             </button>
           )}
         </aside>
@@ -63,11 +67,11 @@ export function App() {
         <SiteApp navigation={navigation} resources={resources} />
       ) : (
         <main className="site-shell">
-          <h1>Clan Collection Log</h1>
+          <h1>{appText.webAppClanCollectionLog}</h1>
           <p>
             {isAdminPath(navigation.route.path)
-              ? 'Checking admin access…'
-              : 'Preparing this page before showing its forms.'}
+              ? appText.webAppCheckingAdminAccess
+              : appText.webAppPreparingThisPageBeforeShowingItsForms}
           </p>
         </main>
       )}

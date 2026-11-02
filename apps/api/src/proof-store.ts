@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Screenshot metadata, automatic review, audit and RuneLite receipts commit together. */
 import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -38,7 +39,7 @@ export function runeLiteWorld(value: unknown) {
   } catch {
     throw new ApiError(
       422,
-      'Use a world type identifier or a JSON array of world type identifiers.',
+      appText.apiProofStoreUseAWorldTypeIdentifierOrAJsonArrayOf,
     );
   }
   const blocked = worldTypes.find((type) =>
@@ -47,7 +48,7 @@ export function runeLiteWorld(value: unknown) {
   if (blocked)
     throw new ApiError(
       403,
-      `Submissions from ${blocked} worlds are not allowed.`,
+      appText.apiProofStoreSubmissionsFromWorldsAreNotAllowed(blocked),
     );
   return {
     worldTypes,
@@ -66,12 +67,12 @@ function validateSubmission(fields: RuneLiteFields, rules: RuneLiteRules) {
   )
     throw new ApiError(
       422,
-      'Supply the full chat message, up to 8192 UTF-8 bytes.',
+      appText.apiProofStoreSupplyTheFullChatMessageUpTo8192Utf8,
     );
   if (rules.matchClanName && !clanMatches(fields.clanName, rules.clanName))
     throw new ApiError(
       403,
-      'Clan name does not match the configured in-game clan name.',
+      appText.apiProofStoreClanNameDoesNotMatchTheConfiguredInGameClan,
     );
   return runeLiteDecision(fields.worldTypes, fields.username, rules);
 }
@@ -207,13 +208,16 @@ export class PgProofStore implements ProofStore {
         if (prior.payload_hash !== hash)
           throw new ApiError(
             409,
-            'Submission key already used for a different request.',
+            appText.apiProofStoreSubmissionKeyAlreadyUsedForADifferentRequest,
           );
         await client.query('COMMIT');
         return { receipt: prior.response, imageId: prior.image_id };
       }
       if (fields.chatMessage === undefined)
-        throw new ApiError(422, 'Supply the full chat message as proof.');
+        throw new ApiError(
+          422,
+          appText.apiProofStoreSupplyTheFullChatMessageAsProof,
+        );
       const playerKey = normalizePlayerName(fields.username);
       // Serialize observers even before a canonical item exists. One lock per
       // player/world also covers aliases mapped between two deliveries.
@@ -286,7 +290,7 @@ export class PgProofStore implements ProofStore {
           classification.collectionType,
         ));
       const rejection = collectedDuplicate
-        ? 'Automatically rejected: Filter out regular duplicates is on and this item already has a Regular collection in this world mode.'
+        ? appText.apiProofStoreAutomaticallyRejectedFilterOutRegularDuplicatesIsOnAndThis
         : decision.action === 'reject'
           ? decision.reason
           : undefined;
@@ -368,7 +372,7 @@ export class PgProofStore implements ProofStore {
           [
             id,
             'system:runelite-auto-review',
-            'RuneLite auto review',
+            appText.apiProofStoreRuneLiteAutoReview,
             status === 'rejected'
               ? 'reject'
               : status === 'approved'
@@ -377,7 +381,7 @@ export class PgProofStore implements ProofStore {
             rejection ??
               (status === 'approved'
                 ? decision.reason
-                : 'Automatic approval deferred: an approved Event collection already exists for this item.'),
+                : appText.apiProofStoreAutomaticApprovalDeferredAnApprovedEventCollectionAlreadyExistsFor),
             JSON.stringify(before),
             JSON.stringify({
               ...before,

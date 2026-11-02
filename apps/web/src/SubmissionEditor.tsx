@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Review saved claims, stage corrections separately and display before/after audit history. */
 import { useEffect, useId, useRef, useState } from 'react';
 import { collectionTypeLabel } from '@clog/domain';
@@ -26,15 +27,15 @@ import {
 } from './review-prerequisites.ts';
 
 const hiddenHints = new Set([
-  'Only pending or approved claims can be edited.',
+  appText.webSubmissionEditorOnlyPendingOrApprovedClaimsCanBeEdited,
   unsavedClaimHint,
-  'No review note changes to save.',
-  'There are no review note changes to discard.',
-  'No claim corrections to save.',
-  'There are no claim corrections to discard.',
-  'Check the saved item, collector, date, world mode and proof, then tick the proof acknowledgement.',
-  'Enter a reason before rejecting a submission.',
-  'Enter a reason before revoking a credit.',
+  appText.webSubmissionEditorNoReviewNoteChangesToSave,
+  appText.webSubmissionEditorThereAreNoReviewNoteChangesToDiscard,
+  appText.webSubmissionEditorNoClaimCorrectionsToSave,
+  appText.webSubmissionEditorThereAreNoClaimCorrectionsToDiscard,
+  appText.webSubmissionEditorCheckTheSavedItemCollectorDateWorldModeAndProof,
+  appText.webSubmissionEditorEnterAReasonBeforeRejectingASubmission,
+  appText.webSubmissionEditorEnterAReasonBeforeRevokingACredit,
 ]);
 
 const usesSavedTiming = (row: Submission) =>
@@ -73,7 +74,7 @@ function ReviewWindow({
     <dialog
       ref={dialog}
       className="submission-review-dialog"
-      aria-label="Submission review"
+      aria-label={appText.webSubmissionEditorSubmissionReview}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -140,7 +141,7 @@ export function SubmissionEditor({
         if (classifyAccessFailure(failure) === 'expired') onAccessLost();
         else
           setReadError(
-            'Could not load this submission and audit history. Reload before making a decision.',
+            appText.webSubmissionEditorCouldNotLoadThisSubmissionAndAuditHistoryReloadBefore,
           );
       })
       .finally(() => clearTimeout(timer));
@@ -169,7 +170,11 @@ export function SubmissionEditor({
   useAdminDraft(dirty, action.busy);
   const close = () => {
     if (action.busy) return;
-    if (dirty && !window.confirm('Discard unsaved review changes?')) return;
+    if (
+      dirty &&
+      !window.confirm(appText.webSubmissionEditorDiscardUnsavedReviewChanges)
+    )
+      return;
     onClose();
   };
   if (!detail || !draft || !flags)
@@ -178,10 +183,10 @@ export function SubmissionEditor({
         <section className="admin-panel">
           <button
             className="site-button review-close"
-            aria-label="Close review"
+            aria-label={appText.webSubmissionEditorCloseReview}
             onClick={close}
           >
-            ×
+            {appText.webSubmissionEditorCloseSymbol}
           </button>
           {readError ? (
             <>
@@ -190,11 +195,11 @@ export function SubmissionEditor({
                 className="site-button"
                 onClick={() => setRefresh((v) => v + 1)}
               >
-                Reload submission
+                {appText.webSubmissionEditorReloadSubmission}
               </button>
             </>
           ) : (
-            <p role="status">Loading submission…</p>
+            <p role="status">{appText.webSubmissionEditorLoadingSubmission}</p>
           )}
         </section>
       </ReviewWindow>
@@ -227,13 +232,13 @@ export function SubmissionEditor({
       const latest = await client.detail(id, signal);
       if (signal.aborted) return;
       if (latest.submission.version !== next.version)
-        throw new Error('Submission changed again.');
+        throw new Error(appText.webSubmissionEditorSubmissionChangedAgain);
       setDetail(latest);
     } catch (failure) {
       if (classifyAccessFailure(failure) === 'expired') throw failure;
       if (!signal.aborted)
         setReadError(
-          'The change was saved, but the latest revision or audit could not be confirmed. Reload before continuing.',
+          appText.webSubmissionEditorTheChangeWasSavedButTheLatestRevisionOrAudit,
         );
     }
   };
@@ -243,7 +248,9 @@ export function SubmissionEditor({
       async (signal) => {
         if (decision && claimDirty) throw new Error(unsavedClaimHint);
         if (decision === 'revoke' && flagsDirty)
-          throw new Error('Save or discard collection flags before revoking.');
+          throw new Error(
+            appText.webSubmissionEditorSaveOrDiscardCollectionFlagsBeforeRevoking,
+          );
         if (
           decision === 'approve' &&
           (claimDirty ||
@@ -252,12 +259,16 @@ export function SubmissionEditor({
             !activeItem)
         )
           throw new Error(
-            'Save a specific item match and check the screenshot before approving.',
+            appText.webSubmissionEditorSaveASpecificItemMatchAndCheckTheScreenshotBefore,
           );
         if (decision && decision !== 'approve' && !draft.reason.trim())
-          throw new Error('Enter a reason for this decision.');
+          throw new Error(
+            appText.webSubmissionEditorEnterAReasonForThisDecision,
+          );
         if (!decision && row.status === 'approved' && !draft.reason.trim())
-          throw new Error('Enter a reason for correcting an approved credit.');
+          throw new Error(
+            appText.webSubmissionEditorEnterAReasonForCorrectingAnApprovedCredit,
+          );
         const next = decision
           ? await client.decide(
               id,
@@ -294,10 +305,10 @@ export function SubmissionEditor({
         setChecked(false);
         action.setMessage(
           decision
-            ? 'Submission ' +
-                next.status +
-                '. Public credit follows this saved decision.'
-            : 'Changes saved. Review the saved claim before approving.',
+            ? appText.webSubmissionEditorSubmissionPublicCreditFollowsThisSavedDecision(
+                next.status,
+              )
+            : appText.webSubmissionEditorChangesSavedReviewTheSavedClaimBeforeApproving,
         );
         onChanged(next.status);
         await refreshAudit(next, signal);
@@ -311,7 +322,7 @@ export function SubmissionEditor({
       async (signal) => {
         if (row.status !== 'approved' || !flagsDirty || !draft.reason.trim())
           throw new Error(
-            'Enter an audit reason before saving collection flags.',
+            appText.webSubmissionEditorEnterAnAuditReasonBeforeSavingCollectionFlags,
           );
         const next = await client.saveCollectionFlags(
           id,
@@ -326,13 +337,13 @@ export function SubmissionEditor({
         setFlags(flagsOf(next));
         if (!claimDirty) setDraft({ ...draft, reason: '' });
         setChecked(false);
-        action.setMessage('Collection flags saved.');
+        action.setMessage(appText.webSubmissionEditorCollectionFlagsSaved);
         onChanged(next.status);
         await refreshAudit(next, signal);
       },
       async () => {
         setReadError(
-          'The submission changed. Your local drafts are retained; reload the submission before continuing.',
+          appText.webSubmissionEditorTheSubmissionChangedYourLocalDraftsAreRetainedReloadThe,
         );
       },
       'flags',
@@ -353,7 +364,7 @@ export function SubmissionEditor({
         setDetail({ ...detail, submission: next });
         setReviewNote(next.reviewNote);
         setChecked(false);
-        action.setMessage('Review note saved.');
+        action.setMessage(appText.webSubmissionEditorReviewNoteSaved);
         onChanged(next.status);
         // Preserve draft corrections while reloading the updated audit history.
         try {
@@ -367,7 +378,7 @@ export function SubmissionEditor({
           if (classifyAccessFailure(failure) === 'expired') throw failure;
           if (!signal.aborted)
             setReadError(
-              'The note was saved, but audit history could not be refreshed. Reload before continuing.',
+              appText.webSubmissionEditorTheNoteWasSavedButAuditHistoryCouldNotBe,
             );
         }
       },
@@ -389,7 +400,8 @@ export function SubmissionEditor({
     reasonProvided: Boolean(draft.reason.trim()),
   });
   if (row.status === 'approved' && flagsDirty && !blockers.revoke)
-    blockers.revoke = 'Save or discard collection flags before revoking.';
+    blockers.revoke =
+      appText.webSubmissionEditorSaveOrDiscardCollectionFlagsBeforeRevoking;
   const showClaimHint = editable && claimDirty;
   const claimHintId = `review-${hintId}-claim-draft`;
   const shownHint = (key: ReviewActionHint) =>
@@ -429,83 +441,97 @@ export function SubmissionEditor({
         <div className="admin-section-heading">
           <div>
             <h2 id="submission-title">
-              {catalog.items.find((item) => item.id === row.itemId)?.name ??
-                row.rawItemText ??
-                'Unmatched item'}{' '}
-              · {row.collectorName}
+              {appText.webSubmissionEditorSubmissionHeading(
+                catalog.items.find((item) => item.id === row.itemId)?.name ??
+                  row.rawItemText ??
+                  appText.webSubmissionEditorUnmatchedItem,
+                row.collectorName,
+              )}
             </h2>
-            <p className="admin-note">Revision: {row.version}</p>
+            <p className="admin-note">
+              {appText.webSubmissionEditorRevisionMessage(row.version)}
+            </p>
             <p>
-              {row.status} ·{' '}
-              {row.source === 'manual'
-                ? 'Manual submission'
-                : row.source === 'runelite'
-                  ? 'RuneLite submission'
-                  : 'Discord submission'}{' '}
-              {row.id}
+              {appText.webSubmissionEditorSubmissionSummary(
+                row.status,
+                row.source === 'manual'
+                  ? appText.webSubmissionEditorManualSubmission
+                  : row.source === 'runelite'
+                    ? appText.webSubmissionEditorRuneLiteSubmission
+                    : appText.webSubmissionEditorDiscordSubmission,
+                row.id,
+              )}
             </p>
           </div>
           <button
             className="site-button review-close"
-            aria-label="Close review"
+            aria-label={appText.webSubmissionEditorCloseReview}
             disabled={action.busy}
             onClick={close}
           >
-            ×
+            {appText.webSubmissionEditorCloseSymbol}
           </button>
         </div>
         <div className="submission-review-layout">
           <div className="submission-review-evidence">
-            <h3>Submission details</h3>
+            <h3>{appText.webSubmissionEditorSubmissionDetails}</h3>
             <dl className="submission-facts">
               <div>
-                <dt>Collection type</dt>
+                <dt>{appText.webSubmissionEditorCollectionType}</dt>
                 <dd>{collectionTypeLabel(row.collectionType)}</dd>
                 {row.collectionReason === 'event_credit_already_obtained' && (
                   <dd>
-                    Recorded as Regular because this item already had an Event
-                    collection.
+                    {
+                      appText.webSubmissionEditorRecordedAsRegularBecauseThisItemAlreadyHadAnEvent
+                    }
                   </dd>
                 )}
               </div>
               <div>
                 <dt>
                   {row.source === 'runelite'
-                    ? 'Submitted item name'
-                    : 'Raw item input'}
+                    ? appText.webSubmissionEditorSubmittedItemName
+                    : appText.webSubmissionEditorRawItemInput}
                 </dt>
-                <dd>{row.rawItemText || 'No raw text supplied'}</dd>
+                <dd>
+                  {row.rawItemText ||
+                    appText.webSubmissionEditorNoRawTextSupplied}
+                </dd>
               </div>
               {row.gameItemId !== undefined && (
                 <div>
-                  <dt>Game item ID</dt>
+                  <dt>{appText.webSubmissionEditorGameItemId}</dt>
                   <dd>{row.gameItemId}</dd>
                 </div>
               )}
               {row.itemId === null && (
                 <div>
-                  <dt>Catalog match</dt>
-                  <dd>Unmatched</dd>
+                  <dt>{appText.webSubmissionEditorCatalogMatch}</dt>
+                  <dd>{appText.webSubmissionEditorUnmatched}</dd>
                 </div>
               )}
               <div>
-                <dt>Date source</dt>
+                <dt>{appText.webSubmissionEditorDateSource}</dt>
                 <dd>{dateSourceLabel(row.dateSource)}</dd>
               </div>
               <div>
-                <dt>Submitted</dt>
+                <dt>{appText.webSubmissionEditorSubmitted}</dt>
                 <dd>{formatUtcTime(row.submittedAt)}</dd>
               </div>
               <div>
-                <dt>Collected on</dt>
+                <dt>{appText.webSubmissionEditorCollectedOn}</dt>
                 <dd>{row.collectedOn}</dd>
               </div>
               <div>
-                <dt>Worlds</dt>
-                <dd>{row.hardcore ? 'Hardcore worlds' : 'Ordinary worlds'}</dd>
+                <dt>{appText.webSubmissionEditorWorlds}</dt>
+                <dd>
+                  {row.hardcore
+                    ? appText.webSubmissionEditorHardcoreWorlds
+                    : appText.webSubmissionEditorOrdinaryWorlds}
+                </dd>
               </div>
               <div>
-                <dt>Proof</dt>
+                <dt>{appText.webSubmissionEditorProof}</dt>
                 <dd>
                   <ProofLink
                     source={row.source}
@@ -517,24 +543,24 @@ export function SubmissionEditor({
               {selected && (
                 <>
                   <div>
-                    <dt>Canonical item</dt>
-                    <dd>#{selected.id}</dd>
+                    <dt>{appText.webSubmissionEditorCanonicalItem}</dt>
+                    <dd>{appText.webSubmissionEditorItemId(selected.id)}</dd>
                   </div>
                   <div>
-                    <dt>Item origin</dt>
+                    <dt>{appText.webSubmissionEditorItemOrigin}</dt>
                     <dd>
                       {selected.origin === 'manual'
-                        ? 'Manual item'
-                        : 'Source item'}
+                        ? appText.webSubmissionEditorManualItem
+                        : appText.webSubmissionEditorSourceItem}
                     </dd>
                   </div>
                   <div>
-                    <dt>Collection log pages</dt>
+                    <dt>{appText.webSubmissionEditorCollectionLogPages}</dt>
                     <dd>
                       {catalog.pages
                         .filter((page) => page.itemIds.includes(selected.id))
                         .map((page) => page.name)
-                        .join(', ') || 'Not on a page'}
+                        .join(', ') || appText.webSubmissionEditorNotOnAPage}
                     </dd>
                   </div>
                 </>
@@ -542,21 +568,21 @@ export function SubmissionEditor({
             </dl>
             {row.chatMessage && (
               <div className="submission-chat-proof">
-                <strong>Chat message</strong>
+                <strong>{appText.webSubmissionEditorChatMessage}</strong>
                 <p>{row.chatMessage}</p>
               </div>
             )}
             {action.busy && (
               <p role="status" className="admin-note">
                 {action.operation === 'approve'
-                  ? 'Approving saved claim…'
+                  ? appText.webSubmissionEditorApprovingSavedClaim
                   : action.operation === 'reject'
-                    ? 'Rejecting submission…'
+                    ? appText.webSubmissionEditorRejectingSubmission
                     : action.operation === 'revoke'
-                      ? 'Revoking credit…'
+                      ? appText.webSubmissionEditorRevokingCredit
                       : action.operation === 'note'
-                        ? 'Saving review note…'
-                        : 'Saving claim corrections…'}
+                        ? appText.webSubmissionEditorSavingReviewNote
+                        : appText.webSubmissionEditorSavingClaimCorrections}
               </p>
             )}
             {action.error && (
@@ -576,7 +602,7 @@ export function SubmissionEditor({
                   className="site-button"
                   onClick={() => setRefresh((v) => v + 1)}
                 >
-                  Reload submission
+                  {appText.webSubmissionEditorReloadSubmission}
                 </button>
               </div>
             )}
@@ -589,17 +615,19 @@ export function SubmissionEditor({
           >
             {row.itemId !== null && !activeItem && (
               <p className="admin-note">
-                Item #{row.itemId} is no longer in the active catalog. Select
-                and save an active item before approving this claim. Its proof
-                and review history remain available.
+                {appText.webSubmissionEditorItemIsNoLongerInTheActiveCatalog(
+                  row.itemId,
+                )}
               </p>
             )}
             <fieldset disabled={locked || !editable} className="admin-fieldset">
-              <legend>Saved claim and corrections</legend>
+              <legend>
+                {appText.webSubmissionEditorSavedClaimAndCorrections}
+              </legend>
               <div className="admin-form-grid review-claim-columns">
                 <div>
                   <label>
-                    Collector name
+                    {appText.webSubmissionEditorCollectorName}
                     <input
                       required
                       maxLength={80}
@@ -610,7 +638,7 @@ export function SubmissionEditor({
                     />
                   </label>
                   <label>
-                    Collection date
+                    {appText.webSubmissionEditorCollectionDate}
                     <input
                       type="date"
                       required
@@ -624,7 +652,7 @@ export function SubmissionEditor({
                 </div>
                 <div>
                   <label>
-                    Search catalog items
+                    {appText.webSubmissionEditorSearchCatalogItems}
                     <input
                       type="search"
                       value={query}
@@ -632,7 +660,9 @@ export function SubmissionEditor({
                     />
                   </label>
                   <div>
-                    <label htmlFor="canonical-item">Canonical item</label>
+                    <label htmlFor="canonical-item">
+                      {appText.webSubmissionEditorCanonicalItem}
+                    </label>
                     <select
                       id="canonical-item"
                       className="catalog-choice-list"
@@ -643,10 +673,15 @@ export function SubmissionEditor({
                         change({ itemId: Number(event.target.value) })
                       }
                     >
-                      <option value="">Select the exact item…</option>
+                      <option value="">
+                        {appText.webSubmissionEditorSelectTheExactItem}
+                      </option>
                       {options.map((item) => (
                         <option key={item.id} value={item.id}>
-                          {item.name} · #{item.id}
+                          {appText.webSubmissionEditorItemIdentity(
+                            item.name,
+                            item.id,
+                          )}
                         </option>
                       ))}
                     </select>
@@ -655,12 +690,13 @@ export function SubmissionEditor({
               </div>
               {!matches.length && (
                 <p className="admin-note">
-                  No matching items. Add a missing item in Catalog items before
-                  resolving this submission.
+                  {
+                    appText.webSubmissionEditorNoMatchingItemsAddAMissingItemInCatalogItems
+                  }
                 </p>
               )}
               <label>
-                Review note (optional)
+                {appText.webSubmissionEditorReviewNoteOptional}
                 <textarea
                   maxLength={1000}
                   rows={3}
@@ -677,7 +713,7 @@ export function SubmissionEditor({
                   aria-busy={action.busy && action.operation === 'note'}
                   onClick={saveNote}
                 >
-                  Save review note
+                  {appText.webSubmissionEditorSaveReviewNote}
                 </button>
                 <button
                   className="site-button"
@@ -686,12 +722,14 @@ export function SubmissionEditor({
                   aria-describedby={describedBy('discardNote')}
                   onClick={() => setReviewNote(row.reviewNote)}
                 >
-                  Discard review note
+                  {appText.webSubmissionEditorDiscardReviewNote}
                 </button>
               </div>
               {explanations(['note', 'discardNote'])}
               <label>
-                Review reason (optional) / Rejection reason / Revoke reason
+                {
+                  appText.webSubmissionEditorReviewReasonOptionalRejectionReasonRevokeReason
+                }
                 <textarea
                   maxLength={1000}
                   rows={3}
@@ -709,7 +747,7 @@ export function SubmissionEditor({
                   aria-describedby={describedBy('claim')}
                   aria-busy={action.busy && action.operation === 'claim'}
                 >
-                  Save corrections
+                  {appText.webSubmissionEditorSaveCorrections}
                 </button>
                 <button
                   className="site-button"
@@ -721,7 +759,7 @@ export function SubmissionEditor({
                     setChecked(false);
                   }}
                 >
-                  Discard corrections
+                  {appText.webSubmissionEditorDiscardCorrections}
                 </button>
               </div>
               {explanations(['claim', 'discardClaim'])}
@@ -730,7 +768,7 @@ export function SubmissionEditor({
               disabled={locked || !editable}
               className="admin-fieldset review-collection-flags"
             >
-              <legend>Collection flags</legend>
+              <legend>{appText.webSubmissionEditorCollectionFlags}</legend>
               <label className="admin-checkbox">
                 <input
                   type="checkbox"
@@ -742,7 +780,7 @@ export function SubmissionEditor({
                     })
                   }
                 />
-                Collected on hardcore worlds
+                {appText.webSubmissionEditorCollectedOnHardcoreWorlds}
               </label>
               <label className="admin-checkbox">
                 <input
@@ -761,7 +799,7 @@ export function SubmissionEditor({
                     })
                   }
                 />
-                Obtained during events
+                {appText.webSubmissionEditorObtainedDuringEvents}
               </label>
               {row.source !== 'manual' && (
                 <button
@@ -775,17 +813,21 @@ export function SubmissionEditor({
                     })
                   }
                 >
-                  Use saved intake timing
+                  {appText.webSubmissionEditorUseSavedIntakeTiming}
                 </button>
               )}
               {flags.useIntakeTiming && (
                 <p className="admin-note">
-                  Saved intake timing will determine the collection type.
+                  {
+                    appText.webSubmissionEditorSavedIntakeTimingWillDetermineTheCollectionType
+                  }
                 </p>
               )}
               {row.status === 'pending' && flagsDirty && (
                 <p className="admin-note">
-                  Collection flags will be saved with your review decision.
+                  {
+                    appText.webSubmissionEditorCollectionFlagsWillBeSavedWithYourReviewDecision
+                  }
                 </p>
               )}
               <div className="admin-actions">
@@ -802,7 +844,7 @@ export function SubmissionEditor({
                     aria-busy={action.busy && action.operation === 'flags'}
                     onClick={saveFlags}
                   >
-                    Save collection flags
+                    {appText.webSubmissionEditorSaveCollectionFlags}
                   </button>
                 )}
                 <button
@@ -811,14 +853,16 @@ export function SubmissionEditor({
                   disabled={!flagsDirty}
                   onClick={() => changeFlags(flagsOf(row))}
                 >
-                  Discard collection flags
+                  {appText.webSubmissionEditorDiscardCollectionFlags}
                 </button>
               </div>
               {row.status === 'approved' &&
                 flagsDirty &&
                 !draft.reason.trim() && (
                   <p className="admin-note">
-                    Enter an audit reason before saving collection flags.
+                    {
+                      appText.webSubmissionEditorEnterAnAuditReasonBeforeSavingCollectionFlags
+                    }
                   </p>
                 )}
             </fieldset>
@@ -837,10 +881,10 @@ export function SubmissionEditor({
                   onChange={(event) => setChecked(event.target.checked)}
                 />
                 {row.source === 'manual'
-                  ? 'I verified this manual claim and its item, collector, date and world.'
+                  ? appText.webSubmissionEditorIVerifiedThisManualClaimAndItsItemCollectorDate
                   : row.chatMessage
-                    ? 'I checked the chat message and any attached proof for the saved item, collector, date and hardcore claim.'
-                    : 'I checked the screenshot for the saved item, collector, date and hardcore claim.'}
+                    ? appText.webSubmissionEditorICheckedTheChatMessageAndAnyAttachedProofFor
+                    : appText.webSubmissionEditorICheckedTheScreenshotForTheSavedItemCollectorDate}
               </label>
             )}
             {row.status === 'pending' && explanations(['acknowledge'])}
@@ -855,7 +899,7 @@ export function SubmissionEditor({
                     aria-busy={action.busy && action.operation === 'approve'}
                     onClick={() => perform('approve')}
                   >
-                    Approve submission
+                    {appText.webSubmissionEditorApproveSubmission}
                   </button>
                   <button
                     className="site-button"
@@ -865,7 +909,7 @@ export function SubmissionEditor({
                     aria-busy={action.busy && action.operation === 'reject'}
                     onClick={() => perform('reject')}
                   >
-                    Reject submission
+                    {appText.webSubmissionEditorRejectSubmission}
                   </button>
                 </>
               )}
@@ -878,7 +922,7 @@ export function SubmissionEditor({
                   aria-busy={action.busy && action.operation === 'revoke'}
                   onClick={() => perform('revoke')}
                 >
-                  Revoke credit
+                  {appText.webSubmissionEditorRevokeCredit}
                 </button>
               )}
             </div>

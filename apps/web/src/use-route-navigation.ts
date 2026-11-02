@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Push navigation is committed only after preparation; native history keeps its entries. */
 import {
   useCallback,
@@ -108,7 +109,9 @@ export function useRouteNavigation<T>(
           kind !== 'pop' &&
           browserPosition.current !== visible.current.position
         )
-          throw new Error('History restoration failed.');
+          throw new Error(
+            appText.webUseRouteNavigationHistoryRestorationFailed,
+          );
         if (kind === 'push') {
           window.history.replaceState(
             {
@@ -181,8 +184,8 @@ export function useRouteNavigation<T>(
                 failure instanceof RouteCodeError
                   ? failure.message
                   : timedOut
-                    ? 'Loading timed out. Retry or cancel navigation.'
-                    : 'This page could not be loaded. Retry or cancel navigation.',
+                    ? appText.webUseRouteNavigationLoadingTimedOutRetryOrCancelNavigation
+                    : appText.webUseRouteNavigationThisPageCouldNotBeLoadedRetryOrCancelNavigation,
             });
             void restoreRequest();
           })

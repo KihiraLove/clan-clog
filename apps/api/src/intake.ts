@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Dedicated service-token boundary for Discord bot intake; no admin authority. */
 import multipart from '@fastify/multipart';
 import { screenshotParts, screenshotLimits } from './screenshot-multipart.js';
@@ -14,10 +15,10 @@ export function botSubmission(json: string): BotSubmissionInput {
   try {
     value = JSON.parse(json);
   } catch {
-    throw new ApiError(400, 'Invalid submission JSON.');
+    throw new ApiError(400, appText.apiIntakeInvalidSubmissionJson);
   }
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new ApiError(400, 'Invalid submission fields.');
+    throw new ApiError(400, appText.apiIntakeInvalidSubmissionFields);
   const input = value as Record<string, unknown>;
   if (
     Object.keys(input).some(
@@ -47,7 +48,7 @@ export function botSubmission(json: string): BotSubmissionInput {
         Number(input.itemId) < 1 ||
         Number(input.itemId) > 2147483647))
   )
-    throw new ApiError(400, 'Invalid submission fields.');
+    throw new ApiError(400, appText.apiIntakeInvalidSubmissionFields);
   return {
     ...input,
     hardcore: input.hardcore ?? false,
@@ -91,7 +92,7 @@ function requireBot(request: FastifyRequest, config: BotConfig) {
   const a = createHash('sha256').update(supplied).digest();
   const b = createHash('sha256').update(config.token).digest();
   if (!supplied || !timingSafeEqual(a, b))
-    throw new ApiError(401, 'Bot credential is required.');
+    throw new ApiError(401, appText.apiIntakeBotCredentialIsRequired);
 }
 export function botRoutes(
   app: FastifyInstance,
@@ -105,7 +106,8 @@ export function botRoutes(
       typeof configuration === 'function'
         ? await configuration()
         : configuration;
-    if (!config) throw new ApiError(503, 'Discord submissions are disabled.');
+    if (!config)
+      throw new ApiError(503, appText.apiIntakeDiscordSubmissionsAreDisabled);
     requireBot(request, config);
     authorized.set(request, config);
   };
@@ -138,13 +140,16 @@ export function botRoutes(
       { onRequest: check },
       async (request, reply) => {
         if (!storage)
-          throw new ApiError(503, 'Screenshot storage is unavailable.');
+          throw new ApiError(
+            503,
+            appText.apiIntakeScreenshotStorageIsUnavailable,
+          );
         const { fields, file } = await screenshotParts(request, ['submission']);
         const input = botSubmission(fields.submission!);
         if (input.guildId !== authorized.get(request)!.guildId)
           throw new ApiError(
             403,
-            'Submissions are restricted to the configured guild.',
+            appText.apiIntakeSubmissionsAreRestrictedToTheConfiguredGuild,
           );
         const image = await storage.save(file!.bytes, file!.mime);
         try {

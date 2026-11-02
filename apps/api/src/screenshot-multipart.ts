@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Shared bounded multipart parsing for PNG intake; decoding happens before storage. */
 import type { FastifyRequest } from 'fastify';
 import { MAX_SCREENSHOT_BYTES } from './proof-storage.js';
@@ -16,16 +17,22 @@ export async function screenshotParts(
   requireFile = true,
 ) {
   if (!request.isMultipart())
-    throw new ApiError(400, 'Use multipart/form-data.');
+    throw new ApiError(400, appText.apiScreenshotMultipartUseMultipartFormData);
   const fields: Record<string, string> = {};
   let file: { bytes: Buffer; mime: string } | undefined;
   for await (const part of request.parts()) {
     if (part.type === 'file') {
       if (file || part.fieldname !== 'screenshot')
-        throw new ApiError(400, 'Supply one screenshot file.');
+        throw new ApiError(
+          400,
+          appText.apiScreenshotMultipartSupplyOneScreenshotFile,
+        );
       const bytes = await part.toBuffer();
       if (part.file.truncated)
-        throw new ApiError(413, 'Choose a PNG screenshot up to 10 MiB.');
+        throw new ApiError(
+          413,
+          appText.apiScreenshotMultipartChooseAPngScreenshotUpTo10MiB,
+        );
       file = { bytes, mime: part.mimetype };
     } else {
       if (
@@ -34,7 +41,10 @@ export async function screenshotParts(
         typeof part.value !== 'string' ||
         part.valueTruncated
       )
-        throw new ApiError(400, 'Invalid or duplicate multipart fields.');
+        throw new ApiError(
+          400,
+          appText.apiScreenshotMultipartInvalidOrDuplicateMultipartFields,
+        );
       fields[part.fieldname] = part.value;
     }
   }
@@ -42,6 +52,9 @@ export async function screenshotParts(
     (requireFile && !file) ||
     required.some((key) => !Object.hasOwn(fields, key))
   )
-    throw new ApiError(400, 'Missing submission fields or screenshot.');
+    throw new ApiError(
+      400,
+      appText.apiScreenshotMultipartMissingSubmissionFieldsOrScreenshot,
+    );
   return { fields, file };
 }

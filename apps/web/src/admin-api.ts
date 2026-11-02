@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Same-origin private HTTP adapter for future admin routes; validates mutation receipts. */
 import { parseClanKey, type ClanKeyUpdate } from './clan-api-key.ts';
 import {
@@ -79,39 +80,39 @@ export class AdminRequestError extends Error {
       [400, 409].includes(status) &&
         serverConflict &&
         [
-          'An approved Event collection already exists for this item. Revoke it before approving another Event collection.',
-          'Filter out regular duplicates is on and this item already has a Regular collection in this world mode.',
-          'That username is already in use.',
-          'The current password is incorrect.',
-          'Choose a new password to finish account setup.',
-          'Choose a password different from your current password.',
-          'Your account changed. Sign in again before retrying.',
-          'A page with this name already exists in this category.',
-          'Choose distinct active catalog items.',
-          'The catalog has reached its page or item-slot limit.',
-          'An in-game item ID already belongs to another item.',
-          'A section with this name already exists.',
-          'A page with this name already exists in this section.',
-          'Only sections with no pages can be deleted.',
+          appText.webAdminApiAnApprovedEventCollectionAlreadyExistsForThisItemRevoke,
+          appText.webAdminApiFilterOutRegularDuplicatesIsOnAndThisItemAlready,
+          appText.webAdminApiThatUsernameIsAlreadyInUse,
+          appText.webAdminApiTheCurrentPasswordIsIncorrect,
+          appText.webAdminApiChooseANewPasswordToFinishAccountSetup,
+          appText.webAdminApiChooseAPasswordDifferentFromYourCurrentPassword,
+          appText.webAdminApiYourAccountChangedSignInAgainBeforeRetrying,
+          appText.webAdminApiAPageWithThisNameAlreadyExistsInThisCategory,
+          appText.webAdminApiChooseDistinctActiveCatalogItems,
+          appText.webAdminApiTheCatalogHasReachedItsPageOrItemSlotLimit,
+          appText.webAdminApiAnInGameItemIdAlreadyBelongsToAnotherItem,
+          appText.webAdminApiASectionWithThisNameAlreadyExists,
+          appText.webAdminApiAPageWithThisNameAlreadyExistsInThisSection,
+          appText.webAdminApiOnlySectionsWithNoPagesCanBeDeleted,
         ].includes(serverConflict)
         ? serverConflict
         : status === 409 &&
             serverConflict ===
-              'An approved credit already exists for this item and world mode. Revoke the existing credit or select a different item or mode.'
+              appText.webAdminApiAnApprovedCreditAlreadyExistsForThisItemAndWorld
           ? serverConflict
           : status === 401
-            ? 'Your session expired. Sign in again.'
+            ? appText.webAdminApiYourSessionExpiredSignInAgain
             : status === 403
-              ? 'Your account is not allowed to administer the clan.'
+              ? appText.webAdminApiYourAccountIsNotAllowedToAdministerTheClan
               : status === 409
-                ? 'Another change was saved. Load the latest data before trying again.'
+                ? appText.webAdminApiAnotherChangeWasSavedLoadTheLatestDataBeforeTrying
                 : status === 413
-                  ? 'The uploaded image is too large.'
+                  ? appText.webAdminApiTheUploadedImageIsTooLarge
                   : status === 422 || status === 400
-                    ? 'The server could not validate these fields. Review them before retrying.'
+                    ? appText.webAdminApiTheServerCouldNotValidateTheseFieldsReviewThemBefore
                     : [404, 501, 503].includes(status)
-                      ? 'The admin service is not available yet.'
-                      : 'The request could not be completed. Reload or retry to check the current result.',
+                      ? appText.webAdminApiTheAdminServiceIsNotAvailableYet
+                      : appText.webAdminApiTheRequestCouldNotBeCompletedReloadOrRetryTo,
     );
     this.status = status;
   }
@@ -143,7 +144,7 @@ export class LiveAdminClient implements AdminClient {
       result.revision === revision ||
       JSON.stringify(result.moderatorPages) !== JSON.stringify(moderatorPages)
     )
-      throw new Error('Unexpected access control receipt.');
+      throw new Error(appText.webAdminApiUnexpectedAccessControlReceipt);
     return result;
   }
   async discordStatus(signal: AbortSignal) {
@@ -153,13 +154,13 @@ export class LiveAdminClient implements AdminClient {
       cache: 'no-store',
     });
     if (!response.ok && response.status !== 503)
-      throw new Error('Discord status is unavailable.');
+      throw new Error(appText.webAdminApiDiscordStatusIsUnavailable);
     const result = object(await response.json());
     if (
       typeof result.enabled !== 'boolean' ||
       typeof result.ready !== 'boolean'
     )
-      throw new Error('Invalid Discord status.');
+      throw new Error(appText.webAdminApiInvalidDiscordStatus);
     const state =
       result.state === undefined
         ? !result.enabled
@@ -181,7 +182,7 @@ export class LiveAdminClient implements AdminClient {
       result.ready !== (state === 'connected') ||
       (!response.ok && result.ready)
     )
-      throw new Error('Invalid Discord status.');
+      throw new Error(appText.webAdminApiInvalidDiscordStatus);
     return {
       enabled: result.enabled,
       ready: result.ready,
@@ -211,7 +212,7 @@ export class LiveAdminClient implements AdminClient {
         JSON.stringify(parseDiscordFields(fields)) ||
       (fields.token !== undefined && result.tokenConfigured !== !!fields.token)
     )
-      throw new Error('Unexpected Discord settings receipt.');
+      throw new Error(appText.webAdminApiUnexpectedDiscordSettingsReceipt);
     return result;
   }
   async registerDiscordCommands(
@@ -232,7 +233,7 @@ export class LiveAdminClient implements AdminClient {
       result.revision !== revision ||
       typeof result.guildId !== 'string'
     )
-      throw new Error('Unexpected Discord registration receipt.');
+      throw new Error(appText.webAdminApiUnexpectedDiscordRegistrationReceipt);
   }
   async saveSubmissionFilters(
     filterCollected: boolean,
@@ -255,7 +256,7 @@ export class LiveAdminClient implements AdminClient {
       value.filterCollected !== filterCollected ||
       value.revision === revision
     )
-      throw new Error('Unexpected submission filter receipt.');
+      throw new Error(appText.webAdminApiUnexpectedSubmissionFilterReceipt);
     return value;
   }
   async scheduling(signal: AbortSignal) {
@@ -277,7 +278,7 @@ export class LiveAdminClient implements AdminClient {
       ),
     );
     if (result.revision === expectedRevision || result.enabled !== enabled)
-      throw new Error('Unexpected scheduling receipt.');
+      throw new Error(appText.webAdminApiUnexpectedSchedulingReceipt);
     return result;
   }
   async saveSchedule(
@@ -306,7 +307,7 @@ export class LiveAdminClient implements AdminClient {
           JSON.stringify(schedule.pageIds) === JSON.stringify(fields.pageIds),
       )
     )
-      throw new Error('Unexpected schedule receipt.');
+      throw new Error(appText.webAdminApiUnexpectedScheduleReceipt);
     return result;
   }
   async deleteSchedule(
@@ -326,7 +327,7 @@ export class LiveAdminClient implements AdminClient {
       result.revision === expectedRevision ||
       result.schedules.some((schedule) => schedule.id === id)
     )
-      throw new Error('Unexpected schedule deletion receipt.');
+      throw new Error(appText.webAdminApiUnexpectedScheduleDeletionReceipt);
     return result;
   }
   async runeLiteSettings(signal: AbortSignal) {
@@ -365,7 +366,7 @@ export class LiveAdminClient implements AdminClient {
           requirement.enabled !== clanKeyRequirement.enabled ||
           requirement.revision === clanKeyRequirement.expectedRevision))
     )
-      throw new Error('Unexpected RuneLite settings receipt.');
+      throw new Error(appText.webAdminApiUnexpectedRuneLiteSettingsReceipt);
     return result;
   }
   private readonly request: typeof fetch;
@@ -487,7 +488,7 @@ export class LiveAdminClient implements AdminClient {
       result.version <= expectedVersion ||
       result.disabled !== (action !== 'enable')
     )
-      throw new Error('Unexpected moderator account receipt.');
+      throw new Error(appText.webAdminApiUnexpectedModeratorAccountReceipt);
     return result;
   }
   async createPage(
@@ -514,7 +515,7 @@ export class LiveAdminClient implements AdminClient {
       JSON.stringify(page.itemIds) !== JSON.stringify(fields.itemIds) ||
       text(result.catalogRevision) === revision
     )
-      throw new Error('Unexpected page creation receipt.');
+      throw new Error(appText.webAdminApiUnexpectedPageCreationReceipt);
     return page;
   }
   async removePage(
@@ -541,12 +542,12 @@ export class LiveAdminClient implements AdminClient {
         Number(value) < 1 ||
         Number(value) > 2147483647
       )
-        throw new Error('Unexpected page deletion receipt.');
+        throw new Error(appText.webAdminApiUnexpectedPageDeletionReceipt);
       return value as number;
     });
     unique(retiredItemIds);
     if (result.pageId !== id || text(result.catalogRevision) === revision)
-      throw new Error('Unexpected page deletion receipt.');
+      throw new Error(appText.webAdminApiUnexpectedPageDeletionReceipt);
     return { retiredItemIds };
   }
   async reorderPages(
@@ -572,7 +573,7 @@ export class LiveAdminClient implements AdminClient {
       JSON.stringify(result.orderedPageIds) !== JSON.stringify(ids) ||
       text(result.catalogRevision) === revision
     )
-      throw new Error('Unexpected page order receipt.');
+      throw new Error(appText.webAdminApiUnexpectedPageOrderReceipt);
   }
   async removePageItem(
     pageId: string,
@@ -599,7 +600,7 @@ export class LiveAdminClient implements AdminClient {
       typeof result.retired !== 'boolean' ||
       text(result.catalogRevision) === revision
     )
-      throw new Error('Unexpected catalog deletion receipt.');
+      throw new Error(appText.webAdminApiUnexpectedCatalogDeletionReceipt);
     return { retired: result.retired };
   }
   async createModerator(
@@ -614,14 +615,14 @@ export class LiveAdminClient implements AdminClient {
       this.write(csrf, { username, password }),
     );
     if (response.status !== 201)
-      throw new Error('Unexpected account creation status.');
+      throw new Error(appText.webAdminApiUnexpectedAccountCreationStatus);
     const account = parseStaffAccount(await response.json());
     if (
       account.username !== username ||
       account.role !== 'moderator' ||
       !account.mustChangePassword
     )
-      throw new Error('Unexpected moderator account receipt.');
+      throw new Error(appText.webAdminApiUnexpectedModeratorAccountReceipt);
     return account;
   }
   async updateAccount(
@@ -641,7 +642,7 @@ export class LiveAdminClient implements AdminClient {
       session.username !== fields.username ||
       (fields.newPassword && session.mustChangePassword)
     )
-      throw new Error('Unexpected account update receipt.');
+      throw new Error(appText.webAdminApiUnexpectedAccountUpdateReceipt);
     return session;
   }
   async addManual(
@@ -668,7 +669,7 @@ export class LiveAdminClient implements AdminClient {
         : this.write(csrf, fields, 'POST', key),
     );
     if (response.status !== 201)
-      throw new Error('Unexpected manual submission status.');
+      throw new Error(appText.webAdminApiUnexpectedManualSubmissionStatus);
     const result = parseSubmission(await response.json());
     if (
       result.source !== 'manual' ||
@@ -678,7 +679,7 @@ export class LiveAdminClient implements AdminClient {
       !collectionTypeMatches(result, fields.collectionType) ||
       result.status !== (fields.approve ? 'approved' : 'pending')
     )
-      throw new Error('Unexpected manual submission receipt.');
+      throw new Error(appText.webAdminApiUnexpectedManualSubmissionReceipt);
     return result;
   }
   async clanApiKey(signal: AbortSignal) {
@@ -701,7 +702,7 @@ export class LiveAdminClient implements AdminClient {
       (fields.enabled !== undefined && result.enabled !== fields.enabled) ||
       (fields.key !== undefined && result.key !== fields.key)
     )
-      throw new Error('Unexpected API key receipt.');
+      throw new Error(appText.webAdminApiUnexpectedApiKeyReceipt);
     return result;
   }
   async settings(signal: AbortSignal) {
@@ -747,14 +748,14 @@ export class LiveAdminClient implements AdminClient {
         failure.status === 400
       )
         throw new Error(
-          'The logo could not be decoded. Choose a supported image within the listed limits.',
+          appText.webAdminApiTheLogoCouldNotBeDecodedChooseASupportedImage,
           { cause: failure },
         );
       throw failure;
     }
     const result = parseBranding(payload);
     if (result.revision === revision)
-      throw new Error('Unexpected logo receipt.');
+      throw new Error(appText.webAdminApiUnexpectedLogoReceipt);
     return result;
   }
   async saveSettings(
@@ -806,7 +807,7 @@ export class LiveAdminClient implements AdminClient {
         JSON.stringify(result.hardcore) !== JSON.stringify(hardcore)) ||
       result.revision === expectedRevision
     )
-      throw new Error('Unexpected settings receipt.');
+      throw new Error(appText.webAdminApiUnexpectedSettingsReceipt);
     return result;
   }
   async logout(csrf: string, signal: AbortSignal) {
@@ -830,7 +831,8 @@ export class LiveAdminClient implements AdminClient {
       ),
     );
     const section = object(result.section);
-    if (section.name !== name) throw new Error('Unexpected section receipt.');
+    if (section.name !== name)
+      throw new Error(appText.webAdminApiUnexpectedSectionReceipt);
     return { id: text(section.id), name: text(section.name) };
   }
   private async catalogWrite(
@@ -972,7 +974,7 @@ export class LiveAdminClient implements AdminClient {
       ),
     );
     if (result.submission.id !== id)
-      throw new Error('Unexpected submission identity.');
+      throw new Error(appText.webAdminApiUnexpectedSubmissionIdentity);
     return result;
   }
   /** Version checks are the server's concurrency contract; receipts must advance it. */
@@ -995,7 +997,7 @@ export class LiveAdminClient implements AdminClient {
       result.version <= version ||
       !collectionTypeMatches(result, fields.collectionType)
     )
-      throw new Error('Unexpected correction receipt.');
+      throw new Error(appText.webAdminApiUnexpectedCorrectionReceipt);
     return result;
   }
   async saveReviewNote(
@@ -1017,7 +1019,7 @@ export class LiveAdminClient implements AdminClient {
       result.version <= version ||
       result.reviewNote !== note.trim()
     )
-      throw new Error('Unexpected review note receipt.');
+      throw new Error(appText.webAdminApiUnexpectedReviewNoteReceipt);
     return result;
   }
   async decide(
@@ -1059,7 +1061,7 @@ export class LiveAdminClient implements AdminClient {
           } as const
         )[action]
     )
-      throw new Error('Unexpected review receipt.');
+      throw new Error(appText.webAdminApiUnexpectedReviewReceipt);
     return result;
   }
   async saveCollectionFlags(
@@ -1084,7 +1086,7 @@ export class LiveAdminClient implements AdminClient {
       result.hardcore !== flags.hardcore ||
       !collectionTypeMatches(result, flags.collectionType)
     )
-      throw new Error('Unexpected collection flags receipt.');
+      throw new Error(appText.webAdminApiUnexpectedCollectionFlagsReceipt);
     return result;
   }
   async upload(
@@ -1106,7 +1108,7 @@ export class LiveAdminClient implements AdminClient {
     const iconPath = text(result.iconPath);
     parseAdminItem({
       id: 1,
-      name: 'Staged',
+      name: appText.webAdminApiStaged,
       iconPath,
       origin: 'manual',
       overrides: [],
@@ -1136,10 +1138,10 @@ export class LiveAdminClient implements AdminClient {
       pageIds.length !== fields.pageIds.length ||
       pageIds.some((id) => !fields.pageIds.includes(id))
     )
-      throw new Error('Unexpected item memberships.');
+      throw new Error(appText.webAdminApiUnexpectedItemMemberships);
     const item = parseAdminItem(data.item);
     if (item.name !== fields.name || item.origin !== 'manual')
-      throw new Error('Unexpected created item.');
+      throw new Error(appText.webAdminApiUnexpectedCreatedItem);
     return { item, pageIds, catalogRevision: text(data.catalogRevision) };
   }
   async order(
@@ -1168,7 +1170,7 @@ export class LiveAdminClient implements AdminClient {
       page.orderOrigin !== 'manual' ||
       page.version === version
     )
-      throw new Error('Unexpected saved page order.');
+      throw new Error(appText.webAdminApiUnexpectedSavedPageOrder);
     text(data.catalogRevision);
     return page;
   }

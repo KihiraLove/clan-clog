@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** One-shot privilege reconciliation by the database owner, never by the API. */
 import pg from 'pg';
 
@@ -106,7 +107,9 @@ const sequencePolicy: Readonly<Record<string, readonly SequencePrivilege[]>> = {
 
 export function validateRuntimePassword(value: string | undefined): string {
   if (!value || !/^[a-f\d]{64,}$/iu.test(value))
-    throw new Error('APP_DB_PASSWORD must be 32+ random bytes encoded as hex');
+    throw new Error(
+      appText.databaseRuntimeRoleAppDbPasswordMustBe32RandomBytesEncodedAs,
+    );
   return value;
 }
 
@@ -150,7 +153,10 @@ async function verifyEffectivePrivileges(client: pg.Client) {
       (!expected && row.columnAllowed)
     )
       throw new Error(
-        `Unexpected runtime privilege on public.${row.name}: ${row.privilege}`,
+        appText.databaseRuntimeRoleUnexpectedRuntimePrivilegeOnPublic(
+          row.name,
+          row.privilege,
+        ),
       );
   }
   const sequences = await client.query<{
@@ -173,7 +179,10 @@ async function verifyEffectivePrivileges(client: pg.Client) {
       row.delegable
     )
       throw new Error(
-        `Unexpected runtime privilege on public.${row.name}: ${row.privilege}`,
+        appText.databaseRuntimeRoleUnexpectedRuntimePrivilegeOnPublic2(
+          row.name,
+          row.privilege,
+        ),
       );
   const forbidden = await client.query(
     `SELECT 1 WHERE has_schema_privilege($1,'public','CREATE')
@@ -185,7 +194,7 @@ async function verifyEffectivePrivileges(client: pg.Client) {
   );
   if (forbidden.rowCount)
     throw new Error(
-      'Runtime role retains unexpected DDL, routine or membership privileges.',
+      appText.databaseRuntimeRoleRuntimeRoleRetainsUnexpectedDdlRoutineOrMembershipPrivileges,
     );
 }
 
@@ -228,7 +237,7 @@ export async function provisionRuntimeRole(
     );
     if (ownsObjects.rowCount)
       throw new Error(
-        'Runtime role must not own the application database or public schema objects.',
+        appText.databaseRuntimeRoleRuntimeRoleMustNotOwnTheApplicationDatabaseOrPublic,
       );
     const database = (
       await client.query<{ name: string }>('SELECT current_database() AS name')
@@ -282,7 +291,9 @@ export async function provisionRuntimeRole(
         );
         if (!found.rowCount)
           throw new Error(
-            `Missing or incompatible runtime policy object: public.${name}`,
+            appText.databaseRuntimeRoleMissingOrIncompatibleRuntimePolicyObjectPublic(
+              name,
+            ),
           );
         if (privileges.length)
           await client.query(

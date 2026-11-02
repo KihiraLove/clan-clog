@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Build and verify the complete checked-in catalog without network access. */
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -48,7 +49,7 @@ export function buildSnapshot(
   assert.deepEqual(
     Object.keys(source),
     [...categories],
-    'Unexpected source categories/order',
+    appText.databaseCatalogBuildUnexpectedSourceCategoriesOrder,
   );
   const gameIds = Object.keys(names)
     .map(Number)
@@ -58,7 +59,7 @@ export function buildSnapshot(
       .map(Number)
       .sort((a, b) => a - b),
     gameIds,
-    'Identity registry coverage changed',
+    appText.databaseCatalogBuildIdentityRegistryCoverageChanged,
   );
   const pages = Object.entries(source).flatMap(([category, entries]) =>
     Object.entries(entries).map(([id, gameItemIds], sortOrder) => ({
@@ -67,7 +68,10 @@ export function buildSnapshot(
       name: labels[id]!,
       sortOrder,
       itemIds: gameItemIds.map((gameId) => {
-        assert.ok(identities[gameId], `Unmapped source ID ${gameId}`);
+        assert.ok(
+          identities[gameId],
+          appText.databaseCatalogBuildUnmappedSourceId(gameId),
+        );
         return identities[gameId]!;
       }),
     })),
@@ -75,14 +79,18 @@ export function buildSnapshot(
   assert.deepEqual(
     Object.keys(labels).sort(),
     pages.map((page) => page.id).sort(),
-    'Page label coverage changed',
+    appText.databaseCatalogBuildPageLabelCoverageChanged,
   );
   const used = [
     ...new Set(
       Object.values(source).flatMap((entries) => Object.values(entries).flat()),
     ),
   ].sort((a, b) => a - b);
-  assert.deepEqual(used, gameIds, 'Source item/page coverage differs');
+  assert.deepEqual(
+    used,
+    gameIds,
+    appText.databaseCatalogBuildSourceItemPageCoverageDiffers,
+  );
   const snapshot: CatalogSnapshot = {
     schemaVersion: 1,
     source: {
@@ -107,7 +115,7 @@ export function buildSnapshot(
       slots: pages.reduce((sum, page) => sum + page.itemIds.length, 0),
     },
     provenance.coverage,
-    'Pinned coverage differs',
+    appText.databaseCatalogBuildPinnedCoverageDiffers,
   );
   return snapshot;
 }
@@ -126,7 +134,7 @@ export async function buildVerifiedSnapshot(): Promise<CatalogSnapshot> {
     assert.equal(
       sha256(await readFile(new URL('catalog/sources/' + source.file, root))),
       source.sha256,
-      `Changed source ${source.file}`,
+      appText.databaseCatalogBuildChangedSource(source.file),
     );
   const revision = sha256(
     Buffer.concat(
@@ -137,7 +145,11 @@ export async function buildVerifiedSnapshot(): Promise<CatalogSnapshot> {
       ),
     ),
   );
-  assert.equal(revision, provenance.sourceRevision, 'Source revision mismatch');
+  assert.equal(
+    revision,
+    provenance.sourceRevision,
+    appText.databaseCatalogBuildSourceRevisionMismatch,
+  );
   const source = await json<Record<string, Record<string, number[]>>>(
     'catalog/sources/categories.json',
   );
@@ -166,7 +178,7 @@ export async function buildVerifiedSnapshot(): Promise<CatalogSnapshot> {
   assert.deepEqual(
     wikiItems.map((item) => item.id).sort((a, b) => a - b),
     snapshot.items.flatMap((item) => item.gameItemIds),
-    'Wiki item coverage differs',
+    appText.databaseCatalogBuildWikiItemCoverageDiffers,
   );
   const assets = await json<Assets>('catalog/assets.json');
   assert.equal(assets.iconRevision, provenance.iconRevision);
@@ -174,7 +186,7 @@ export async function buildVerifiedSnapshot(): Promise<CatalogSnapshot> {
   assert.deepEqual(
     assets.items.map((asset) => asset.gameItemId),
     snapshot.items.flatMap((item) => item.gameItemIds),
-    'Asset coverage differs',
+    appText.databaseCatalogBuildAssetCoverageDiffers,
   );
   for (const asset of assets.items) {
     assert.equal(
@@ -189,7 +201,7 @@ export async function buildVerifiedSnapshot(): Promise<CatalogSnapshot> {
     assert.equal(
       sha256(bytes),
       asset.sha256,
-      `Changed icon ${asset.gameItemId}`,
+      appText.databaseCatalogBuildChangedIcon(asset.gameItemId),
     );
     assert.match(asset.sourceSha256, /^[a-f0-9]{64}$/u);
     assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
@@ -201,7 +213,10 @@ export async function buildVerifiedSnapshot(): Promise<CatalogSnapshot> {
     assert.equal(((dimensions >>> 14) & 0x3fff) + 1, 32);
     assert.equal(asset.width, 36);
     assert.equal(asset.height, 32);
-    assert.ok(dimensions & (1 << 28), 'Icons must retain transparency');
+    assert.ok(
+      dimensions & (1 << 28),
+      appText.databaseCatalogBuildIconsMustRetainTransparency,
+    );
   }
   assert.deepEqual(
     assets.supporting.map((asset) => asset.path),
@@ -222,7 +237,7 @@ export async function buildVerifiedSnapshot(): Promise<CatalogSnapshot> {
             ),
       ),
       asset.sha256,
-      `Changed supporting asset ${asset.path}`,
+      appText.databaseCatalogBuildChangedSupportingAsset(asset.path),
     );
   return snapshot;
 }
@@ -238,7 +253,7 @@ if (
     assert.equal(
       await readFile(path, 'utf8'),
       serialized,
-      'Run catalog:build and review the diff',
+      appText.databaseCatalogBuildRunCatalogBuildAndReviewTheDiff,
     );
   else await writeFile(path, serialized);
   const hashPath = new URL('catalog/snapshot.sha256', root);
@@ -249,6 +264,9 @@ if (
     );
   else await writeFile(hashPath, snapshotId(snapshot) + '\n');
   console.log(
-    `Verified ${snapshot.items.length} items, ${snapshot.pages.length} pages; no collection credits`,
+    appText.databaseCatalogBuildVerifiedItemsPagesNoCollectionCredits(
+      snapshot.items.length,
+      snapshot.pages.length,
+    ),
   );
 }

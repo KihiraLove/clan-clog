@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Bounded history pages retain immutable before/after evidence and explicit stale recovery. */
 import { useEffect, useRef, useState } from 'react';
 import type { AdminClient, SubmissionDetail } from './admin-model.ts';
@@ -37,14 +38,15 @@ export function ReviewAuditHistory({
         request.signal,
         cursor,
       );
-      if (request.signal.aborted) throw new Error('Audit request timed out.');
+      if (request.signal.aborted)
+        throw new Error(appText.webReviewAuditHistoryAuditRequestTimedOut);
       if (
         next.auditRevision !== initial.auditRevision ||
         next.submission.version !== initial.submission.version
       )
         throw new AdminRequestError(409);
       if (next.nextAuditCursor === cursor || next.auditCursor !== cursor)
-        throw new Error('Inconsistent history page.');
+        throw new Error(appText.webReviewAuditHistoryInconsistentHistoryPage);
       setDetail(next);
       setCursors((values) =>
         older ? [...values, cursor] : values.slice(0, -1),
@@ -54,8 +56,8 @@ export function ReviewAuditHistory({
       else
         setError(
           failure instanceof AdminRequestError && failure.status === 409
-            ? 'History changed. Reload the submission to browse the latest events.'
-            : 'Could not load audit events. The last page is preserved. Reload the submission to try again.',
+            ? appText.webReviewAuditHistoryHistoryChangedReloadTheSubmissionToBrowseTheLatestEvents
+            : appText.webReviewAuditHistoryCouldNotLoadAuditEventsTheLastPageIsPreserved,
         );
     } finally {
       clearTimeout(timer);
@@ -65,8 +67,14 @@ export function ReviewAuditHistory({
   }
   return (
     <details className="admin-audit">
-      <summary>Audit history ({detail.audit.length} on this page)</summary>
-      {!detail.audit.length && <p>No review events recorded yet.</p>}
+      <summary>
+        {appText.webReviewAuditHistoryAuditHistoryOnThisPage(
+          detail.audit.length,
+        )}
+      </summary>
+      {!detail.audit.length && (
+        <p>{appText.webReviewAuditHistoryNoReviewEventsRecordedYet}</p>
+      )}
       <div className="admin-pagination">
         <button
           type="button"
@@ -75,9 +83,11 @@ export function ReviewAuditHistory({
           aria-busy={busy}
           onClick={() => void load(cursors[cursors.length - 2]!, false)}
         >
-          Newer events
+          {appText.webReviewAuditHistoryNewerEvents}
         </button>
-        <span>History page {cursors.length}</span>
+        <span>
+          {appText.webReviewAuditHistoryHistoryPageMessage(cursors.length)}
+        </span>
         <button
           type="button"
           className="site-button"
@@ -85,10 +95,12 @@ export function ReviewAuditHistory({
           aria-busy={busy}
           onClick={() => void load(detail.nextAuditCursor!, true)}
         >
-          Older events
+          {appText.webReviewAuditHistoryOlderEvents}
         </button>
       </div>
-      {busy && <p role="status">Loading audit events…</p>}
+      {busy && (
+        <p role="status">{appText.webReviewAuditHistoryLoadingAuditEvents}</p>
+      )}
       {error && (
         <div role="alert">
           <p>{error}</p>
@@ -98,65 +110,94 @@ export function ReviewAuditHistory({
             disabled={busy || disabled}
             onClick={onReload}
           >
-            Reload submission
+            {appText.webReviewAuditHistoryReloadSubmission}
           </button>
         </div>
       )}
       <ol>
         {detail.audit.map((entry) => {
           const fields: [string, string, string][] = [
-            ['Status', entry.before.status, entry.after.status],
             [
-              'Collection type',
+              appText.webReviewAuditHistoryStatus,
+              entry.before.status,
+              entry.after.status,
+            ],
+            [
+              appText.webReviewAuditHistoryCollectionType,
               collectionTypeLabel(entry.before.collectionType),
               collectionTypeLabel(entry.after.collectionType),
             ],
             [
-              'Submitted item name',
+              appText.webReviewAuditHistorySubmittedItemName,
               entry.before.rawItemText,
               entry.after.rawItemText,
             ],
             [
-              'Game item ID',
-              String(entry.before.gameItemId ?? 'Not supplied'),
-              String(entry.after.gameItemId ?? 'Not supplied'),
+              appText.webReviewAuditHistoryGameItemId,
+              String(
+                entry.before.gameItemId ??
+                  appText.webReviewAuditHistoryNotSupplied,
+              ),
+              String(
+                entry.after.gameItemId ??
+                  appText.webReviewAuditHistoryNotSupplied,
+              ),
             ],
             [
-              'Item',
+              appText.webReviewAuditHistoryItem,
               entry.before.itemId === null
-                ? 'Unmatched'
+                ? appText.webReviewAuditHistoryUnmatched
                 : '#' + entry.before.itemId,
               entry.after.itemId === null
-                ? 'Unmatched'
+                ? appText.webReviewAuditHistoryUnmatched
                 : '#' + entry.after.itemId,
             ],
             [
-              'Collector',
+              appText.webReviewAuditHistoryCollector,
               entry.before.collectorName,
               entry.after.collectorName,
             ],
-            ['Date', entry.before.collectedOn, entry.after.collectedOn],
             [
-              'Hardcore',
-              entry.before.hardcore ? 'Yes' : 'No',
-              entry.after.hardcore ? 'Yes' : 'No',
+              appText.webReviewAuditHistoryDate,
+              entry.before.collectedOn,
+              entry.after.collectedOn,
             ],
-            ['Review note', entry.before.reviewNote, entry.after.reviewNote],
+            [
+              appText.webReviewAuditHistoryHardcore,
+              entry.before.hardcore
+                ? appText.webReviewAuditHistoryYes
+                : appText.webReviewAuditHistoryNo,
+              entry.after.hardcore
+                ? appText.webReviewAuditHistoryYes
+                : appText.webReviewAuditHistoryNo,
+            ],
+            [
+              appText.webReviewAuditHistoryReviewNote,
+              entry.before.reviewNote,
+              entry.after.reviewNote,
+            ],
           ];
           return (
             <li key={entry.id}>
               <strong>
-                {entry.action} · {entry.actorName}
+                {appText.webReviewAuditHistoryAuditActor(
+                  entry.action,
+                  entry.actorName,
+                )}
               </strong>
               <p>{formatUtcTime(entry.at)}</p>
-              {entry.reason && <p>Reason: {entry.reason}</p>}
+              {entry.reason && (
+                <p>
+                  {appText.webReviewAuditHistoryReasonMessage(entry.reason)}
+                </p>
+              )}
               <div className="admin-table-scroll">
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>Field</th>
-                      <th>Before</th>
-                      <th>After</th>
+                      <th>{appText.webReviewAuditHistoryField}</th>
+                      <th>{appText.webReviewAuditHistoryBefore}</th>
+                      <th>{appText.webReviewAuditHistoryAfter}</th>
                     </tr>
                   </thead>
                   <tbody>
