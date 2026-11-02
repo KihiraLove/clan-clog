@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 /** RuneLite world flags are a set; retain plugin aliases alongside official names. */
 export const blockedRuneLiteWorldTypes: readonly string[] = [
   'BETA_WORLD',
@@ -25,7 +26,7 @@ export function parseRuneLiteWorldTypes(value: unknown): string[] {
     )
   )
     throw new Error(
-      'Use a world type identifier or a JSON array of world type identifiers.',
+      appText.domainWorldTypesUseAWorldTypeIdentifierOrAJsonArrayOf,
     );
   return [...new Set(types as string[])].sort();
 }

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { RuneLiteSettingsUpdate } from '@clog/domain';
 import type { RuneLiteSettingsStore } from './runelite-settings.js';
@@ -12,12 +13,20 @@ export function runeLiteSettingsRoutes(
   ) => Promise<AdminIdentity & Pick<StaffAccount, 'role'>>,
 ) {
   const staff = async (request: FastifyRequest, write = false) => {
-    if (!authorize) throw new ApiError(503, 'Staff sign-in is not configured.');
+    if (!authorize)
+      throw new ApiError(
+        503,
+        appText.apiRuneliteSettingsRoutesStaffSignInIsNotConfigured,
+      );
     return authorize(request, write);
   };
   app.get('/api/v1/admin/runelite-settings', async (request) => {
     await staff(request);
-    if (!store) throw new ApiError(503, 'RuneLite settings unavailable.');
+    if (!store)
+      throw new ApiError(
+        503,
+        appText.apiRuneliteSettingsRoutesRuneLiteSettingsUnavailable,
+      );
     return store.settings();
   });
   app.put<{ Body: RuneLiteSettingsUpdate }>(
@@ -80,7 +89,11 @@ export function runeLiteSettingsRoutes(
     },
     async (request) => {
       const actor = await staff(request, true);
-      if (!store) throw new ApiError(503, 'RuneLite settings unavailable.');
+      if (!store)
+        throw new ApiError(
+          503,
+          appText.apiRuneliteSettingsRoutesRuneLiteSettingsUnavailable,
+        );
       return store.update(request.body, actor.id);
     },
   );

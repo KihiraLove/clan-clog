@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Resolve the admin session before mounting private queue/catalog views; share navigation. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PreparedAdminEntry } from './app-runtime.ts';
@@ -39,18 +40,21 @@ export function AdminNavigation({
 }: AdminRouteProps & { session?: AdminSession | null | undefined }) {
   if (!session || session.mustChangePassword) return null;
   return (
-    <nav className="admin-navigation" aria-label="Admin navigation">
+    <nav
+      className="admin-navigation"
+      aria-label={appText.webAdminPageAdminNavigation}
+    >
       {[
         ...staffPages
           .filter((page) => canAccessStaffPage(session, page.id))
           .map((page) => [page.path, page.label]),
         ...(session?.role === 'admin'
           ? [
-              ['/admin/access-control', 'Access control'],
-              ['/admin/accounts', 'Moderator accounts'],
+              ['/admin/access-control', appText.webAdminPageAccessControl],
+              ['/admin/accounts', appText.webAdminPageModeratorAccounts],
             ]
           : []),
-        ['/admin/account', 'Your account'],
+        ['/admin/account', appText.webAdminPageYourAccount],
       ].map(([url, label]) => (
         <a
           key={url}
@@ -160,7 +164,7 @@ export function AdminPage({
         if (signal.aborted) return;
         const next = await client.session(signal);
         if (signal.aborted) return;
-        if (!next) throw new Error('Session not established.');
+        if (!next) throw new Error(appText.webAdminPageSessionNotEstablished);
         setAccess({ phase: 'authenticated', session: next });
         setError(undefined);
         setPassword('');
@@ -168,10 +172,10 @@ export function AdminPage({
         if (signal.aborted) throw failure;
         throw new Error(
           failure instanceof AdminRequestError && failure.status === 401
-            ? 'Incorrect username or password.'
+            ? appText.webAdminPageIncorrectUsernameOrPassword
             : failure instanceof AdminRequestError && failure.status === 429
-              ? 'Too many attempts. Try again later.'
-              : 'Could not sign in. Check your credentials and try again.',
+              ? appText.webAdminPageTooManyAttemptsTryAgainLater
+              : appText.webAdminPageCouldNotSignInCheckYourCredentialsAndTryAgain,
           { cause: failure },
         );
       }
@@ -204,7 +208,9 @@ export function AdminPage({
           setError(undefined);
         } else {
           setAccess({ phase: 'checking' });
-          setError('Could not check admin access. Reload to try again.');
+          setError(
+            appText.webAdminPageCouldNotCheckAdminAccessReloadToTryAgain,
+          );
         }
       })
       .finally(() => clearTimeout(timer));
@@ -223,7 +229,7 @@ export function AdminPage({
       <div className="admin-page">
         <div className="admin-heading">
           <div>
-            <h1>Clan administration</h1>
+            <h1>{appText.webAdminPageClanAdministration}</h1>
           </div>
           {session && (
             <div className="admin-account">
@@ -238,7 +244,7 @@ export function AdminPage({
                   });
                 }}
               >
-                Sign out
+                {appText.webAdminPageSignOut}
               </button>
             </div>
           )}
@@ -251,10 +257,16 @@ export function AdminPage({
           />
         )}
         {routes.pending && session && (
-          <aside className="admin-route-status" aria-label="Page navigation">
+          <aside
+            className="admin-route-status"
+            aria-label={appText.webAdminPagePageNavigation}
+          >
             <p role={routes.pending.error ? 'alert' : 'status'}>
               {routes.pending.error ??
-                `Loading ${adminRouteLabels[routes.pending.label] ?? routes.pending.label}…`}
+                appText.webAdminPageLoadingMessage(
+                  adminRouteLabels[routes.pending.label] ??
+                    routes.pending.label,
+                )}
             </p>
             <div className="admin-actions">
               {routes.pending.codeFailure ? (
@@ -262,17 +274,17 @@ export function AdminPage({
                   className="site-button"
                   onClick={() => window.location.reload()}
                 >
-                  Reload page
+                  {appText.webAdminPageReloadPage}
                 </button>
               ) : (
                 routes.pending.error && (
                   <button className="site-button" onClick={routes.retry}>
-                    Retry navigation
+                    {appText.webAdminPageRetryNavigation}
                   </button>
                 )
               )}
               <button className="site-button" onClick={routes.cancel}>
-                Cancel navigation
+                {appText.webAdminPageCancelNavigation}
               </button>
             </div>
           </aside>
@@ -316,32 +328,38 @@ export function AdminPage({
         )}
         {error ? (
           <section className="admin-panel">
-            <h2>Admin access unavailable</h2>
+            <h2>{appText.webAdminPageAdminAccessUnavailable}</h2>
             <p role="alert">{error}</p>
             <div className="admin-actions">
               <button
                 className="site-button"
                 onClick={() => setRefresh((v) => v + 1)}
               >
-                Retry admin access
+                {appText.webAdminPageRetryAdminAccess}
               </button>
             </div>
           </section>
         ) : access.phase === 'checking' ? (
-          <p role="status">Checking admin access…</p>
+          <p role="status">{appText.webAdminPageCheckingAdminAccess}</p>
         ) : access.phase === 'signed-out' || access.phase === 'expired' ? (
           <section className="admin-panel">
             <h2>
               {access.phase === 'expired'
-                ? 'Admin session expired'
-                : 'Admin sign-in required'}
+                ? appText.webAdminPageAdminSessionExpired
+                : appText.webAdminPageAdminSignInRequired}
             </h2>
-            <p>Sign in with your administrator or moderator account.</p>
+            <p>
+              {
+                appText.webAdminPageSignInWithYourAdministratorOrModeratorAccount
+              }
+            </p>
             <form
               className="admin-credential-form"
               onSubmit={(event) => void logIn(event)}
             >
-              <label htmlFor="admin-username">Username</label>
+              <label htmlFor="admin-username">
+                {appText.webAdminPageUsername}
+              </label>
               <input
                 id="admin-username"
                 autoComplete="username"
@@ -350,7 +368,9 @@ export function AdminPage({
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
               />
-              <label htmlFor="admin-password">Password</label>
+              <label htmlFor="admin-password">
+                {appText.webAdminPagePassword}
+              </label>
               <input
                 id="admin-password"
                 type="password"
@@ -364,7 +384,9 @@ export function AdminPage({
                 type="submit"
                 disabled={loggingIn}
               >
-                {loggingIn ? 'Signing in…' : 'Sign in'}
+                {loggingIn
+                  ? appText.webAdminPageSigningIn
+                  : appText.webAdminPageSignIn}
               </button>
             </form>
             {loginError && (
@@ -378,8 +400,14 @@ export function AdminPage({
             className="admin-panel admin-route-shell"
             aria-busy={!routes.pending?.error}
           >
-            <h2>Loading {adminRouteLabels[path] ?? 'Submissions'}…</h2>
-            <p role="status">Preparing this page before showing its forms.</p>
+            <h2>
+              {appText.webAdminPageLoadingMessage(
+                adminRouteLabels[path] ?? appText.webAdminPageSubmissions,
+              )}
+            </h2>
+            <p role="status">
+              {appText.webAdminPagePreparingThisPageBeforeShowingItsForms}
+            </p>
           </section>
         ) : !session.mustChangePassword &&
           path !== '/admin/account' &&
@@ -388,7 +416,9 @@ export function AdminPage({
             session,
             staffPageForPath(path) ?? 'submissions',
           ) ? (
-          <p role="alert">Your account is not allowed to view this page.</p>
+          <p role="alert">
+            {appText.webAdminPageYourAccountIsNotAllowedToViewThisPage}
+          </p>
         ) : routes.ready.data.kind === 'denied' ? (
           <p role="alert">{routes.ready.data.denial}</p>
         ) : session.mustChangePassword || path === '/admin/account' ? (
@@ -410,7 +440,7 @@ export function AdminPage({
           />
         ) : path === '/admin/runelite' ? (
           <section className="admin-panel">
-            <h2>RuneLite submissions</h2>
+            <h2>{appText.webAdminPageRuneLiteSubmissions}</h2>
             <RuneLiteReviewSettings
               client={client}
               session={session}
@@ -438,7 +468,9 @@ export function AdminPage({
             />
           ) : (
             <p role="alert">
-              Only the administrator can create moderator accounts.
+              {
+                appText.webAdminPageOnlyTheAdministratorCanCreateModeratorAccounts
+              }
             </p>
           )
         ) : path === '/admin/settings' ||

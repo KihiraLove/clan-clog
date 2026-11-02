@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** A pending first-login credential survives interrupted bootstrap, never resets an account. */
 import { randomBytes } from 'node:crypto';
 import {
@@ -27,12 +28,16 @@ export function prepareAdministrator(
       readSecret('ADMIN_BOOTSTRAP_PASSWORD', env) ??
       randomBytes(32).toString('hex');
     if (!/^[a-f0-9]{64,256}$/iu.test(password))
-      throw new Error('Invalid initial administrator credential');
+      throw new Error(
+        appText.apiAutomaticAdminInvalidInitialAdministratorCredential,
+      );
     writeManagedFile(file, JSON.stringify({ password }) + '\n');
   }
   const value = JSON.parse(readFileSync(file, 'utf8')) as { password: string };
   if (!/^[a-f0-9]{64,256}$/iu.test(value.password))
-    throw new Error('Invalid pending administrator credential');
+    throw new Error(
+      appText.apiAutomaticAdminInvalidPendingAdministratorCredential,
+    );
   return value.password;
 }
 export function printAdministrator(
@@ -42,9 +47,9 @@ export function printAdministrator(
   },
 ) {
   log(
-    '\n=== CLAN COLLECTION LOG — FIRST LOGIN ===\nUsername: admin\nTemporary password: ' +
-      password +
-      '\nChange this password on your first login.\n=========================================\n',
+    appText.apiAutomaticAdminClanCollectionLogFirstLoginUsernameAdminTemporaryPasswordChange(
+      password,
+    ),
   );
 }
 export async function provisionAdministrator(pool: pg.Pool, file: string) {
@@ -72,11 +77,13 @@ export async function provisionAdministrator(pool: pg.Pool, file: string) {
         if (existsSync(file)) unlinkSync(file);
       } else if (pending && !(await verifyPassword(pending, old.password_hash)))
         throw new Error(
-          'Pending credential does not match the existing administrator',
+          appText.apiAutomaticAdminPendingCredentialDoesNotMatchTheExistingAdministrator,
         );
     } else {
       if (!pending)
-        throw new Error('Initial administrator credential is missing');
+        throw new Error(
+          appText.apiAutomaticAdminInitialAdministratorCredentialIsMissing,
+        );
       await ensureDefaultAdministrator(client, await hasher.hash(pending));
     }
     await client.query('COMMIT');

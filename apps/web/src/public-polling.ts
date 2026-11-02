@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** One visible-page cadence; resources retain independent requests and ETags. */
 type Timer = ReturnType<typeof setTimeout>;
 export interface PollEnvironment {
@@ -55,7 +56,10 @@ export class PublicPoller {
     const timeout = this.environment.timeout(
       () =>
         controller.abort(
-          new DOMException('Public read timed out', 'TimeoutError'),
+          new DOMException(
+            appText.webPublicPollingPublicReadTimedOut,
+            'TimeoutError',
+          ),
         ),
       10000,
     );
@@ -81,7 +85,10 @@ export class PublicPoller {
           if (this.environment.visible()) this.invoke(entry, true);
           else
             entry.controller?.abort(
-              new DOMException('Page hidden', 'AbortError'),
+              new DOMException(
+                appText.webPublicPollingPageHidden,
+                'AbortError',
+              ),
             );
         }
       });
@@ -92,7 +99,9 @@ export class PublicPoller {
       stop: () => {
         entry.alive = false;
         entry.again = false;
-        entry.controller?.abort(new DOMException('View removed', 'AbortError'));
+        entry.controller?.abort(
+          new DOMException(appText.webPublicPollingViewRemoved, 'AbortError'),
+        );
         this.entries.delete(entry);
         if (!this.entries.size) {
           this.cadence();
@@ -120,7 +129,10 @@ export function publicRead<T>(
   return new Promise((resolve, reject) => {
     const abort = () => {
       signal.removeEventListener('abort', abort);
-      reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+      reject(
+        signal.reason ??
+          new DOMException(appText.webPublicPollingAborted, 'AbortError'),
+      );
     };
     signal.addEventListener('abort', abort, { once: true });
     if (signal.aborted) abort();

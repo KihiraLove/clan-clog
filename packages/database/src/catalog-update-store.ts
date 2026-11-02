@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Release additions and reviewed corrections preserve installation-local identities. */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -62,7 +63,10 @@ const batches = async (client: Client): Promise<BatchRow[]> =>
   ).rows;
 function effective(rows: BatchRow[]) {
   if (rows.length > 500)
-    throw new CatalogUpdateError(503, 'Catalog update capacity exceeded.');
+    throw new CatalogUpdateError(
+      503,
+      appText.databaseCatalogUpdateStoreCatalogUpdateCapacityExceeded,
+    );
   const items = new Map<string, CatalogUpdateBatch['items'][number]>(),
     pages = new Map<string, CatalogUpdateBatch['pages'][number]>();
   for (const row of rows) {
@@ -78,12 +82,12 @@ function effective(rows: BatchRow[]) {
   )
     throw new CatalogUpdateError(
       422,
-      'Release identities conflict across catalog updates.',
+      appText.databaseCatalogUpdateStoreReleaseIdentitiesConflictAcrossCatalogUpdates,
     );
   if (batch.items.some((i) => i.pageKeys.some((k) => !pages.has(k))))
     throw new CatalogUpdateError(
       422,
-      'Every supplied page key needs a page definition.',
+      appText.databaseCatalogUpdateStoreEverySuppliedPageKeyNeedsAPageDefinition,
     );
   return batch;
 }
@@ -97,7 +101,7 @@ async function bind(client: Client, kind: string, key: string, id: string) {
   if (existing.some((b) => b.source_key !== key || b.local_id !== id))
     throw new CatalogUpdateError(
       409,
-      'This catalog identity already has a different release mapping. Reload the review.',
+      appText.databaseCatalogUpdateStoreThisCatalogIdentityAlreadyHasADifferentReleaseMappingReload,
     );
   const inserted = await client.query(
     'INSERT INTO catalog_update_bindings(kind,source_key,local_id) VALUES($1,$2,$3) ON CONFLICT(kind,source_key) DO NOTHING RETURNING source_key',
@@ -126,7 +130,7 @@ async function addMissingCatalogEntries(
   const catalog = await updateCatalog(client),
     matches = matchCatalogUpdate(merged, catalog);
   if (catalog.items.length > 10000 || catalog.pages.length > 2000)
-    throw new Error('Catalog capacity exceeded.');
+    throw new Error(appText.databaseCatalogUpdateStoreCatalogCapacityExceeded);
   const summary = { addedItems: [] as string[], addedPages: [] as string[] };
   const newPages = new Set<string>();
   for (const page of merged.pages) {
@@ -134,7 +138,9 @@ async function addMissingCatalogEntries(
     if (match.conflict) continue;
     if (match.localId === null) {
       if (catalog.pages.length + summary.addedPages.length >= 2000)
-        throw new Error('Catalog page capacity exceeded.');
+        throw new Error(
+          appText.databaseCatalogUpdateStoreCatalogPageCapacityExceeded,
+        );
       if (
         !(
           await client.query(
@@ -143,7 +149,9 @@ async function addMissingCatalogEntries(
           )
         ).rowCount
       )
-        throw new Error('Supplied page category does not exist.');
+        throw new Error(
+          appText.databaseCatalogUpdateStoreSuppliedPageCategoryDoesNotExist,
+        );
       await client.query(
         'INSERT INTO pages(id,name,category,sort_order) SELECT $1,$2,$3,COALESCE(max(sort_order),-1)+1 FROM pages WHERE category=$3',
         [page.key, page.name, page.category],
@@ -166,7 +174,9 @@ async function addMissingCatalogEntries(
       continue;
     if (match.localId === null) {
       if (catalog.items.length + summary.addedItems.length >= 10000)
-        throw new Error('Catalog item capacity exceeded.');
+        throw new Error(
+          appText.databaseCatalogUpdateStoreCatalogItemCapacityExceeded,
+        );
       const image = (
         await client.query(
           'SELECT bytes,width,height FROM catalog_update_images WHERE sha256=$1',
@@ -174,7 +184,10 @@ async function addMissingCatalogEntries(
         )
       ).rows[0];
       if (!image)
-        throw new CatalogUpdateError(503, 'Supplied image is unavailable.');
+        throw new CatalogUpdateError(
+          503,
+          appText.databaseCatalogUpdateStoreSuppliedImageIsUnavailable,
+        );
       await validateUpdateImage(image.bytes, item.image);
       let id: number;
       do {
@@ -214,7 +227,10 @@ async function addMissingCatalogEntries(
     (await client.query('SELECT count(*)::int AS n FROM page_items')).rows[0]
       .n > 50000
   )
-    throw new CatalogUpdateError(422, 'Catalog item-slot capacity exceeded.');
+    throw new CatalogUpdateError(
+      422,
+      appText.databaseCatalogUpdateStoreCatalogItemSlotCapacityExceeded,
+    );
   return summary;
 }
 /** The owner supplies verified immutable batches; no user requests reach this operation. */
@@ -228,7 +244,10 @@ export async function installCatalogUpdate(
     hash = updateHash(batch);
   for (const item of batch.items) {
     const image = images.find((i) => i.sha256 === item.image.sha256);
-    if (!image) throw new Error('Missing catalog update image.');
+    if (!image)
+      throw new Error(
+        appText.databaseCatalogUpdateStoreMissingCatalogUpdateImage,
+      );
     await validateUpdateImage(image.bytes, item.image);
   }
   await client.query('BEGIN');
@@ -243,7 +262,7 @@ export async function installCatalogUpdate(
     if (prior) {
       if (prior.hash !== hash)
         throw new Error(
-          'A shipped catalog update is immutable. Publish a new batch ID.',
+          appText.databaseCatalogUpdateStoreAShippedCatalogUpdateIsImmutablePublishANewBatch,
         );
       const added = fresh
         ? await addMissingCatalogEntries(
@@ -387,7 +406,7 @@ async function review(
             entityKey: page.key,
             localId: candidate.id,
             label: page.name + ' → ' + candidate.name,
-            before: 'Unlinked local page',
+            before: appText.databaseCatalogUpdateStoreUnlinkedLocalPage,
             after: candidate.id,
           });
         if (!catalog.pages.some((p) => p.id === page.key))
@@ -396,7 +415,8 @@ async function review(
             entityKey: page.key,
             localId: page.key,
             label: page.name,
-            before: 'Possible existing pages require review',
+            before:
+              appText.databaseCatalogUpdateStorePossibleExistingPagesRequireReview,
             after: page.key,
           });
       }
@@ -406,8 +426,8 @@ async function review(
           entityKey: page.key,
           label: page.name,
           reason: hasVerifiedEvidence
-            ? 'Review the matching item evidence and adopt a local page, or explicitly create a separate page.'
-            : 'Resolve the item identities first, then rescan to review this possible existing page.',
+            ? appText.databaseCatalogUpdateStoreReviewTheMatchingItemEvidenceAndAdoptALocalPage
+            : appText.databaseCatalogUpdateStoreResolveTheItemIdentitiesFirstThenRescanToReviewThis,
           candidates: m.pageChoices.map((p) => ({ id: p.id, name: p.name })),
         },
       );
@@ -434,8 +454,8 @@ async function review(
       propose({
         ...common,
         kind: 'adopt',
-        before: 'Unlinked local page',
-        after: 'Use this local page for ' + page.key,
+        before: appText.databaseCatalogUpdateStoreUnlinkedLocalPage,
+        after: appText.databaseCatalogUpdateStoreUseThisLocalPageFor(page.key),
       });
     propose({
       ...common,
@@ -490,8 +510,8 @@ async function review(
       propose({
         ...common,
         kind: 'adopt',
-        before: 'Unlinked local item',
-        after: 'Use this local item for ' + item.key,
+        before: appText.databaseCatalogUpdateStoreUnlinkedLocalItem,
+        after: appText.databaseCatalogUpdateStoreUseThisLocalItemFor(item.key),
       });
     propose({ ...common, kind: 'name', before: local.name, after: item.name });
     gameIdReviews.push({
@@ -609,7 +629,8 @@ async function review(
         .map((r) => ({ id: r.id, title: r.manifest.title, ...r.summary })),
       ...rescans.map((r) => ({
         id: 'rescan-' + r.id,
-        title: 'Additional content installed after resolving identities',
+        title:
+          appText.databaseCatalogUpdateStoreAdditionalContentInstalledAfterResolvingIdentities,
         addedItems: r.changes.addedItems,
         addedPages: r.changes.addedPages,
       })),
@@ -666,14 +687,17 @@ export class PgCatalogUpdates {
       ).rows[0];
       if (replay) {
         if (replay.payload_hash !== payload)
-          throw new CatalogUpdateError(409, 'Request key already used.');
+          throw new CatalogUpdateError(
+            409,
+            appText.databaseCatalogUpdateStoreRequestKeyAlreadyUsed,
+          );
         return replay.result as { addedItems: string[]; addedPages: string[] };
       }
       const current = await review(c, actor);
       if (current.revision !== revision)
         throw new CatalogUpdateError(
           409,
-          'A newer catalog update is available. Reload the review.',
+          appText.databaseCatalogUpdateStoreANewerCatalogUpdateIsAvailableReloadTheReview,
         );
       // Rescanning must never bypass the administrator's selected creation groups.
       const summary = {
@@ -694,7 +718,7 @@ export class PgCatalogUpdates {
       if (current.revision !== revision)
         throw new CatalogUpdateError(
           409,
-          'A newer catalog update is available. Reload the review.',
+          appText.databaseCatalogUpdateStoreANewerCatalogUpdateIsAvailableReloadTheReview,
         );
       await c.query(
         'INSERT INTO catalog_update_prompts(actor_id,revision) VALUES($1,$2) ON CONFLICT(actor_id) DO UPDATE SET revision=$2,updated_at=now()',
@@ -716,7 +740,7 @@ export class PgCatalogUpdates {
         if (prior.payload_hash !== payloadHash)
           throw new CatalogUpdateError(
             409,
-            'This request key was used for different catalog choices.',
+            appText.databaseCatalogUpdateStoreThisRequestKeyWasUsedForDifferentCatalogChoices,
           );
         return prior.result as {
           applied: number;
@@ -731,7 +755,7 @@ export class PgCatalogUpdates {
       )
         throw new CatalogUpdateError(
           409,
-          'The catalog changed. Reload and review the new differences.',
+          appText.databaseCatalogUpdateStoreTheCatalogChangedReloadAndReviewTheNewDifferences,
         );
       const ids = [...selection.apply, ...selection.keep];
       if (
@@ -742,7 +766,7 @@ export class PgCatalogUpdates {
       )
         throw new CatalogUpdateError(
           422,
-          'Select distinct current catalog proposals.',
+          appText.databaseCatalogUpdateStoreSelectDistinctCurrentCatalogProposals,
         );
       const changes = [];
       const rows = await batches(c),
@@ -757,14 +781,15 @@ export class PgCatalogUpdates {
         ['adopt', 'adoptPage', 'createPage'].includes(p.kind),
       )) {
         const kind =
-          p.kind !== 'adopt' || p.before === 'Unlinked local page'
+          p.kind !== 'adopt' ||
+          p.before === appText.databaseCatalogUpdateStoreUnlinkedLocalPage
             ? 'page'
             : 'item';
         const identity = kind + ':' + p.entityKey;
         if (adoptions.has(identity))
           throw new CatalogUpdateError(
             422,
-            'Choose one page identity or separate-page creation per supplied page.',
+            appText.databaseCatalogUpdateStoreChooseOnePageIdentityOrSeparatePageCreationPerSupplied,
           );
         adoptions.add(identity);
       }
@@ -773,7 +798,8 @@ export class PgCatalogUpdates {
           ['pageName', 'pageCategory', 'adoptPage', 'createPage'].includes(
             p.kind,
           ) ||
-          (p.kind === 'adopt' && p.before === 'Unlinked local page')
+          (p.kind === 'adopt' &&
+            p.before === appText.databaseCatalogUpdateStoreUnlinkedLocalPage)
             ? 'page'
             : 'item';
         const match = matches.find(
@@ -786,7 +812,7 @@ export class PgCatalogUpdates {
         )
           throw new CatalogUpdateError(
             422,
-            'Confirm the proposed local identity before applying its dependent corrections.',
+            appText.databaseCatalogUpdateStoreConfirmTheProposedLocalIdentityBeforeApplyingItsDependentCorrections,
           );
       }
       for (const item of merged.items) {
@@ -807,7 +833,7 @@ export class PgCatalogUpdates {
         if (!item.gameItemIds.some((id) => resulting.has(id)))
           throw new CatalogUpdateError(
             422,
-            'Retain or add a supplied game ID before removing the existing mappings.',
+            appText.databaseCatalogUpdateStoreRetainOrAddASuppliedGameIdBeforeRemovingThe,
           );
       }
       const priority = (p: CatalogUpdateProposal) =>
@@ -824,7 +850,8 @@ export class PgCatalogUpdates {
           p.kind === 'pageCategory' ||
           p.kind === 'adoptPage' ||
           p.kind === 'createPage' ||
-          (p.kind === 'adopt' && p.before === 'Unlinked local page');
+          (p.kind === 'adopt' &&
+            p.before === appText.databaseCatalogUpdateStoreUnlinkedLocalPage);
         const kind = isPage ? 'page' : 'item';
         const match = matches.find(
           (m) => m.kind === kind && m.key === p.entityKey,
@@ -837,7 +864,7 @@ export class PgCatalogUpdates {
           )
             throw new CatalogUpdateError(
               422,
-              'Catalog page capacity exceeded.',
+              appText.databaseCatalogUpdateStoreCatalogPageCapacityExceeded,
             );
           if (
             !(
@@ -849,7 +876,7 @@ export class PgCatalogUpdates {
           )
             throw new CatalogUpdateError(
               422,
-              'The supplied page section is unavailable.',
+              appText.databaseCatalogUpdateStoreTheSuppliedPageSectionIsUnavailable,
             );
           await c.query(
             'INSERT INTO pages(id,name,category,sort_order) SELECT $1,$2,$3,COALESCE(max(sort_order),-1)+1 FROM pages WHERE category=$3',
@@ -865,7 +892,7 @@ export class PgCatalogUpdates {
           )
             throw new CatalogUpdateError(
               422,
-              'Select Missing item-page relationships when adding items.',
+              appText.databaseCatalogUpdateStoreSelectMissingItemPageRelationshipsWhenAddingItems,
             );
           if (
             (await c.query('SELECT count(*)::int AS n FROM items')).rows[0].n >=
@@ -873,7 +900,7 @@ export class PgCatalogUpdates {
           )
             throw new CatalogUpdateError(
               422,
-              'Catalog item capacity exceeded.',
+              appText.databaseCatalogUpdateStoreCatalogItemCapacityExceeded,
             );
           const image = (
             await c.query(
@@ -882,7 +909,10 @@ export class PgCatalogUpdates {
             )
           ).rows[0];
           if (!image)
-            throw new CatalogUpdateError(503, 'Supplied image is unavailable.');
+            throw new CatalogUpdateError(
+              503,
+              appText.databaseCatalogUpdateStoreSuppliedImageIsUnavailable,
+            );
           await validateUpdateImage(image.bytes, item.image);
           let id: number;
           do {
@@ -914,7 +944,7 @@ export class PgCatalogUpdates {
         if (localId === null)
           throw new CatalogUpdateError(
             422,
-            'Select Missing items before fixing their relationships.',
+            appText.databaseCatalogUpdateStoreSelectMissingItemsBeforeFixingTheirRelationships,
           );
         if (!(
           p.kind === 'image' &&
@@ -939,7 +969,7 @@ export class PgCatalogUpdates {
           )
             throw new CatalogUpdateError(
               409,
-              'A supplied game ID belongs to another local item. Resolve it first.',
+              appText.databaseCatalogUpdateStoreASuppliedGameIdBelongsToAnotherLocalItemResolve,
             );
           if (p.kind === 'addGameId')
             await c.query(
@@ -956,7 +986,7 @@ export class PgCatalogUpdates {
           )
             throw new CatalogUpdateError(
               409,
-              'The selected game ID mapping changed. Reload the review.',
+              appText.databaseCatalogUpdateStoreTheSelectedGameIdMappingChangedReloadTheReview,
             );
           await c.query(
             "UPDATE items SET overrides=ARRAY(SELECT DISTINCT unnest(overrides||ARRAY['game_ids'])) WHERE id=$1",
@@ -973,7 +1003,10 @@ export class PgCatalogUpdates {
             )
           ).rows[0];
           if (!image)
-            throw new CatalogUpdateError(503, 'Supplied image is unavailable.');
+            throw new CatalogUpdateError(
+              503,
+              appText.databaseCatalogUpdateStoreSuppliedImageIsUnavailable,
+            );
           await validateUpdateImage(image.bytes, {
             sha256: sha,
             width: image.width,
@@ -1000,7 +1033,7 @@ export class PgCatalogUpdates {
           )
             throw new CatalogUpdateError(
               422,
-              'The supplied page section is unavailable.',
+              appText.databaseCatalogUpdateStoreTheSuppliedPageSectionIsUnavailable,
             );
           await c.query(
             "UPDATE pages SET category=$2,sort_order=(SELECT COALESCE(max(sort_order),-1)+1 FROM pages WHERE category=$2),position_origin='manual' WHERE id=$1",
@@ -1021,7 +1054,7 @@ export class PgCatalogUpdates {
           if (!pageKey)
             throw new CatalogUpdateError(
               409,
-              'The supplied page mapping changed.',
+              appText.databaseCatalogUpdateStoreTheSuppliedPageMappingChanged,
             );
           const target = matches.find(
             (m) => m.kind === 'page' && m.key === pageKey,
@@ -1029,7 +1062,7 @@ export class PgCatalogUpdates {
           if (target.localId === null || target.candidate || target.conflict)
             throw new CatalogUpdateError(
               422,
-              'Select Missing pages and resolve page identities before fixing their relationships.',
+              appText.databaseCatalogUpdateStoreSelectMissingPagesAndResolvePageIdentitiesBeforeFixingTheir,
             );
           await bind(c, 'page', pageKey, target.localId);
           await c.query(
@@ -1055,7 +1088,7 @@ export class PgCatalogUpdates {
       )
         throw new CatalogUpdateError(
           422,
-          'Catalog item-slot capacity exceeded.',
+          appText.databaseCatalogUpdateStoreCatalogItemSlotCapacityExceeded,
         );
       for (const id of ids)
         await c.query(
@@ -1092,7 +1125,10 @@ export class PgCatalogUpdates {
       )
     ).rows[0];
     if (!row)
-      throw new CatalogUpdateError(404, 'Catalog update image not found.');
+      throw new CatalogUpdateError(
+        404,
+        appText.databaseCatalogUpdateStoreCatalogUpdateImageNotFound,
+      );
     await validateUpdateImage(row.bytes, {
       sha256: sha,
       width: row.width,

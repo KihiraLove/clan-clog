@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Private upgrade transport stays outside the public entry bundle. */
 import type {
   CatalogUpdateReview,
@@ -10,7 +11,7 @@ import { object, list, text, unique } from './xp-model.ts';
 const hash = (v: unknown) => {
   const value = text(v);
   if (!/^[a-f0-9]{64}$/u.test(value))
-    throw new Error('Invalid catalog update hash.');
+    throw new Error(appText.webCatalogUpdateApiInvalidCatalogUpdateHash);
   return value;
 };
 const path = (v: unknown) => {
@@ -21,7 +22,7 @@ const path = (v: unknown) => {
       value,
     )
   )
-    throw new Error('Invalid catalog image path.');
+    throw new Error(appText.webCatalogUpdateApiInvalidCatalogImagePath);
   return value;
 };
 export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
@@ -32,7 +33,7 @@ export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
     !/^catalog-[1-9][0-9]*$/u.test(catalogRevision) ||
     typeof row.autoOpen !== 'boolean'
   )
-    throw new Error('Invalid catalog update revision.');
+    throw new Error(appText.webCatalogUpdateApiInvalidCatalogUpdateRevision);
   const proposals = list(row.proposals).map((value) => {
     const p = object(value);
     if (
@@ -54,7 +55,7 @@ export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
       typeof p.before !== 'string' ||
       typeof p.after !== 'string'
     )
-      throw new Error('Invalid catalog proposal.');
+      throw new Error(appText.webCatalogUpdateApiInvalidCatalogProposal);
     const result = {
       id: hash(p.id),
       kind: p.kind as CatalogUpdateProposal['kind'],
@@ -75,7 +76,8 @@ export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
     }
     return result;
   });
-  if (proposals.length > 20000) throw new Error('Catalog review is too large.');
+  if (proposals.length > 20000)
+    throw new Error(appText.webCatalogUpdateApiCatalogReviewIsTooLarge);
   unique(proposals.map((p) => p.id));
   const releases = list(row.releases).map((value) => {
     const r = object(value);
@@ -89,7 +91,7 @@ export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
   const conflicts = list(row.conflicts).map((value) => {
     const c = object(value);
     if (!['item', 'page'].includes(String(c.kind)))
-      throw new Error('Invalid catalog conflict.');
+      throw new Error(appText.webCatalogUpdateApiInvalidCatalogConflict);
     return {
       kind: c.kind as 'item' | 'page',
       entityKey: text(c.entityKey),
@@ -104,7 +106,7 @@ export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
   const currentImages = list(row.currentImages).map((value) => {
     const i = object(value);
     if (typeof i.identical !== 'boolean')
-      throw new Error('Invalid catalog image status.');
+      throw new Error(appText.webCatalogUpdateApiInvalidCatalogImageStatus);
     return {
       name: text(i.name),
       path: path(i.path),
@@ -119,7 +121,7 @@ export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
         Number(id) < 1 ||
         Number(id) > 2147483647
       )
-        throw new Error('Invalid game item ID.');
+        throw new Error(appText.webCatalogUpdateApiInvalidGameItemId);
       return Number(id);
     });
   const pageMatches = list(row.pageMatches ?? []).map((value) => {
@@ -130,7 +132,7 @@ export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
       candidates: list(m.candidates).map((value) => {
         const c = object(value);
         if (typeof c.active !== 'boolean')
-          throw new Error('Invalid page candidate.');
+          throw new Error(appText.webCatalogUpdateApiInvalidPageCandidate);
         return {
           id: text(c.id),
           name: text(c.name),
@@ -158,7 +160,7 @@ export function parseCatalogUpdateReview(value: unknown): CatalogUpdateReview {
     conflicts.length > 12000 ||
     currentImages.length > 10000
   )
-    throw new Error('Catalog review limit exceeded.');
+    throw new Error(appText.webCatalogUpdateApiCatalogReviewLimitExceeded);
   return {
     revision,
     catalogRevision,
@@ -220,7 +222,7 @@ export async function catalogUpdateSeen(
 ) {
   const r = object(await request('/seen', signal, csrf, { revision }));
   if (hash(r.revision) !== revision)
-    throw new Error('Unexpected catalog review receipt.');
+    throw new Error(appText.webCatalogUpdateApiUnexpectedCatalogReviewReceipt);
 }
 export async function applyCatalogUpdate(
   selection: CatalogUpdateSelection,
@@ -236,7 +238,7 @@ export async function applyCatalogUpdate(
     !/^catalog-[1-9][0-9]*$/u.test(text(r.catalogRevision))
   )
     throw new Error(
-      'Could not confirm catalog changes. Retry the same choices.',
+      appText.webCatalogUpdateApiCouldNotConfirmCatalogChangesRetryTheSameChoices,
     );
   return { applied: Number(r.applied), kept: Number(r.kept) };
 }

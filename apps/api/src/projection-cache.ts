@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** One immutable result and one in-flight load per resource, never a revision map. */
 import type pg from 'pg';
 import { transaction } from './transaction.js';
@@ -49,7 +50,10 @@ export async function projection<T>(
       )
     ).rows[0];
     if (!row)
-      throw new ApiError(503, 'Public projection revision unavailable.');
+      throw new ApiError(
+        503,
+        appText.apiProjectionCachePublicProjectionRevisionUnavailable,
+      );
     const value = await cache.read(
       resource + '-projection-' + row.version,
       () => load(client),

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { useEffect, useRef, useState } from 'react';
 import {
   competitionMetricName,
@@ -79,28 +80,30 @@ export function UnknownMetricDialog({
     >
       <div className="admin-section-heading">
         <h3 id="unknown-metric-title">
-          Unknown competition metric{rows.length > 1 ? 's' : ''}
+          {appText.webUnknownMetricDialogUnknownCompetitionMetricMessage(
+            rows.length,
+          )}
         </h3>
         <button
           type="button"
           className="site-button"
-          aria-label="Discard import and close"
+          aria-label={appText.webUnknownMetricDialogDiscardImportAndClose}
           disabled={busy}
           onClick={onDiscard}
         >
-          ×
+          {appText.webUnknownMetricDialogCloseSymbol}
         </button>
       </div>
       <p>
         <a href={resolution.sourceUrl} target="_blank" rel="noreferrer">
           {resolution.title}
         </a>{' '}
-        uses metrics that have not been configured yet.
+        {appText.webUnknownMetricDialogUsesMetricsThatHaveNotBeenConfiguredYet}
       </p>
       <p>
-        Save their definitions for future imports, then review this competition
-        before applying. Discarding saves nothing. Saved definitions remain
-        available if you later cancel the import.
+        {
+          appText.webUnknownMetricDialogSaveTheirDefinitionsForFutureImportsThenReviewThisCompetition
+        }
       </p>
       <form
         onSubmit={(event) => {
@@ -133,9 +136,11 @@ export function UnknownMetricDialog({
               key={row.metric}
               className="admin-fieldset metric-definition-fields"
             >
-              <legend>Metric: {row.metric}</legend>
+              <legend>
+                {appText.webUnknownMetricDialogMetricMessage(row.metric)}
+              </legend>
               <label className="admin-field-label">
-                Display name
+                {appText.webUnknownMetricDialogDisplayName}
                 <input
                   className="admin-input"
                   required
@@ -145,7 +150,7 @@ export function UnknownMetricDialog({
                 />
               </label>
               <label className="admin-field-label">
-                Metric type
+                {appText.webUnknownMetricDialogMetricType}
                 <select
                   className="admin-input"
                   required
@@ -158,23 +163,35 @@ export function UnknownMetricDialog({
                     })
                   }
                 >
-                  <option value="">Choose a type</option>
-                  <option value="BOSS">Activity — boss or raid (kills)</option>
-                  <option value="ACTIVITY">Activity — counter (score)</option>
-                  <option value="COMPUTED">Activity — computed (hours)</option>
-                  <option value="SKILL">Skill — XP</option>
+                  <option value="">
+                    {appText.webUnknownMetricDialogChooseAType}
+                  </option>
+                  <option value="BOSS">
+                    {appText.webUnknownMetricDialogActivityBossOrRaidKills}
+                  </option>
+                  <option value="ACTIVITY">
+                    {appText.webUnknownMetricDialogActivityCounterScore}
+                  </option>
+                  <option value="COMPUTED">
+                    {appText.webUnknownMetricDialogActivityComputedHours}
+                  </option>
+                  <option value="SKILL">
+                    {appText.webUnknownMetricDialogSkillXp}
+                  </option>
                 </select>
               </label>
               {row.type === 'SKILL' && (
                 <label className="admin-field-label">
-                  XP skill
+                  {appText.webUnknownMetricDialogXpSkill}
                   <select
                     className="admin-input"
                     required
                     value={row.skill}
                     onChange={(e) => change(index, { skill: e.target.value })}
                   >
-                    <option value="">Choose a supported skill</option>
+                    <option value="">
+                      {appText.webUnknownMetricDialogChooseASupportedSkill}
+                    </option>
                     {skills.map(([id, name]) => (
                       <option key={id} value={id}>
                         {name}
@@ -182,14 +199,16 @@ export function UnknownMetricDialog({
                     ))}
                   </select>
                   <small>
-                    Only use this for actual gained XP for the selected skill.
+                    {
+                      appText.webUnknownMetricDialogOnlyUseThisForActualGainedXpForTheSelected
+                    }
                   </small>
                 </label>
               )}
               {['BOSS', 'ACTIVITY'].includes(row.type) && (
                 <>
                   <label className="admin-field-label">
-                    Search collection log pages
+                    {appText.webUnknownMetricDialogSearchCollectionLogPages}
                     <input
                       className="admin-input"
                       type="search"
@@ -202,7 +221,9 @@ export function UnknownMetricDialog({
                   <div
                     className="metric-page-choices"
                     role="group"
-                    aria-label={'Pages for ' + row.metric}
+                    aria-label={appText.webUnknownMetricDialogPagesFor(
+                      row.metric,
+                    )}
                   >
                     {resolution.pages
                       .filter((p) =>
@@ -230,8 +251,9 @@ export function UnknownMetricDialog({
                       ))}
                   </div>
                   <p className="admin-note">
-                    Page mapping is optional here. A running or future activity
-                    import still needs a page selected before Apply.
+                    {
+                      appText.webUnknownMetricDialogPageMappingIsOptionalHereARunningOrFutureActivity
+                    }
                   </p>
                 </>
               )}
@@ -245,13 +267,13 @@ export function UnknownMetricDialog({
           <div className="admin-actions">
             <button className="site-button" type="submit">
               {busy
-                ? 'Saving…'
-                : 'Save metric' +
-                  (rows.length > 1 ? 's' : '') +
-                  ' and continue'}
+                ? appText.webUnknownMetricDialogSaving
+                : appText.webUnknownMetricDialogSaveMetricAndContinue(
+                    rows.length,
+                  )}
             </button>
             <button className="site-button" type="button" onClick={onDiscard}>
-              Discard import
+              {appText.webUnknownMetricDialogDiscardImport}
             </button>
           </div>
         </fieldset>

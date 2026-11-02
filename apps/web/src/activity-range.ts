@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Compact local ranges keep years and UTC offsets only where they disambiguate. */
 export function activityRange(
   startsAt: string,
@@ -27,18 +28,18 @@ export function activityRange(
     value.get('timeZoneName')!.replace(/^GMT/u, '') || '+00:00';
   const differentOffsets = offset(start) !== offset(end);
   const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+    appText.webActivityRangeJan,
+    appText.webActivityRangeFeb,
+    appText.webActivityRangeMar,
+    appText.webActivityRangeApr,
+    appText.webActivityRangeMay,
+    appText.webActivityRangeJun,
+    appText.webActivityRangeJul,
+    appText.webActivityRangeAug,
+    appText.webActivityRangeSep,
+    appText.webActivityRangeOct,
+    appText.webActivityRangeNov,
+    appText.webActivityRangeDec,
   ];
   const label = (value: typeof start, includeOffset: boolean) =>
     `${value.get('day')}/${months[Number(value.get('month')) - 1]}${years ? '/' + value.get('year')!.slice(-2) : ''} ${value.get('hour')}:${value.get('minute')}${includeOffset ? ' ' + offset(value) : ''}`;

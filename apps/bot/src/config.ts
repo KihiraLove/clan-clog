@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Keep the Discord gateway disabled until all necessary private settings exist. */
 import { readSecret } from '@clog/domain/server-secrets';
 export interface BotConfig {
@@ -12,7 +13,7 @@ export function requireSnowflake(
   name: string,
 ): string {
   if (!value || !snowflake.test(value))
-    throw new Error(name + ' must be a Discord snowflake');
+    throw new Error(appText.botConfigMustBeADiscordSnowflake(name));
   return value;
 }
 export function readBotConfig(
@@ -25,17 +26,17 @@ export function readBotConfig(
   if (!discordToken && !guildId && !apiToken) return null;
   if (!discordToken || !guildId || !apiToken)
     throw new Error(
-      'DISCORD_BOT_TOKEN, DISCORD_GUILD_ID and BOT_API_TOKEN must be configured together',
+      appText.botConfigDiscordBotTokenDiscordGuildIdAndBotApiToken,
     );
   requireSnowflake(guildId, 'DISCORD_GUILD_ID');
   if (!/^[a-f\d]{64,}$/iu.test(apiToken))
-    throw new Error('BOT_API_TOKEN must be 32+ random bytes encoded as hex');
+    throw new Error(appText.botConfigBotApiTokenMustBe32RandomBytesEncodedAs);
   const value = env.API_BASE_URL ?? 'http://api:3000';
   let url: URL;
   try {
     url = new URL(value);
   } catch {
-    throw new Error('API_BASE_URL must be an absolute HTTP(S) origin');
+    throw new Error(appText.botConfigApiBaseUrlMustBeAnAbsoluteHttpSOrigin);
   }
   if (
     !['http:', 'https:'].includes(url.protocol) ||
@@ -46,8 +47,6 @@ export function readBotConfig(
     url.pathname !== '/' ||
     !url.hostname
   )
-    throw new Error(
-      'API_BASE_URL must be an HTTP(S) origin without a path or credentials',
-    );
+    throw new Error(appText.botConfigApiBaseUrlMustBeAnHttpSOriginWithout);
   return { discordToken, guildId, apiToken, apiOrigin: url.origin };
 }

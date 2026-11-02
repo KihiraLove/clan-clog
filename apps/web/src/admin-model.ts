@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Private API contracts and form validation; server authorization remains mandatory. */
 import { validateCollectionDate, parseSubmissionFilters } from '@clog/domain';
 import { parseCatalog, type Catalog, type Item, type Page } from './model.ts';
@@ -15,10 +16,10 @@ export type QueueView = 'pending' | 'unmatched' | 'reviewed';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected' | 'revoked';
 export function dateSourceLabel(source: Submission['dateSource']): string {
   return source === 'submission'
-    ? 'Submission date'
+    ? appText.webAdminModelSubmissionDate
     : source === 'claim'
-      ? 'Collector supplied'
-      : 'Admin correction';
+      ? appText.webAdminModelCollectorSupplied
+      : appText.webAdminModelAdminCorrection;
 }
 export interface Submission {
   collectionType?: import('@clog/domain').CollectionType | null;
@@ -142,7 +143,7 @@ export function parseStaffAccount(input: unknown): StaffAccount {
     (value.version !== undefined &&
       (!Number.isInteger(value.version) || Number(value.version) < 1))
   )
-    throw new Error('Invalid staff account.');
+    throw new Error(appText.webAdminModelInvalidStaffAccount);
   return {
     id: text(value.id),
     username: text(value.username),
@@ -418,7 +419,8 @@ export interface AdminClient {
 
 /** Keep malformed claims reviewable/rejectable while withholding an unsafe proof link. */
 function choice<T extends string>(value: unknown, allowed: readonly T[]): T {
-  if (!allowed.includes(value as T)) throw new Error('Invalid admin response.');
+  if (!allowed.includes(value as T))
+    throw new Error(appText.webAdminModelInvalidAdminResponse);
   return value as T;
 }
 export function safeScreenshotPath(value: unknown): value is string {
@@ -431,7 +433,7 @@ export function safeScreenshotPath(value: unknown): value is string {
 }
 function parseScreenshotPath(value: unknown) {
   if (value === null || safeScreenshotPath(value)) return value;
-  throw new Error('Invalid screenshot path.');
+  throw new Error(appText.webAdminModelInvalidScreenshotPath);
 }
 export function parseSubmission(value: unknown): Submission {
   const row = object(value);
@@ -453,7 +455,7 @@ export function parseSubmission(value: unknown): Submission {
         !row.chatMessage.trim() ||
         row.chatMessage.length > 8192))
   )
-    throw new Error('Invalid submission data.');
+    throw new Error(appText.webAdminModelInvalidSubmissionData);
   return {
     id: text(row.id),
     version: identity(row.version),
@@ -499,7 +501,7 @@ export function parseSubmission(value: unknown): Submission {
         : typeof row.reviewNote === 'string' && row.reviewNote.length <= 1000
           ? row.reviewNote
           : (() => {
-              throw new Error('Invalid saved review note.');
+              throw new Error(appText.webAdminModelInvalidSavedReviewNote);
             })(),
     reviewReason:
       row.reviewReason === undefined || row.reviewReason === null
@@ -513,7 +515,7 @@ export function parseQueue(value: unknown, view: QueueView): QueueResult {
     submissions = list(data.submissions).map(parseSubmission);
   unique(submissions.map((s) => s.id));
   if (submissions.length > 20)
-    throw new Error('Queue page exceeds supported size.');
+    throw new Error(appText.webAdminModelQueuePageExceedsSupportedSize);
   if (
     submissions.some((s) =>
       view === 'reviewed'
@@ -521,7 +523,7 @@ export function parseQueue(value: unknown, view: QueueView): QueueResult {
         : s.status !== 'pending' || (view === 'unmatched' && s.itemId !== null),
     )
   )
-    throw new Error('Unexpected submission view.');
+    throw new Error(appText.webAdminModelUnexpectedSubmissionView);
   return {
     ...(data.filters === undefined
       ? {}
@@ -541,7 +543,7 @@ export function parseDetail(value: unknown): SubmissionDetail {
       before = parseSubmission(a.before),
       after = parseSubmission(a.after);
     if (before.id !== submission.id || after.id !== submission.id)
-      throw new Error('Unexpected audit identity.');
+      throw new Error(appText.webAdminModelUnexpectedAuditIdentity);
     return {
       id: text(a.id),
       actorName: text(a.actorName),
@@ -559,7 +561,8 @@ export function parseDetail(value: unknown): SubmissionDetail {
     };
   });
   unique(audit.map((a) => a.id));
-  if (audit.length > 20) throw new Error('Audit page exceeds supported size.');
+  if (audit.length > 20)
+    throw new Error(appText.webAdminModelAuditPageExceedsSupportedSize);
   return {
     submission,
     audit,
@@ -636,24 +639,26 @@ export function validateCorrection(
 ): Correction {
   if (!catalog.items.some((item) => item.id === fields.itemId))
     throw new Error(
-      'Select a specific catalog item before saving or approving.',
+      appText.webAdminModelSelectASpecificCatalogItemBeforeSavingOrApproving,
     );
   const collectorName = fields.collectorName.trim(),
     reason = fields.reason.trim();
   if (!collectorName || collectorName.length > 80)
-    throw new Error('Enter a collector name of 1–80 characters.');
+    throw new Error(appText.webAdminModelEnterACollectorNameOf180Characters);
   if (reason.length > 1000)
-    throw new Error('Keep the review reason to 1,000 characters.');
+    throw new Error(appText.webAdminModelKeepTheReviewReasonTo1000Characters);
   if (typeof fields.hardcore !== 'boolean')
-    throw new Error('Invalid hardcore claim.');
+    throw new Error(appText.webAdminModelInvalidHardcoreClaim);
   if (
     fields.collectionType !== undefined &&
     fields.collectionType !== 'regular' &&
     fields.collectionType !== 'event'
   )
-    throw new Error('Select a valid collection type.');
+    throw new Error(appText.webAdminModelSelectAValidCollectionType);
   if (fields.hardcore && fields.collectionType === 'event')
-    throw new Error('Hardcore supports Regular collections only.');
+    throw new Error(
+      appText.webAdminModelHardcoreSupportsRegularCollectionsOnly,
+    );
   return {
     ...fields,
     collectorName,
@@ -665,9 +670,9 @@ export function validateCorrection(
 export function validateItem(fields: CreateItem, catalog: Catalog): CreateItem {
   const name = fields.name.trim();
   if (!name || name.length > 200)
-    throw new Error('Enter an item name of 1–200 characters.');
+    throw new Error(appText.webAdminModelEnterAnItemNameOf1200Characters);
   if (!fields.iconAssetId.trim())
-    throw new Error('Choose and upload an item icon.');
+    throw new Error(appText.webAdminModelChooseAndUploadAnItemIcon);
   if (
     !fields.gameItemIds?.length ||
     fields.gameItemIds.length > 100 ||
@@ -676,27 +681,31 @@ export function validateItem(fields: CreateItem, catalog: Catalog): CreateItem {
       (id) => !Number.isInteger(id) || id < 1 || id > 2147483647,
     )
   )
-    throw new Error('Enter distinct positive in-game item IDs.');
+    throw new Error(appText.webAdminModelEnterDistinctPositiveInGameItemIds);
   if (
     !fields.pageIds.length ||
     new Set(fields.pageIds).size !== fields.pageIds.length ||
     fields.pageIds.some((id) => !catalog.pages.some((page) => page.id === id))
   )
-    throw new Error('Select one or more existing collection-log pages.');
+    throw new Error(
+      appText.webAdminModelSelectOneOrMoreExistingCollectionLogPages,
+    );
   return { ...fields, name };
 }
 
 export function parseGameItemIds(value: string): number[] {
   const tokens = value.trim().split(/[\s,]+/u);
   if (!value.trim() || tokens.some((token) => !/^\d+$/u.test(token)))
-    throw new Error('Enter positive in-game item IDs separated by commas.');
+    throw new Error(
+      appText.webAdminModelEnterPositiveInGameItemIdsSeparatedByCommas,
+    );
   const ids = tokens.map(Number);
   if (
     ids.length > 100 ||
     new Set(ids).size !== ids.length ||
     ids.some((id) => !Number.isInteger(id) || id < 1 || id > 2147483647)
   )
-    throw new Error('Enter distinct positive in-game item IDs.');
+    throw new Error(appText.webAdminModelEnterDistinctPositiveInGameItemIds);
   return ids;
 }
 /** An order edit must be a permutation, with no added, missing or duplicate memberships. */
@@ -710,7 +719,7 @@ export function validateOrder(
     next.some((id) => !current.includes(id))
   )
     throw new Error(
-      'An order must contain every current page item exactly once.',
+      appText.webAdminModelAnOrderMustContainEveryCurrentPageItemExactlyOnce,
     );
 }
 /** Return a new ordered array for drag, keyboard and button controls to share. */
@@ -724,7 +733,7 @@ export function moveItem(
       (index) => Number.isInteger(index) && index >= 0 && index < ids.length,
     )
   )
-    throw new Error('Invalid item position.');
+    throw new Error(appText.webAdminModelInvalidItemPosition);
   const next = [...ids],
     [id] = next.splice(from, 1);
   next.splice(to, 0, id!);
@@ -739,7 +748,7 @@ export async function validateIconFile(file: File): Promise<void> {
     !file.size ||
     file.size > MAX_ICON_BYTES
   )
-    throw new Error('Choose a PNG or WebP icon up to 2 MiB.');
+    throw new Error(appText.webAdminModelChooseAPngOrWebPIconUpTo2MiB);
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
   const png = [137, 80, 78, 71, 13, 10, 26, 10].every(
     (value, i) => bytes[i] === value,
@@ -751,7 +760,9 @@ export async function validateIconFile(file: File): Promise<void> {
     (file.type === 'image/png' && !png) ||
     (file.type === 'image/webp' && !webp)
   )
-    throw new Error('The icon content does not match its PNG/WebP file type.');
+    throw new Error(
+      appText.webAdminModelTheIconContentDoesNotMatchItsPngWebPFile,
+    );
 }
 /** Enforce decoded dimensions after createImageBitmap has verified the image is readable. */
 export function validateIconSize(width: number, height: number): void {
@@ -760,5 +771,7 @@ export function validateIconSize(width: number, height: number): void {
       (n) => Number.isInteger(n) && n > 0 && n <= MAX_ICON_SIZE,
     )
   )
-    throw new Error('Icon width and height must be between 1 and 512 pixels.');
+    throw new Error(
+      appText.webAdminModelIconWidthAndHeightMustBeBetween1And512,
+    );
 }

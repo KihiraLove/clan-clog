@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Key management remains available while the intake requirement is disabled. */
 import { useEffect, useState } from 'react';
 import type { AdminClient } from './admin-model.ts';
@@ -45,7 +46,9 @@ export function ClanApiKeySettings({
         );
         if (!signal.aborted) {
           accept(value);
-          action.setMessage('Clan API key settings saved.');
+          action.setMessage(
+            appText.webClanApiKeySettingsClanApiKeySettingsSaved,
+          );
         }
       },
       async (signal) => {
@@ -56,7 +59,7 @@ export function ClanApiKeySettings({
   };
   return (
     <div className="clan-api-key-settings">
-      <h3>RuneLite shared API key</h3>
+      <h3>{appText.webClanApiKeySettingsRuneLiteSharedApiKey}</h3>
       <form
         aria-busy={!saved}
         onSubmit={(event) => {
@@ -66,7 +69,7 @@ export function ClanApiKeySettings({
       >
         <textarea
           id="clan-api-key-value"
-          aria-label="Current shared API key"
+          aria-label={appText.webClanApiKeySettingsCurrentSharedApiKey}
           className="clan-api-key-value"
           value={key}
           readOnly={!editable}
@@ -76,7 +79,9 @@ export function ClanApiKeySettings({
           autoComplete="off"
           spellCheck={false}
           disabled={locked || !saved}
-          placeholder={saved ? undefined : 'Loading API key…'}
+          placeholder={
+            saved ? undefined : appText.webClanApiKeySettingsLoadingApiKey
+          }
           onChange={(event) => {
             setKey(event.target.value);
             action.setMessage(undefined);
@@ -97,10 +102,12 @@ export function ClanApiKeySettings({
                     byte.toString(16).padStart(2, '0'),
                   ).join(''),
                 );
-                action.setMessage('New key generated. Save to apply it.');
+                action.setMessage(
+                  appText.webClanApiKeySettingsNewKeyGeneratedSaveToApplyIt,
+                );
               }}
             >
-              Generate new key
+              {appText.webClanApiKeySettingsGenerateNewKey}
             </button>
             <button
               className="site-button"
@@ -108,7 +115,7 @@ export function ClanApiKeySettings({
                 locked || !saved || !validClanKey(key) || key === saved.key
               }
             >
-              Save API key settings
+              {appText.webClanApiKeySettingsSaveApiKeySettings}
             </button>
           </div>
         )}

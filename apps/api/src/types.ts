@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Backend contracts isolate PostgreSQL and Discord from route tests. */
 export interface Settings {
   eventHighlight?: import('@clog/domain').HighlightColour;
@@ -134,7 +135,7 @@ export interface BackendStore {
   allowLogin(keyHash: string): Promise<boolean>;
 }
 export const adminBootstrapRequiredMessage =
-  'No administrator exists. Run docker compose run --rm setup-admin --generate after database initialization, then sign in as admin and change the temporary password.';
+  appText.apiTypesNoAdministratorExistsRunDockerComposeRunRmSetupAdmin;
 export class AdminBootstrapRequiredError extends Error {
   readonly code = 'ADMIN_BOOTSTRAP_REQUIRED';
   constructor() {

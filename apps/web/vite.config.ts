@@ -1,3 +1,4 @@
+import * as appText from '../../packages/domain/src/text.ts';
 /** Mirror production's same-origin /api routing while the frontend runs on Vite. */
 import { defineConfig } from 'vite';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -5,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
+import { applicationTextPlugin } from '../../scripts/inline-application-text.mjs';
+
 const appVersion = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
 ).version as string;
@@ -12,6 +15,29 @@ export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(appVersion) },
   server: { proxy: { '/api': 'http://127.0.0.1:3000' } },
   plugins: [
+    applicationTextPlugin(
+      readFileSync(
+        new URL('../../packages/domain/src/text.ts', import.meta.url),
+        'utf8',
+      ),
+    ),
+    {
+      name: 'canonical-document-title',
+      transformIndexHtml(html) {
+        const title = appText.domainSiteCopyCollectionTitle.replace(
+          /[&<>"']/gu,
+          (character) =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            })[character]!,
+        );
+        return html.replace('%APP_TITLE%', title);
+      },
+    },
     {
       name: 'public-entry-budget',
       async generateBundle(_options, bundle) {
@@ -69,7 +95,7 @@ export default defineConfig({
           throw new Error('Staff screen entered the initial public graph.');
         if (bytes > 320000 || gzipBytes > 100000)
           throw new Error(
-            'Initial public JavaScript exceeds 320,000 raw / 100,000 gzip bytes.',
+            `Initial public JavaScript exceeds 320,000 raw / 100,000 gzip bytes (${bytes} raw / ${gzipBytes} gzip).`,
           );
         await mkdir(path.join(root, '.data/local-checks'), { recursive: true });
         await writeFile(

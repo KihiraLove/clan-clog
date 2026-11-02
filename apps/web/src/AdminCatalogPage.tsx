@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Coordinate one catalog snapshot shared by item creation and per-page order editing. */
 import { useEffect, useState } from 'react';
 import { classifyAccessFailure } from './admin-session.ts';
@@ -42,7 +43,7 @@ export function AdminCatalogPage({
         if (classifyAccessFailure(failure) === 'expired') onAccessLost();
         else
           setReadError(
-            'Catalog could not be loaded. The last successful snapshot is preserved.',
+            appText.webAdminCatalogPageCatalogCouldNotBeLoadedTheLastSuccessfulSnapshotIs,
           );
       })
       .finally(() => {
@@ -66,7 +67,9 @@ export function AdminCatalogPage({
   };
   return (
     <>
-      {loading && <p role="status">Loading catalog…</p>}
+      {loading && (
+        <p role="status">{appText.webAdminCatalogPageLoadingCatalog}</p>
+      )}
       {readError && (
         <section role="alert" className="admin-panel admin-error">
           <p>{readError}</p>
@@ -74,7 +77,7 @@ export function AdminCatalogPage({
             className="site-button"
             onClick={() => setRefreshKey((n) => n + 1)}
           >
-            Retry catalog
+            {appText.webAdminCatalogPageRetryCatalog}
           </button>
         </section>
       )}

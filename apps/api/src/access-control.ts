@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import type pg from 'pg';
 import {
   parseStaffPages,
@@ -23,7 +24,10 @@ export class PgAccessControlStore implements AccessControlStore {
       )
     ).rows[0];
     if (!row)
-      throw new ApiError(503, 'Access control settings are unavailable.');
+      throw new ApiError(
+        503,
+        appText.apiAccessControlAccessControlSettingsAreUnavailable,
+      );
     return {
       revision: 'access-control-' + row.version,
       moderatorPages: parseStaffPages(row.moderator_pages),
@@ -44,11 +48,14 @@ export class PgAccessControlStore implements AccessControlStore {
         )
       ).rows[0];
       if (!old)
-        throw new ApiError(503, 'Access control settings are unavailable.');
+        throw new ApiError(
+          503,
+          appText.apiAccessControlAccessControlSettingsAreUnavailable,
+        );
       if (revision !== 'access-control-' + old.version)
         throw new ApiError(
           409,
-          'Access control changed. Reload before saving again.',
+          appText.apiAccessControlAccessControlChangedReloadBeforeSavingAgain,
         );
       const version = old.version + 1;
       await client.query(

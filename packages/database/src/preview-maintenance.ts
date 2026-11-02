@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { databaseUrl as readDatabaseUrl } from './secrets.js';
 /** B08/R03: one-shot, opt-in cleanup. Never delete durable import receipts. */
 import pg from 'pg';
@@ -32,7 +33,7 @@ export function validatePreviewMaintenanceOptions(
     value.graceMinutes > 10080
   )
     throw new Error(
-      'Use --batch-size 1..500, --max-batches 1..20 and --grace-minutes 60..10080.',
+      appText.databasePreviewMaintenanceUseBatchSize1500MaxBatches120And,
     );
   return value;
 }
@@ -113,7 +114,7 @@ export async function runPreviewMaintenance(
   ).rows[0]!.acquired;
   if (!obtained)
     throw new Error(
-      'Another import preview maintenance command is active. No rows were changed.',
+      appText.databasePreviewMaintenanceAnotherImportPreviewMaintenanceCommandIsActiveNoRowsWere,
     );
   try {
     await client.query("SET statement_timeout = '10s'");
@@ -189,7 +190,7 @@ function parseOptions(args: string[]): PreviewMaintenanceOptions {
       options.graceMinutes = Number(arg.slice('--grace-minutes='.length));
     else
       throw new Error(
-        'Unknown maintenance option. Use --apply, --dry-run, --batch-size=N, --max-batches=N, --grace-minutes=N.',
+        appText.databasePreviewMaintenanceUnknownMaintenanceOptionUseApplyDryRunBatchSizeN,
       );
   }
   return validatePreviewMaintenanceOptions(options);
@@ -202,7 +203,8 @@ if (
   // The restricted app role deliberately has no DELETE on these tables.
   // Invoke as a one-shot migrate container, not the running app.
   const url = readDatabaseUrl();
-  if (!url) throw new Error('DATABASE_URL is required');
+  if (!url)
+    throw new Error(appText.databasePreviewMaintenanceDatabaseUrlIsRequired);
   const client = new pg.Client({
     connectionString: url,
     connectionTimeoutMillis: 5000,

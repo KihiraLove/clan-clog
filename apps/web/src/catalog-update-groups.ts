@@ -1,37 +1,55 @@
+import * as appText from '@clog/domain';
 import type { CatalogUpdateProposal, CatalogUpdateReview } from '@clog/domain';
 
 export const catalogUpdateGroups = [
-  ['pageNames', 'Page name mismatches'],
-  ['pages', 'Missing pages'],
-  ['items', 'Missing items'],
-  ['names', 'Incorrect item names'],
-  ['ids', 'Incorrect item ids'],
-  ['links', 'Missing item-page relationships'],
-  ['extraLinks', 'Incorrect item-page relationships'],
+  ['pageNames', appText.webCatalogUpdateGroupsPageNameMismatches],
+  ['pages', appText.webCatalogUpdateGroupsMissingPages],
+  ['items', appText.webCatalogUpdateGroupsMissingItems],
+  ['names', appText.webCatalogUpdateGroupsIncorrectItemNames],
+  ['ids', appText.webCatalogUpdateGroupsIncorrectItemIds],
+  ['links', appText.webCatalogUpdateGroupsMissingItemPageRelationships],
+  ['extraLinks', appText.webCatalogUpdateGroupsIncorrectItemPageRelationships],
 ] as const;
 export type CatalogUpdateGroup = (typeof catalogUpdateGroups)[number][0];
 
-const itemIds = (name: string, ids: string[]) =>
-  `${name} ${ids.length > 1 ? 'IDs' : 'ID'} ${ids.join(', ') || 'None'}`;
+const itemIds = appText.webCatalogUpdateGroupsItemIds;
 
 function problem(p: CatalogUpdateProposal) {
   switch (p.kind) {
     case 'createPage':
-      return `Missing → ${p.label}`;
+      return appText.webCatalogUpdateGroupsMissingEntity(p.label);
     case 'createItem':
-      return `Missing → ${itemIds(p.label, p.after.split(', '))}`;
+      return appText.webCatalogUpdateGroupsMissingEntity(
+        itemIds(p.label, p.after.split(', ')),
+      );
     case 'addLink':
-      return `None → ${p.label} / ${p.afterLabel ?? p.after}`;
+      return appText.webCatalogUpdateGroupsAddLink(
+        p.label,
+        p.afterLabel ?? p.after,
+      );
     case 'removeLink':
-      return `${p.label} / ${p.beforeLabel ?? p.before} → None`;
+      return appText.webCatalogUpdateGroupsRemoveLink(
+        p.label,
+        p.beforeLabel ?? p.before,
+      );
     case 'adopt':
-      return `${p.label} (unlinked) → ${p.label} (linked)`;
+      return appText.webCatalogUpdateGroupsAdopt(p.label);
     case 'pageCategory':
-      return `${p.label} (${p.before}) → ${p.label} (${p.after})`;
+      return appText.webCatalogUpdateGroupsCategoryChange(
+        p.label,
+        p.before,
+        p.after,
+      );
     case 'gameIds':
-      return `${itemIds(p.beforeLabel ?? p.label, p.before ? p.before.split(', ') : [])} → ${itemIds(p.afterLabel ?? p.label, p.after ? p.after.split(', ') : [])}`;
+      return appText.webCatalogUpdateGroupsChange(
+        itemIds(p.beforeLabel ?? p.label, p.before ? p.before.split(', ') : []),
+        itemIds(p.afterLabel ?? p.label, p.after ? p.after.split(', ') : []),
+      );
     default:
-      return `${p.before || 'Missing'} → ${p.after || 'None'}`;
+      return appText.webCatalogUpdateGroupsChange(
+        p.before || appText.webCatalogUpdateGroupsMissing,
+        p.after || appText.webCatalogUpdateGroupsNone,
+      );
   }
 }
 
@@ -74,7 +92,10 @@ export function catalogProblemRows(
     return [
       {
         id: p.id,
-        text: `${itemIds(p.beforeLabel ?? names.get(key)?.before ?? p.label, before)} → ${itemIds(p.afterLabel ?? names.get(key)?.after ?? p.label, after)}`,
+        text: appText.webCatalogUpdateGroupsChange(
+          itemIds(p.beforeLabel ?? names.get(key)?.before ?? p.label, before),
+          itemIds(p.afterLabel ?? names.get(key)?.after ?? p.label, after),
+        ),
       },
     ];
   });
@@ -99,7 +120,9 @@ export function proposalGroup(
     case 'removeGameId':
       return 'ids';
     case 'adopt':
-      return p.before === 'Unlinked local page' ? 'pages' : 'ids';
+      return p.before === appText.databaseCatalogUpdateStoreUnlinkedLocalPage
+        ? 'pages'
+        : 'ids';
     case 'addLink':
       return 'links';
     case 'removeLink':

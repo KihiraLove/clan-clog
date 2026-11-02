@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** XP aggregates and private preview data have no Discord-auth or browser dependencies. */
 import { skillIds, type Skill, type WomCompetition } from '@clog/domain';
 export { skillIds, type Skill } from '@clog/domain';
@@ -116,7 +117,8 @@ export function diffTotals(
       const current = BigInt(before[skill]);
       const delta =
         BigInt(next.gains[skill] ?? '0') - BigInt(old[skill] ?? '0');
-      if (current + delta < 0n) throw new Error('Invalid XP reconciliation');
+      if (current + delta < 0n)
+        throw new Error(appText.apiXpTypesInvalidXpReconciliation);
       return {
         skill,
         before: current.toString(),

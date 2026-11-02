@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Verify all release inputs before changing the installed catalog. */
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -22,7 +23,7 @@ export async function prepareBundledCatalogImages(
   ).trim();
   if (createHash('sha256').update(assetBytes).digest('hex') !== pinned)
     throw new Error(
-      'Legacy catalog image provenance is immutable. Publish new images in catalog/updates.',
+      appText.databaseCatalogUpdateInstallLegacyCatalogImageProvenanceIsImmutablePublishNewImagesIn,
     );
   const assets = JSON.parse(assetBytes.toString('utf8')) as {
     items: { path: string; sha256: string; width: number; height: number }[];
@@ -33,7 +34,9 @@ export async function prepareBundledCatalogImages(
       assets.items.slice(offset, offset + 16).map(async (asset) => {
         const iconPath = '/' + asset.path.replace('apps/web/public/', '');
         if (!/^\/catalog\/items\/[1-9]\d*\.webp$/u.test(iconPath))
-          throw new Error('Invalid legacy catalog image path.');
+          throw new Error(
+            appText.databaseCatalogUpdateInstallInvalidLegacyCatalogImagePath,
+          );
         const filename = iconPath.split('/').at(-1)!;
         let bytes: Buffer;
         try {
@@ -50,7 +53,7 @@ export async function prepareBundledCatalogImages(
   }
   if (snapshot.items.some((i) => !result.has(i.iconPath)))
     throw new Error(
-      'New item images belong in catalog/updates, not the immutable legacy bundle.',
+      appText.databaseCatalogUpdateInstallNewItemImagesBelongInCatalogUpdatesNotTheImmutable,
     );
   return result;
 }
@@ -99,7 +102,7 @@ export async function installSnapshotRefresh(
 ) {
   const batch: CatalogUpdateBatch = {
     id: 'snapshot-' + hash.replace('sha256:', ''),
-    title: 'Bundled catalog refresh',
+    title: appText.databaseCatalogUpdateInstallBundledCatalogRefresh,
     pages: snapshot.pages.map((p) => ({
       key: p.id,
       name: p.name,

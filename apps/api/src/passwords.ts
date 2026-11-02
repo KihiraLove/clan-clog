@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Randomly salted scrypt with one bounded queue for every authentication path. */
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { WorkloadError } from '@clog/domain';
@@ -37,7 +38,7 @@ export class PasswordHasher {
       limits.waitMs < 1 ||
       limits.waitMs > 1000
     )
-      throw new Error('Invalid password work budget');
+      throw new Error(appText.apiPasswordsInvalidPasswordWorkBudget);
   }
   private run(password: string, salt: Buffer): Promise<Buffer> {
     if (

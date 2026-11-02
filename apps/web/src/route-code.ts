@@ -1,7 +1,8 @@
+import * as appText from '@clog/domain';
 /** Successful modules are shared; rejected loads expose explicit reload recovery. */
 export class RouteCodeError extends Error {
   constructor(cause: unknown) {
-    super('Page code could not be loaded. Reload the page to try again.', {
+    super(appText.webRouteCodePageCodeCouldNotBeLoadedReloadThePageTo, {
       cause,
     });
   }

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Live routes for the existing admin UI; authenticate before reading multipart bodies. */
 import multipart from '@fastify/multipart';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -34,7 +35,11 @@ export function catalogRoutes(
   authorize?: RequireAdmin,
 ) {
   const admin = async (request: FastifyRequest, write = false) => {
-    if (!authorize) throw new ApiError(503, 'Admin sign-in is not configured.');
+    if (!authorize)
+      throw new ApiError(
+        503,
+        appText.apiCatalogRoutesAdminSignInIsNotConfigured,
+      );
     return authorize(request, write);
   };
   catalogEditorRoutes(app, store, icons, admin);
@@ -42,13 +47,13 @@ export function catalogRoutes(
     '/api/v1/catalog/icons/:id.webp',
     async (request, reply) => {
       if (!assetIdPattern.test(request.params.id))
-        throw new ApiError(404, 'Icon not found.');
+        throw new ApiError(404, appText.apiCatalogRoutesIconNotFound);
       const asset = await store.asset(request.params.id);
-      if (!asset) throw new ApiError(404, 'Icon not found.');
+      if (!asset) throw new ApiError(404, appText.apiCatalogRoutesIconNotFound);
       if (asset.itemId === null) {
         const actor = await admin(request);
         if (asset.actor !== actor.id || asset.expiresAt.getTime() <= Date.now())
-          throw new ApiError(404, 'Icon not found.');
+          throw new ApiError(404, appText.apiCatalogRoutesIconNotFound);
       }
       const bytes = await icons.read(asset);
       return reply
@@ -87,11 +92,15 @@ export function catalogRoutes(
           mime = '';
         for await (const part of request.parts()) {
           if (part.type !== 'file' || part.fieldname !== 'icon' || input)
-            throw new ApiError(400, 'Upload exactly one icon file.');
+            throw new ApiError(
+              400,
+              appText.apiCatalogRoutesUploadExactlyOneIconFile,
+            );
           input = await part.toBuffer();
           mime = part.mimetype;
         }
-        if (!input) throw new ApiError(400, 'Choose an icon.');
+        if (!input)
+          throw new ApiError(400, appText.apiCatalogRoutesChooseAnIcon);
         const record = await icons.save(input, mime);
         // A lost commit acknowledgement is not proof of non-persistence.
         // Offline, reference-checked maintenance reclaims abandoned files.
@@ -129,7 +138,10 @@ export function catalogRoutes(
       const actor = await admin(request, true),
         key = request.headers['idempotency-key'];
       if (typeof key !== 'string' || !/^[a-zA-Z0-9_-]{8,128}$/u.test(key))
-        throw new ApiError(400, 'Supply a stable Idempotency-Key.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogRoutesSupplyAStableIdempotencyKey,
+        );
       return reply
         .code(201)
         .send(
@@ -248,7 +260,10 @@ export function catalogRoutes(
       const actor = await admin(request, true),
         key = request.headers['idempotency-key'];
       if (typeof key !== 'string' || !/^[a-zA-Z0-9_-]{8,128}$/u.test(key))
-        throw new ApiError(400, 'Supply a stable Idempotency-Key.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogRoutesSupplyAStableIdempotencyKey,
+        );
       const name = request.body.name.trim();
       if (
         !name ||
@@ -257,7 +272,7 @@ export function catalogRoutes(
             character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
         )
       )
-        throw new ApiError(400, 'Enter a nonblank item name.');
+        throw new ApiError(400, appText.apiCatalogRoutesEnterANonblankItemName);
       const result = await store.create(
         { ...request.body, name },
         actor.id,
@@ -308,7 +323,10 @@ export function catalogRoutes(
       const actor = await admin(request, true),
         id = Number(request.params.id);
       if (id > 2147483647)
-        throw new ApiError(400, 'Choose an existing catalog item.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogRoutesChooseAnExistingCatalogItem,
+        );
       return store.removePageItem(
         request.params.pageId,
         id,
@@ -394,7 +412,7 @@ export function catalogRoutes(
       if (!reason || itemId > 2147483647)
         throw new ApiError(
           400,
-          'Choose an item and explain the reconciliation.',
+          appText.apiCatalogRoutesChooseAnItemAndExplainTheReconciliation,
         );
       return store.reconcile(
         itemId,

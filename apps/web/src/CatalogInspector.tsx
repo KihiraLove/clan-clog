@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Contextual catalog forms, with explicit confirmation for removal and durable creation retries. */
 import { useCallback, useEffect, useState } from 'react';
 import { catalogSections } from './model.ts';
@@ -39,8 +40,7 @@ export function CatalogInspector(props: Props) {
   )
     return (
       <p role="alert">
-        This page is no longer in the catalog. Close the editor and select
-        another page.
+        {appText.webCatalogInspectorThisPageIsNoLongerInTheCatalogCloseThe}
       </p>
     );
   if (props.editor.kind === 'item-new')
@@ -48,20 +48,20 @@ export function CatalogInspector(props: Props) {
   if (editor.kind === 'item-add')
     return (
       <div className="catalog-add-menu">
-        <h2>Add item</h2>
+        <h2>{appText.webCatalogInspectorAddItem}</h2>
         <button
           type="button"
           className="site-button"
           onClick={() => props.onOpen({ kind: 'item-new', id: editor.id })}
         >
-          Add new item
+          {appText.webCatalogInspectorAddNewItem}
         </button>
         <button
           type="button"
           className="site-button"
           onClick={() => props.onOpen({ kind: 'item-existing', id: editor.id })}
         >
-          Add existing item
+          {appText.webCatalogInspectorAddExistingItem}
         </button>
       </div>
     );
@@ -137,7 +137,7 @@ function CatalogForm({
   const submit = () => {
     void action.execute(async (signal) => {
       const clean = name.trim();
-      if (!clean) throw new Error('Enter a name.');
+      if (!clean) throw new Error(appText.webCatalogInspectorEnterAName);
       if (editor.kind === 'section-add' || editor.kind === 'page-add') {
         const request = pending ?? {
           key: crypto.randomUUID(),
@@ -219,22 +219,22 @@ function CatalogForm({
               .join(', '),
           );
         setFile(undefined);
-        action.setMessage('Changes saved.');
+        action.setMessage(appText.webCatalogInspectorChangesSaved);
       }
     }, conflict);
   };
   const title =
     editor.kind === 'section-add'
-      ? 'Add section'
+      ? appText.webCatalogInspectorAddSection
       : editor.kind === 'section-edit'
-        ? 'Edit section'
+        ? appText.webCatalogInspectorEditSection
         : editor.kind === 'page-add'
-          ? 'Add page'
+          ? appText.webCatalogInspectorAddPage
           : editor.kind === 'page-edit'
-            ? 'Edit page'
+            ? appText.webCatalogInspectorEditPage
             : editor.kind === 'item-existing'
-              ? 'Add existing item'
-              : 'Edit item';
+              ? appText.webCatalogInspectorAddExistingItem
+              : appText.webCatalogInspectorEditItem;
   const existingPage =
     editor.kind === 'item-existing'
       ? catalog.pages.find((p) => p.id === editor.id)
@@ -249,8 +249,9 @@ function CatalogForm({
   )
     return (
       <p role="alert">
-        This catalog entry is no longer available. Close the editor and select
-        another entry.
+        {
+          appText.webCatalogInspectorThisCatalogEntryIsNoLongerAvailableCloseTheEditor
+        }
       </p>
     );
   const query = search.trim().toLowerCase();
@@ -271,7 +272,7 @@ function CatalogForm({
             disabled={locked || !order.previous}
             onClick={() => order.move(-1)}
           >
-            Move earlier
+            {appText.webCatalogInspectorMoveEarlier}
           </button>
           <button
             type="button"
@@ -279,7 +280,7 @@ function CatalogForm({
             disabled={locked || !order.next}
             onClick={() => order.move(1)}
           >
-            Move later
+            {appText.webCatalogInspectorMoveLater}
           </button>
         </div>
       )}
@@ -298,8 +299,8 @@ function CatalogForm({
           <label>
             <input
               type="search"
-              aria-label="Search items"
-              placeholder="Search by name or ID"
+              aria-label={appText.webCatalogInspectorSearchItems}
+              placeholder={appText.webCatalogInspectorSearchByNameOrId}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -313,7 +314,7 @@ function CatalogForm({
                   type="button"
                   key={entry.id}
                   disabled={action.busy || attached || !existingPage}
-                  aria-label={`Add ${entry.name} to page`}
+                  aria-label={appText.webCatalogInspectorAddToPage(entry.name)}
                   onClick={() =>
                     write(
                       (signal) =>
@@ -324,7 +325,7 @@ function CatalogForm({
                           session.csrfToken,
                           signal,
                         ),
-                      `${entry.name} added.`,
+                      appText.webCatalogInspectorAdded(entry.name),
                     )
                   }
                 >
@@ -333,21 +334,25 @@ function CatalogForm({
                     {entry.name}
                     <small>
                       {attached
-                        ? 'Already on this page'
+                        ? appText.webCatalogInspectorAlreadyOnThisPage
                         : catalog.pages.some((p) =>
                               p.itemIds.includes(entry.id),
                             )
-                          ? 'On other pages'
-                          : 'Pageless'}
+                          ? appText.webCatalogInspectorOnOtherPages
+                          : appText.webCatalogInspectorPageless}
                     </small>
                   </span>
                 </button>
               );
             })}
-            {!choices.length && <p>No matching items.</p>}
+            {!choices.length && (
+              <p>{appText.webCatalogInspectorNoMatchingItems}</p>
+            )}
           </div>
           {choices.length > 100 && (
-            <p className="admin-note">Showing the first 100 matches.</p>
+            <p className="admin-note">
+              {appText.webCatalogInspectorShowingTheFirst100Matches}
+            </p>
           )}
         </div>
       ) : (
@@ -375,10 +380,10 @@ function CatalogForm({
               )}
               <label>
                 {item
-                  ? 'Item name'
+                  ? appText.webCatalogInspectorItemName
                   : editor.kind.startsWith('section')
-                    ? 'Section name'
-                    : 'Page name'}
+                    ? appText.webCatalogInspectorSectionName
+                    : appText.webCatalogInspectorPageName}
                 <input
                   required
                   maxLength={200}
@@ -388,12 +393,14 @@ function CatalogForm({
               </label>
               {item && (
                 <label>
-                  In-game item IDs
+                  {appText.webCatalogInspectorInGameItemIds}
                   <input
                     required
                     value={gameIds}
                     onChange={(event) => setGameIds(event.target.value)}
-                    placeholder="IDs separated by commas"
+                    placeholder={
+                      appText.webCatalogInspectorIdsSeparatedByCommas
+                    }
                   />
                 </label>
               )}
@@ -404,11 +411,12 @@ function CatalogForm({
               disabled={action.busy}
             >
               {pending
-                ? 'Retry creation'
+                ? appText.webCatalogInspectorRetryCreation
                 : editor.kind.endsWith('add')
-                  ? 'Create ' +
-                    (editor.kind === 'section-add' ? 'section' : 'page')
-                  : 'Save changes'}
+                  ? appText.webCatalogInspectorCreateEntry(
+                      editor.kind === 'section-add',
+                    )
+                  : appText.webCatalogInspectorSaveChanges}
             </button>
             {pending && !action.busy && (
               <button
@@ -416,7 +424,7 @@ function CatalogForm({
                 className="site-button"
                 onClick={() => setPending(undefined)}
               >
-                Discard creation request
+                {appText.webCatalogInspectorDiscardCreationRequest}
               </button>
             )}
           </form>
@@ -429,7 +437,11 @@ function CatalogForm({
                   locked || catalog.pages.some((p) => p.category === section.id)
                 }
                 onClick={() => {
-                  if (window.confirm(`Delete section ${section.name}?`))
+                  if (
+                    window.confirm(
+                      appText.webCatalogInspectorDeleteSection(section.name),
+                    )
+                  )
                     write(
                       (signal) =>
                         client.editSection(
@@ -439,16 +451,18 @@ function CatalogForm({
                           session.csrfToken,
                           signal,
                         ),
-                      'Section deleted.',
+                      appText.webCatalogInspectorSectionDeleted,
                       true,
                     );
                 }}
               >
-                Delete section
+                {appText.webCatalogInspectorDeleteSection2}
               </button>
               {catalog.pages.some((p) => p.category === section.id) && (
                 <p className="admin-note">
-                  Only sections with no pages can be deleted.
+                  {
+                    appText.webCatalogInspectorOnlySectionsWithNoPagesCanBeDeleted
+                  }
                 </p>
               )}
             </>
@@ -461,7 +475,9 @@ function CatalogForm({
               onClick={() => {
                 if (
                   window.confirm(
-                    `Delete ${page.name} from both collection logs? Items remain on other pages or in the catalog as pageless items. Collection and submission history is preserved.`,
+                    appText.webCatalogInspectorDeleteFromBothCollectionLogsItemsRemainOnOtherPages(
+                      page.name,
+                    ),
                   )
                 )
                   write(
@@ -473,17 +489,17 @@ function CatalogForm({
                         session.csrfToken,
                         signal,
                       ),
-                    'Page deleted.',
+                    appText.webCatalogInspectorPageDeleted,
                     true,
                   );
               }}
             >
-              Delete page
+              {appText.webCatalogInspectorDeletePage}
             </button>
           )}
           {item && (
             <>
-              <h3>Pages containing this item</h3>
+              <h3>{appText.webCatalogInspectorPagesContainingThisItem}</h3>
               <ul className="catalog-memberships">
                 {catalog.pages
                   .filter((p) => p.itemIds.includes(item.id))
@@ -494,7 +510,10 @@ function CatalogForm({
                         type="button"
                         className="site-button"
                         disabled={locked}
-                        aria-label={`Remove ${item.name} from ${entry.name}`}
+                        aria-label={appText.webCatalogInspectorRemoveFrom(
+                          item.name,
+                          entry.name,
+                        )}
                         onClick={() =>
                           write(
                             (signal) =>
@@ -506,17 +525,19 @@ function CatalogForm({
                                 session.csrfToken,
                                 signal,
                               ),
-                            `Removed from ${entry.name}.`,
+                            appText.webCatalogInspectorRemovedFrom(entry.name),
                           )
                         }
                       >
-                        Remove
+                        {appText.webCatalogInspectorRemove}
                       </button>
                     </li>
                   ))}
               </ul>
               {!catalog.pages.some((p) => p.itemIds.includes(item.id)) && (
-                <p className="admin-note">This item is pageless.</p>
+                <p className="admin-note">
+                  {appText.webCatalogInspectorThisItemIsPageless}
+                </p>
               )}
               <button
                 type="button"
@@ -525,7 +546,9 @@ function CatalogForm({
                 onClick={() => {
                   if (
                     window.confirm(
-                      `Delete ${item.name} from the catalog and all its pages? Collection and submission history is preserved.`,
+                      appText.webCatalogInspectorDeleteFromTheCatalogAndAllItsPagesCollectionAnd(
+                        item.name,
+                      ),
                     )
                   )
                     write(
@@ -536,12 +559,12 @@ function CatalogForm({
                           session.csrfToken,
                           signal,
                         ),
-                      'Item deleted.',
+                      appText.webCatalogInspectorItemDeleted,
                       true,
                     );
                 }}
               >
-                Delete item
+                {appText.webCatalogInspectorDeleteItem}
               </button>
             </>
           )}

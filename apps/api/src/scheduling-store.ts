@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { transaction } from './transaction.js';
@@ -41,7 +42,11 @@ export async function lockScheduling(
       'SELECT enabled FROM collection_scheduling WHERE singleton=true FOR SHARE',
     )
   ).rows[0];
-  if (!row) throw new ApiError(503, 'Scheduling settings unavailable.');
+  if (!row)
+    throw new ApiError(
+      503,
+      appText.apiSchedulingStoreSchedulingSettingsUnavailable,
+    );
   return row.enabled;
 }
 export async function readState(
@@ -52,7 +57,11 @@ export async function readState(
       'SELECT enabled,version FROM collection_scheduling WHERE singleton=true',
     )
   ).rows[0];
-  if (!row) throw new ApiError(503, 'Scheduling settings unavailable.');
+  if (!row)
+    throw new ApiError(
+      503,
+      appText.apiSchedulingStoreSchedulingSettingsUnavailable,
+    );
   const schedules = (
     await client.query<{
       id: string;
@@ -66,7 +75,10 @@ export async function readState(
     )
   ).rows;
   if (schedules.length > 500)
-    throw new ApiError(503, 'Scheduling exceeds supported limits.');
+    throw new ApiError(
+      503,
+      appText.apiSchedulingStoreSchedulingExceedsSupportedLimits,
+    );
   return {
     enabled: row.enabled,
     revision: 'schedules-' + row.version,
@@ -128,7 +140,7 @@ export class PgSchedulingStore implements SchedulingStore {
       if (revision !== before.revision)
         throw new ApiError(
           409,
-          'Schedules changed. Reload before saving again.',
+          appText.apiSchedulingStoreSchedulesChangedReloadBeforeSavingAgain,
         );
       await change(client, before);
       return recordChange(client, before, actorId, actorName, action);
@@ -166,11 +178,13 @@ export class PgSchedulingStore implements SchedulingStore {
     } catch (error) {
       throw new ApiError(
         422,
-        error instanceof Error ? error.message : 'Invalid schedule.',
+        error instanceof Error
+          ? error.message
+          : appText.apiSchedulingStoreInvalidSchedule,
       );
     }
     if (id !== undefined && !scheduleIdPattern.test(id))
-      throw new ApiError(404, 'Schedule not found.');
+      throw new ApiError(404, appText.apiSchedulingStoreScheduleNotFound);
     return this.mutate(
       revision,
       actorId,
@@ -178,15 +192,21 @@ export class PgSchedulingStore implements SchedulingStore {
       id ? 'edit' : 'create',
       async (client, before) => {
         if (id && !before.schedules.some((s) => s.id === id))
-          throw new ApiError(404, 'Schedule not found.');
+          throw new ApiError(404, appText.apiSchedulingStoreScheduleNotFound);
         if (!id && before.schedules.length >= 500)
-          throw new ApiError(422, 'The schedule limit has been reached.');
+          throw new ApiError(
+            422,
+            appText.apiSchedulingStoreTheScheduleLimitHasBeenReached,
+          );
         const pages = await client.query(
           'SELECT id FROM pages WHERE id=ANY($1::text[]) AND active ORDER BY id FOR SHARE',
           [fields.pageIds],
         );
         if (pages.rowCount !== fields.pageIds.length)
-          throw new ApiError(422, 'Choose active collection log pages.');
+          throw new ApiError(
+            422,
+            appText.apiSchedulingStoreChooseActiveCollectionLogPages,
+          );
         const scheduleId = id ?? randomUUID();
         if (id) {
           await client.query(
@@ -211,7 +231,7 @@ export class PgSchedulingStore implements SchedulingStore {
   }
   remove(id: string, revision: string, actorId: string, actorName: string) {
     if (!scheduleIdPattern.test(id))
-      throw new ApiError(404, 'Schedule not found.');
+      throw new ApiError(404, appText.apiSchedulingStoreScheduleNotFound);
     return this.mutate(
       revision,
       actorId,
@@ -219,7 +239,7 @@ export class PgSchedulingStore implements SchedulingStore {
       'delete',
       async (client, before) => {
         if (!before.schedules.some((s) => s.id === id))
-          throw new ApiError(404, 'Schedule not found.');
+          throw new ApiError(404, appText.apiSchedulingStoreScheduleNotFound);
         await client.query('DELETE FROM collection_log_schedules WHERE id=$1', [
           id,
         ]);

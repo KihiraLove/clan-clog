@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Abbreviated XP with exact accessible text and a viewport-clamped portal tooltip. */
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -52,7 +53,7 @@ function ExactTooltip({
       ref={ref}
       style={position}
     >
-      <span>{exactXp(xp)} XP</span>
+      <span>{appText.webXpAmountXP(exactXp(xp))}</span>
     </div>,
     document.body,
   );
@@ -103,13 +104,15 @@ export function XpAmount({
       <span className="xp-amount__body">
         {skill && <span className="skill-cell__name">{label}</span>}
         <span className="xp-amount__number">
-          {xp === null ? '—' : millionXp(xp)}
+          {xp === null ? appText.webXpAmountUnavailableValue : millionXp(xp)}
         </span>
       </span>
     </>
   );
   const accessible =
-    label + ': ' + (xp === null ? 'XP unavailable' : exactXp(xp) + ' XP');
+    label +
+    ': ' +
+    (xp === null ? appText.webXpAmountXpUnavailable : exactXp(xp) + ' XP');
   const described = open && xp !== null ? tooltipId : undefined;
   return (
     <>

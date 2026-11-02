@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Admin-only key contracts; public site settings never include these values. */
 import { validClanApiKey } from '@clog/domain';
 export { validClanApiKey as validClanKey } from '@clog/domain';
@@ -14,7 +15,7 @@ export interface ClanKeyUpdate {
 }
 export function parseClanKey(value: unknown): ClanKeySettings {
   if (!value || typeof value !== 'object')
-    throw new Error('Invalid API key settings.');
+    throw new Error(appText.webClanApiKeyInvalidApiKeySettings);
   const data = value as Record<string, unknown>;
   if (
     typeof data.revision !== 'string' ||
@@ -22,6 +23,6 @@ export function parseClanKey(value: unknown): ClanKeySettings {
     typeof data.enabled !== 'boolean' ||
     !validClanApiKey(data.key)
   )
-    throw new Error('Invalid API key settings.');
+    throw new Error(appText.webClanApiKeyInvalidApiKeySettings);
   return { revision: data.revision, enabled: data.enabled, key: data.key };
 }

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Database credentials are resolved only inside the consuming process. */
 import { readSecret } from '@clog/domain/server-secrets';
 export { readSecret } from '@clog/domain/server-secrets';
@@ -27,7 +28,9 @@ export function databaseUrl(
       )
         throw new Error();
     } catch {
-      throw new Error('DATABASE_URL must be a PostgreSQL connection URL');
+      throw new Error(
+        appText.databaseSecretsDatabaseUrlMustBeAPostgreSqlConnectionUrl,
+      );
     }
     return explicit;
   }
@@ -35,16 +38,18 @@ export function databaseUrl(
   const password = readSecret(name, env);
   if (!password) {
     if (!required) return undefined;
-    throw new Error(`Set DATABASE_URL or ${name}_FILE`);
+    throw new Error(appText.databaseSecretsSetDatabaseUrlOrFile(name));
   }
   const port = env.DB_PORT || '5432';
   if (!/^\d+$/u.test(port) || Number(port) < 1 || Number(port) > 65535)
-    throw new Error('DB_PORT must be between 1 and 65535');
+    throw new Error(appText.databaseSecretsDbPortMustBeBetween1And65535);
   const url = new URL('postgresql://127.0.0.1');
   const host = env.DB_HOST || '127.0.0.1';
   url.hostname = host;
   if (url.hostname.toLowerCase() !== host.toLowerCase())
-    throw new Error('DB_HOST must be a hostname or bracketed IPv6 address');
+    throw new Error(
+      appText.databaseSecretsDbHostMustBeAHostnameOrBracketedIpv6Address,
+    );
   url.port = port;
   url.username = env.DB_USER || (role === 'owner' ? 'clog' : 'clog_runtime');
   url.password = password;

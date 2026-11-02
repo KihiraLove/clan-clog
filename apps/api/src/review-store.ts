@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Transactional Regular/Event credits, explicit corrections and private audit history. */
 import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -89,15 +90,16 @@ const digest = (v: string) => createHash('sha256').update(v).digest('hex');
 const conflict = () =>
   new ApiError(
     409,
-    'Submission changed or approved credit already exists; reload.',
+    appText.apiReviewStoreSubmissionChangedOrApprovedCreditAlreadyExistsReload,
   );
 const occupied = () =>
   new ApiError(
     409,
-    'An approved Event collection already exists for this item. Revoke it before approving another Event collection.',
+    appText.apiReviewStoreAnApprovedEventCollectionAlreadyExistsForThisItemRevoke,
   );
 function requireId(id: string) {
-  if (!uuid.test(id)) throw new ApiError(404, 'Submission not found.');
+  if (!uuid.test(id))
+    throw new ApiError(404, appText.apiReviewStoreSubmissionNotFound);
 }
 function reasonOf(input: unknown, required: boolean) {
   if (
@@ -107,16 +109,22 @@ function reasonOf(input: unknown, required: boolean) {
   )
     throw new ApiError(
       422,
-      'A valid review reason of 1–1000 characters is required.',
+      appText.apiReviewStoreAValidReviewReasonOf11000CharactersIsRequired,
     );
   return input.trim();
 }
 type Cursor = { revision: string; key: string[] | null };
 function manualType(value: unknown, hardcore: boolean): CollectionType {
   if (value !== undefined && value !== 'regular' && value !== 'event')
-    throw new ApiError(422, 'Select Regular collection or Event collection.');
+    throw new ApiError(
+      422,
+      appText.apiReviewStoreSelectRegularCollectionOrEventCollection,
+    );
   if (hardcore && value === 'event')
-    throw new ApiError(422, 'Hardcore supports Regular collections only.');
+    throw new ApiError(
+      422,
+      appText.apiReviewStoreHardcoreSupportsRegularCollectionsOnly,
+    );
   return value ?? 'regular';
 }
 function selectedFlags(row: Row, flags: ReviewCollectionFlags) {
@@ -127,7 +135,10 @@ function selectedFlags(row: Row, flags: ReviewCollectionFlags) {
       ? flags.collectionType !== undefined || row.source === 'manual'
       : flags.collectionType === undefined)
   )
-    throw new ApiError(422, 'Choose collection flags or saved intake timing.');
+    throw new ApiError(
+      422,
+      appText.apiReviewStoreChooseCollectionFlagsOrSavedIntakeTiming,
+    );
   if (flags.collectionType !== undefined)
     manualType(flags.collectionType, flags.hardcore);
   const classification = flags.useIntakeTiming
@@ -141,7 +152,7 @@ function selectedFlags(row: Row, flags: ReviewCollectionFlags) {
 const cursorError = () =>
   new ApiError(
     409,
-    'Review history changed or cursor expired. Reload the first page.',
+    appText.apiReviewStoreReviewHistoryChangedOrCursorExpiredReloadTheFirstPage,
   );
 const encodeCursor = (revision: string, key: string[] | null) =>
   Buffer.from(JSON.stringify({ revision, key })).toString('base64url');
@@ -184,7 +195,7 @@ function parseCursor(
 }
 function pageLimit(limit: number) {
   if (!Number.isInteger(limit) || limit < 1 || limit > 20)
-    throw new ApiError(400, 'Page size must be between 1 and 20.');
+    throw new ApiError(400, appText.apiReviewStorePageSizeMustBeBetween1And20);
 }
 export class PgReviewStore implements ReviewStore {
   constructor(
@@ -219,7 +230,10 @@ export class PgReviewStore implements ReviewStore {
     image?: IconRecord,
   ): Promise<ReviewSubmission> {
     if (!uuid.test(requestKey))
-      throw new ApiError(400, 'A UUID Idempotency-Key is required.');
+      throw new ApiError(
+        400,
+        appText.apiReviewStoreAUuidIdempotencyKeyIsRequired,
+      );
     const key = requestKey.toLowerCase();
     const collectionType = manualType(fields.collectionType, fields.hardcore);
     if (
@@ -235,7 +249,10 @@ export class PgReviewStore implements ReviewStore {
       (typeof fields.reason !== 'string' && fields.reason !== undefined) ||
       (fields.reason?.trim().length ?? 0) > 1000
     )
-      throw new ApiError(422, 'Invalid manual submission fields.');
+      throw new ApiError(
+        422,
+        appText.apiReviewStoreInvalidManualSubmissionFields,
+      );
     const payloadHash = digest(
       JSON.stringify([
         fields.itemId,
@@ -273,7 +290,7 @@ export class PgReviewStore implements ReviewStore {
           if (replay.payload_hash !== payloadHash)
             throw new ApiError(
               409,
-              'Submission key already used for a different request.',
+              appText.apiReviewStoreSubmissionKeyAlreadyUsedForADifferentRequest,
             );
 
           return replay.response;
@@ -283,7 +300,10 @@ export class PgReviewStore implements ReviewStore {
           [fields.itemId],
         );
         if (validItem.rowCount !== 1)
-          throw new ApiError(422, 'Select an active catalog item.');
+          throw new ApiError(
+            422,
+            appText.apiReviewStoreSelectAnActiveCatalogItem,
+          );
         // Trusted staff can record achievements after a page's opening window.
         const now = (
           await client.query<{ today: string }>(
@@ -293,7 +313,7 @@ export class PgReviewStore implements ReviewStore {
         if (!validCollectionDate(fields.collectedOn, now))
           throw new ApiError(
             422,
-            'Collection date is invalid or in the future.',
+            appText.apiReviewStoreCollectionDateIsInvalidOrInTheFuture,
           );
         const classification = await resolveCollectionCredit(
           client,
@@ -382,11 +402,15 @@ export class PgReviewStore implements ReviewStore {
           'SELECT version,filter_collected FROM submission_filter_settings WHERE singleton FOR UPDATE',
         )
       ).rows[0];
-      if (!old) throw new ApiError(503, 'Submission filters are unavailable.');
+      if (!old)
+        throw new ApiError(
+          503,
+          appText.apiReviewStoreSubmissionFiltersAreUnavailable,
+        );
       if (revision !== 'submission-filters-' + old.version)
         throw new ApiError(
           409,
-          'Submission filters changed. Reload before saving again.',
+          appText.apiReviewStoreSubmissionFiltersChangedReloadBeforeSavingAgain,
         );
       await client.query(
         'UPDATE submission_filter_settings SET filter_collected=$1,version=version+1 WHERE singleton',
@@ -546,7 +570,8 @@ export class PgReviewStore implements ReviewStore {
             [id],
           )
         ).rows[0];
-        if (!row) throw new ApiError(404, 'Submission not found.');
+        if (!row)
+          throw new ApiError(404, appText.apiReviewStoreSubmissionNotFound);
         if (row.version !== expectedVersion) throw conflict();
         const before = view(row);
         let result: Row,
@@ -558,7 +583,7 @@ export class PgReviewStore implements ReviewStore {
           if (action === 'revoke' && fields.flags !== undefined)
             throw new ApiError(
               422,
-              'Save collection flags separately before revoking.',
+              appText.apiReviewStoreSaveCollectionFlagsSeparatelyBeforeRevoking,
             );
           let flags =
             fields.flags === undefined
@@ -580,14 +605,17 @@ export class PgReviewStore implements ReviewStore {
             )
               throw new ApiError(
                 422,
-                'Resolve a canonical item and validate proof before approval.',
+                appText.apiReviewStoreResolveACanonicalItemAndValidateProofBeforeApproval,
               );
             const active = await client.query(
               'SELECT 1 FROM items WHERE id=$1 AND active FOR UPDATE',
               [row.itemId],
             );
             if (active.rowCount !== 1)
-              throw new ApiError(422, 'Selected item is inactive.');
+              throw new ApiError(
+                422,
+                appText.apiReviewStoreSelectedItemIsInactive,
+              );
             const now = (
               await client.query<{ today: string }>(
                 "SELECT to_char((now() AT TIME ZONE 'UTC')::date,'YYYY-MM-DD') AS today",
@@ -596,7 +624,7 @@ export class PgReviewStore implements ReviewStore {
             if (!validCollectionDate(row.collectedOn, now))
               throw new ApiError(
                 422,
-                'Collection date is invalid or in the future.',
+                appText.apiReviewStoreCollectionDateIsInvalidOrInTheFuture,
               );
             flags = await resolveCollectionCredit(
               client,
@@ -657,14 +685,17 @@ export class PgReviewStore implements ReviewStore {
           )
             throw new ApiError(
               422,
-              'There are no collection flag changes to save.',
+              appText.apiReviewStoreThereAreNoCollectionFlagChangesToSave,
             );
           const active = await client.query(
             'SELECT 1 FROM items WHERE id=$1 AND active FOR UPDATE',
             [row.itemId],
           );
           if (active.rowCount !== 1)
-            throw new ApiError(422, 'Selected item is inactive.');
+            throw new ApiError(
+              422,
+              appText.apiReviewStoreSelectedItemIsInactive,
+            );
           await requireCreditAvailable(
             client,
             row.itemId!,
@@ -698,11 +729,14 @@ export class PgReviewStore implements ReviewStore {
           )
             throw new ApiError(
               422,
-              'Keep the review note to 1,000 characters.',
+              appText.apiReviewStoreKeepTheReviewNoteTo1000Characters,
             );
           const note = fields.note.trim();
           if (note === row.reviewNote)
-            throw new ApiError(422, 'There are no changes to save.');
+            throw new ApiError(
+              422,
+              appText.apiReviewStoreThereAreNoChangesToSave,
+            );
           reason = '';
           result = (
             await client.query<Row>(
@@ -721,16 +755,19 @@ export class PgReviewStore implements ReviewStore {
             fields.useIntakeTiming !== undefined &&
             typeof fields.useIntakeTiming !== 'boolean'
           )
-            throw new ApiError(422, 'Invalid intake timing choice.');
+            throw new ApiError(
+              422,
+              appText.apiReviewStoreInvalidIntakeTimingChoice,
+            );
           if (fields.useIntakeTiming && fields.collectionType !== undefined)
             throw new ApiError(
               422,
-              'Choose saved intake timing or an explicit collection type.',
+              appText.apiReviewStoreChooseSavedIntakeTimingOrAnExplicitCollectionType,
             );
           if (fields.useIntakeTiming && row.source === 'manual')
             throw new ApiError(
               422,
-              'Manual historical claims require an explicit collection type.',
+              appText.apiReviewStoreManualHistoricalClaimsRequireAnExplicitCollectionType,
             );
           if (fields.collectionType !== undefined)
             manualType(fields.collectionType, fields.hardcore);
@@ -769,7 +806,7 @@ export class PgReviewStore implements ReviewStore {
           )
             throw new ApiError(
               422,
-              'Select a valid canonical item, collector and mode.',
+              appText.apiReviewStoreSelectAValidCanonicalItemCollectorAndMode,
             );
           const now = (
             await client.query<{ today: string }>(
@@ -779,14 +816,17 @@ export class PgReviewStore implements ReviewStore {
           if (!validCollectionDate(fields.collectedOn, now))
             throw new ApiError(
               422,
-              'Collection date is invalid or in the future.',
+              appText.apiReviewStoreCollectionDateIsInvalidOrInTheFuture,
             );
           const active = await client.query(
             'SELECT 1 FROM items WHERE id=$1 AND active FOR UPDATE',
             [fields.itemId],
           );
           if (active.rowCount !== 1)
-            throw new ApiError(422, 'Selected catalog item is unavailable.');
+            throw new ApiError(
+              422,
+              appText.apiReviewStoreSelectedCatalogItemIsUnavailable,
+            );
           const classification = await resolveCollectionCredit(
             client,
             fields.itemId,
@@ -802,7 +842,10 @@ export class PgReviewStore implements ReviewStore {
             row.collectorName === fields.collectorName.trim() &&
             row.collectedOn === fields.collectedOn
           )
-            throw new ApiError(422, 'There are no changes to save.');
+            throw new ApiError(
+              422,
+              appText.apiReviewStoreThereAreNoChangesToSave,
+            );
           if (
             row.status === 'approved' &&
             (row.itemId !== fields.itemId ||

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Staff catalog taxonomy, canonical edits and reusable page memberships. */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { RequireAdmin } from './catalog-routes.js';
@@ -18,13 +19,17 @@ const nameField = {
   pattern: '^[^\\u0000-\\u001f\\u007f]+$',
 };
 const named = (name: string) => {
-  if (!name.trim()) throw new ApiError(400, 'Enter a name.');
+  if (!name.trim())
+    throw new ApiError(400, appText.apiCatalogEditorRoutesEnterAName);
   return name.trim();
 };
 const numericId = (value: string) => {
   const id = Number(value);
   if (id > 2147483647)
-    throw new ApiError(400, 'Choose an existing catalog item.');
+    throw new ApiError(
+      400,
+      appText.apiCatalogEditorRoutesChooseAnExistingCatalogItem,
+    );
   return id;
 };
 export function catalogEditorRoutes(
@@ -55,7 +60,10 @@ export function catalogEditorRoutes(
       const actor = await admin(request, true),
         key = request.headers['idempotency-key'];
       if (typeof key !== 'string' || !/^[A-Za-z0-9_-]{8,128}$/u.test(key))
-        throw new ApiError(400, 'Provide a stable idempotency key.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogEditorRoutesProvideAStableIdempotencyKey,
+        );
       return reply
         .code(201)
         .send(

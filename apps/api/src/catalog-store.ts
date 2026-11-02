@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Catalog writes share the import lock; each receipt, audit and membership change commits together. */
 import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -84,7 +85,11 @@ export class PgCatalogStore {
         [id],
       )
     ).rows[0];
-    if (!page) throw new ApiError(400, 'Choose existing collection-log pages.');
+    if (!page)
+      throw new ApiError(
+        400,
+        appText.apiCatalogStoreChooseExistingCollectionLogPages,
+      );
     const rows = (
       await client.query<{ item_id: number }>(
         'SELECT item_id FROM page_items WHERE page_id=$1 ORDER BY slot',
@@ -106,14 +111,20 @@ export class PgCatalogStore {
         )
       ).rows;
       if (items.length > 10000 || pageRows.length > 2000)
-        throw new ApiError(503, 'Catalog exceeds the supported size.');
+        throw new ApiError(
+          503,
+          appText.apiCatalogStoreCatalogExceedsTheSupportedSize,
+        );
       const slots = (
         await client.query<{ page_id: string; item_id: number }>(
           'SELECT p.page_id,p.item_id FROM page_items p JOIN items i ON i.id=p.item_id JOIN pages g ON g.id=p.page_id WHERE i.active AND g.active ORDER BY p.page_id,p.slot LIMIT 50001',
         )
       ).rows;
       if (slots.length > 50000)
-        throw new ApiError(503, 'Catalog exceeds the supported size.');
+        throw new ApiError(
+          503,
+          appText.apiCatalogStoreCatalogExceedsTheSupportedSize,
+        );
       const membership = new Map<string, number[]>();
       for (const slot of slots) {
         const ids = membership.get(slot.page_id) ?? [];
@@ -172,14 +183,14 @@ export class PgCatalogStore {
         if (prior.payload_hash !== payload)
           throw new ApiError(
             409,
-            'This request key was used for different page details.',
+            appText.apiCatalogStoreThisRequestKeyWasUsedForDifferentPageDetails,
           );
         return prior.result as CreatedPage;
       }
       if ((await this.revision(client)) !== fields.expectedRevision)
         throw new ApiError(
           409,
-          'The catalog changed. Reload before adding a page.',
+          appText.apiCatalogStoreTheCatalogChangedReloadBeforeAddingAPage,
         );
       await this.section(client, fields.category);
       if (
@@ -192,7 +203,7 @@ export class PgCatalogStore {
       )
         throw new ApiError(
           400,
-          'A page with this name already exists in this category.',
+          appText.apiCatalogStoreAPageWithThisNameAlreadyExistsInThisCategory,
         );
       const capacity = (
         await client.query(
@@ -205,7 +216,7 @@ export class PgCatalogStore {
       )
         throw new ApiError(
           409,
-          'The catalog has reached its page or item-slot limit.',
+          appText.apiCatalogStoreTheCatalogHasReachedItsPageOrItemSlotLimit,
         );
       const items = (
         await client.query(
@@ -217,7 +228,10 @@ export class PgCatalogStore {
         items.length !== fields.itemIds.length ||
         new Set(fields.itemIds).size !== fields.itemIds.length
       )
-        throw new ApiError(400, 'Choose distinct active catalog items.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogStoreChooseDistinctActiveCatalogItems,
+        );
       const id = 'manual-page-' + randomUUID();
       await client.query(
         "INSERT INTO pages(id,name,category,sort_order,order_origin,position_origin) SELECT $1,$2,$3,COALESCE(max(sort_order),-1)+1,'manual','manual' FROM pages",
@@ -255,7 +269,7 @@ export class PgCatalogStore {
       if ((await this.revision(client)) !== revision)
         throw new ApiError(
           409,
-          'The catalog changed. Reload before deleting a page.',
+          appText.apiCatalogStoreTheCatalogChangedReloadBeforeDeletingAPage,
         );
       // Match item-deletion lock order so review/intake cannot race retirement.
       await client.query(
@@ -268,7 +282,10 @@ export class PgCatalogStore {
       );
       const before = await this.page(client, id);
       if (before.version !== version)
-        throw new ApiError(409, 'The page changed. Reload before deleting.');
+        throw new ApiError(
+          409,
+          appText.apiCatalogStoreThePageChangedReloadBeforeDeleting,
+        );
       await client.query('DELETE FROM page_items WHERE page_id=$1', [id]);
       await client.query('UPDATE pages SET active=false WHERE id=$1', [id]);
       const retired: number[] = [];
@@ -298,7 +315,7 @@ export class PgCatalogStore {
       if ((await this.revision(client)) !== revision)
         throw new ApiError(
           409,
-          'The catalog changed. Reload before reordering pages.',
+          appText.apiCatalogStoreTheCatalogChangedReloadBeforeReorderingPages,
         );
       const before = (
         await client.query<{ id: string }>(
@@ -314,7 +331,7 @@ export class PgCatalogStore {
       )
         throw new ApiError(
           400,
-          'Supply every active page in this category exactly once.',
+          appText.apiCatalogStoreSupplyEveryActivePageInThisCategoryExactlyOnce,
         );
       await client.query(
         "UPDATE pages p SET sort_order=x.position,position_origin='manual' FROM jsonb_to_recordset($1::jsonb) AS x(id text,position integer) WHERE p.id=x.id",
@@ -341,7 +358,10 @@ export class PgCatalogStore {
   }
   private async requireRevision(client: pg.PoolClient, revision: string) {
     if ((await this.revision(client)) !== revision)
-      throw new ApiError(409, 'The catalog changed. Reload before saving.');
+      throw new ApiError(
+        409,
+        appText.apiCatalogStoreTheCatalogChangedReloadBeforeSaving,
+      );
   }
   private async section(client: pg.PoolClient, id: string) {
     const row = (
@@ -350,7 +370,8 @@ export class PgCatalogStore {
         [id],
       )
     ).rows[0];
-    if (!row) throw new ApiError(400, 'Choose an existing section.');
+    if (!row)
+      throw new ApiError(400, appText.apiCatalogStoreChooseAnExistingSection);
     return row;
   }
   private async checkGameIds(
@@ -364,7 +385,10 @@ export class PgCatalogStore {
       new Set(ids).size !== ids.length ||
       ids.some((id) => !Number.isInteger(id) || id < 1 || id > 2147483647)
     )
-      throw new ApiError(400, 'Enter distinct positive in-game item IDs.');
+      throw new ApiError(
+        400,
+        appText.apiCatalogStoreEnterDistinctPositiveInGameItemIds,
+      );
     if (
       (
         await client.query(
@@ -375,7 +399,7 @@ export class PgCatalogStore {
     )
       throw new ApiError(
         409,
-        'An in-game item ID already belongs to another item.',
+        appText.apiCatalogStoreAnInGameItemIdAlreadyBelongsToAnotherItem,
       );
   }
   async createSection(
@@ -396,7 +420,7 @@ export class PgCatalogStore {
         if (prior.payload_hash !== hash)
           throw new ApiError(
             409,
-            'This request key was used for different section details.',
+            appText.apiCatalogStoreThisRequestKeyWasUsedForDifferentSectionDetails,
           );
         return prior.result as {
           section: { id: string; name: string };
@@ -412,7 +436,10 @@ export class PgCatalogStore {
           )
         ).rowCount
       )
-        throw new ApiError(400, 'A section with this name already exists.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogStoreASectionWithThisNameAlreadyExists,
+        );
       if (
         Number(
           (
@@ -422,7 +449,10 @@ export class PgCatalogStore {
           ).rows[0].count,
         ) >= 100
       )
-        throw new ApiError(409, 'The catalog has reached its section limit.');
+        throw new ApiError(
+          409,
+          appText.apiCatalogStoreTheCatalogHasReachedItsSectionLimit,
+        );
       const section = { id: 'section-' + randomUUID(), name };
       await client.query(
         'INSERT INTO catalog_sections(id,name,sort_order) SELECT $1,$2,COALESCE(max(sort_order),-1)+1 FROM catalog_sections',
@@ -460,7 +490,7 @@ export class PgCatalogStore {
         )
           throw new ApiError(
             409,
-            'Only sections with no pages can be deleted.',
+            appText.apiCatalogStoreOnlySectionsWithNoPagesCanBeDeleted,
           );
         await client.query(
           'UPDATE catalog_sections SET active=false WHERE id=$1',
@@ -475,7 +505,10 @@ export class PgCatalogStore {
             )
           ).rowCount
         )
-          throw new ApiError(400, 'A section with this name already exists.');
+          throw new ApiError(
+            400,
+            appText.apiCatalogStoreASectionWithThisNameAlreadyExists,
+          );
         await client.query('UPDATE catalog_sections SET name=$2 WHERE id=$1', [
           id,
           name,
@@ -506,7 +539,10 @@ export class PgCatalogStore {
         new Set(ids).size !== ids.length ||
         ids.some((id) => !before.includes(id))
       )
-        throw new ApiError(400, 'Supply every active section exactly once.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogStoreSupplyEveryActiveSectionExactlyOnce,
+        );
       await client.query(
         'UPDATE catalog_sections s SET sort_order=x.position FROM jsonb_to_recordset($1::jsonb) AS x(id text,position integer) WHERE s.id=x.id',
         [JSON.stringify(ids.map((id, position) => ({ id, position })))],
@@ -532,7 +568,7 @@ export class PgCatalogStore {
       )
         throw new ApiError(
           400,
-          'A page with this name already exists in this section.',
+          appText.apiCatalogStoreAPageWithThisNameAlreadyExistsInThisSection,
         );
       await client.query('UPDATE pages SET name=$2 WHERE id=$1', [id, name]);
       await client.query(
@@ -563,7 +599,7 @@ export class PgCatalogStore {
           )
         ).rowCount
       )
-        throw new ApiError(404, 'Catalog item not found.');
+        throw new ApiError(404, appText.apiCatalogStoreCatalogItemNotFound);
       const page = await this.page(client, pageId);
       if (page.itemIds.includes(itemId))
         return { catalogRevision: await this.revision(client) };
@@ -572,7 +608,7 @@ export class PgCatalogStore {
           (await client.query('SELECT count(*) FROM page_items')).rows[0].count,
         ) >= 50000
       )
-        throw new ApiError(409, 'Catalog capacity reached.');
+        throw new ApiError(409, appText.apiCatalogStoreCatalogCapacityReached);
       await client.query(
         "INSERT INTO page_items(page_id,item_id,slot,origin) SELECT $1,$2,COALESCE(max(slot),-1)+1,'manual' FROM page_items WHERE page_id=$1",
         [pageId, itemId],
@@ -599,7 +635,8 @@ export class PgCatalogStore {
           [id],
         )
       ).rows[0];
-      if (!before) throw new ApiError(404, 'Catalog item not found.');
+      if (!before)
+        throw new ApiError(404, appText.apiCatalogStoreCatalogItemNotFound);
       await this.checkGameIds(client, fields.gameItemIds, id);
       let asset: CatalogAsset | undefined;
       if (fields.iconAssetId) {
@@ -615,7 +652,10 @@ export class PgCatalogStore {
           asset.itemId !== null ||
           asset.expiresAt.getTime() <= Date.now()
         )
-          throw new ApiError(409, 'Upload a fresh icon before saving.');
+          throw new ApiError(
+            409,
+            appText.apiCatalogStoreUploadAFreshIconBeforeSaving,
+          );
         await verifyAsset(asset);
         await client.query('UPDATE catalog_assets SET item_id=$1 WHERE id=$2', [
           id,
@@ -664,7 +704,8 @@ export class PgCatalogStore {
           [id],
         )
       ).rows[0];
-      if (!before) throw new ApiError(404, 'Catalog item not found.');
+      if (!before)
+        throw new ApiError(404, appText.apiCatalogStoreCatalogItemNotFound);
       const pages = (
         await client.query<{ page_id: string }>(
           'SELECT page_id FROM page_items WHERE item_id=$1',
@@ -696,7 +737,7 @@ export class PgCatalogStore {
       if (pending >= 20)
         throw new ApiError(
           429,
-          'Too many unused icon uploads. Wait for them to expire.',
+          appText.apiCatalogStoreTooManyUnusedIconUploadsWaitForThemToExpire,
         );
       const expiresAt = (
         await client.query<{ expires_at: Date }>(
@@ -743,7 +784,7 @@ export class PgCatalogStore {
         if (prior.payload_hash !== payloadHash)
           throw new ApiError(
             409,
-            'This request key was already used for different fields.',
+            appText.apiCatalogStoreThisRequestKeyWasAlreadyUsedForDifferentFields,
           );
         return prior.result;
       }
@@ -761,7 +802,7 @@ export class PgCatalogStore {
       )
         throw new ApiError(
           400,
-          'Choose distinct existing collection-log pages.',
+          appText.apiCatalogStoreChooseDistinctExistingCollectionLogPages,
         );
       const asset = (
         await client.query<CatalogAsset>(
@@ -777,7 +818,7 @@ export class PgCatalogStore {
       )
         throw new ApiError(
           409,
-          'Upload a fresh icon before creating this item.',
+          appText.apiCatalogStoreUploadAFreshIconBeforeCreatingThisItem,
         );
       await verifyAsset(asset);
       const limits = (
@@ -786,7 +827,7 @@ export class PgCatalogStore {
         )
       ).rows[0]!;
       if (limits.items >= 10000 || limits.slots + pages.length > 50000)
-        throw new ApiError(409, 'Catalog capacity reached.');
+        throw new ApiError(409, appText.apiCatalogStoreCatalogCapacityReached);
       // Explicit IDs in a newly imported snapshot may be ahead of the sequence.
       await client.query(
         "SELECT setval('canonical_item_id_seq', GREATEST((SELECT COALESCE(max(id),0)+1 FROM items), nextval('canonical_item_id_seq')), false)",
@@ -841,14 +882,17 @@ export class PgCatalogStore {
       if (before.version !== expectedVersion)
         throw new ApiError(
           409,
-          'Page membership or order changed. Reload before saving.',
+          appText.apiCatalogStorePageMembershipOrOrderChangedReloadBeforeSaving,
         );
       if (
         ids.length !== before.itemIds.length ||
         new Set(ids).size !== ids.length ||
         ids.some((id) => !before.itemIds.includes(id))
       )
-        throw new ApiError(400, 'Supply every current page item exactly once.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogStoreSupplyEveryCurrentPageItemExactlyOnce,
+        );
       // Delete/reinsert within this transaction avoids the immediate UNIQUE(page,slot)
       // constraint without changing membership provenance, items or collection credits.
       const memberships = (
@@ -896,7 +940,7 @@ export class PgCatalogStore {
       if ((await this.revision(client)) !== expectedRevision)
         throw new ApiError(
           409,
-          'The catalog changed. Reload before deleting an item.',
+          appText.apiCatalogStoreTheCatalogChangedReloadBeforeDeletingAnItem,
         );
       const before = (
         await client.query(
@@ -904,7 +948,8 @@ export class PgCatalogStore {
           [id],
         )
       ).rows[0];
-      if (!before) throw new ApiError(404, 'Catalog item not found.');
+      if (!before)
+        throw new ApiError(404, appText.apiCatalogStoreCatalogItemNotFound);
       const memberships = (
         await client.query<{ page_id: string }>(
           'SELECT p.page_id FROM page_items p JOIN pages g ON g.id=p.page_id WHERE p.item_id=$1 AND g.active ORDER BY p.page_id',
@@ -912,7 +957,7 @@ export class PgCatalogStore {
         )
       ).rows;
       if (!memberships.some((row) => row.page_id === pageId))
-        throw new ApiError(404, 'Item not found on this page.');
+        throw new ApiError(404, appText.apiCatalogStoreItemNotFoundOnThisPage);
       await client.query('SELECT id FROM pages WHERE id=$1 FOR UPDATE', [
         pageId,
       ]);
@@ -920,7 +965,7 @@ export class PgCatalogStore {
       if (pageBefore.version !== expectedVersion)
         throw new ApiError(
           409,
-          'Page membership or order changed. Reload before deleting.',
+          appText.apiCatalogStorePageMembershipOrOrderChangedReloadBeforeDeleting,
         );
       const rows = (
         await client.query<{ item_id: number; origin: string; slot: number }>(
@@ -983,7 +1028,10 @@ export class PgCatalogStore {
   ) {
     return this.transaction(true, async (client) => {
       if ((await this.revision(client)) !== expectedRevision)
-        throw new ApiError(409, 'Catalog changed. Review the latest mapping.');
+        throw new ApiError(
+          409,
+          appText.apiCatalogStoreCatalogChangedReviewTheLatestMapping,
+        );
       const item = (
         await client.query(
           'SELECT id FROM items WHERE id=$1 AND active FOR UPDATE',
@@ -991,7 +1039,10 @@ export class PgCatalogStore {
         )
       ).rows[0];
       if (!item)
-        throw new ApiError(400, 'Choose an existing active canonical item.');
+        throw new ApiError(
+          400,
+          appText.apiCatalogStoreChooseAnExistingActiveCanonicalItem,
+        );
       const before = (
         await client.query<{ game_item_id: number }>(
           'SELECT game_item_id FROM game_item_ids WHERE item_id=$1 ORDER BY game_item_id',
@@ -1005,7 +1056,7 @@ export class PgCatalogStore {
       if (conflicts.rowCount)
         throw new ApiError(
           409,
-          'A game ID already belongs to another canonical item. No identities were merged.',
+          appText.apiCatalogStoreAGameIdAlreadyBelongsToAnotherCanonicalItemNo,
         );
       for (const id of gameItemIds)
         await client.query(

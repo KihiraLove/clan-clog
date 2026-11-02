@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 import { isSkill, skillIds, type Skill } from './skills.js';
 import {
   competitionMetricType,
@@ -26,13 +27,15 @@ export function competitionScope(
     metrics.some((metric) => !metric) ||
     new Set(metrics).size !== metrics.length
   )
-    throw new Error('Invalid or duplicate WOM metric scope.');
+    throw new Error(appText.domainCompetitionsInvalidOrDuplicateWomMetricScope);
   const types = new Set(
     metrics.map((metric) => competitionMetricType(metric, definitions)),
   );
   if (types.size === 1 && types.has('SKILL')) {
     if (metrics.includes('total') && metrics.length > 1)
-      throw new Error('Mixed aggregate total scopes are unsupported.');
+      throw new Error(
+        appText.domainCompetitionsMixedAggregateTotalScopesAreUnsupported,
+      );
     const aggregate =
       metrics.includes('overall') ||
       (metrics.length === 1 && metrics[0] === 'total');
@@ -50,7 +53,7 @@ export function competitionScope(
       new Set(targets).size !== targets.length
     )
       throw new Error(
-        'Custom XP metrics use unsupported or duplicate skill targets.',
+        appText.domainCompetitionsCustomXpMetricsUseUnsupportedOrDuplicateSkillTargets,
       );
     return {
       kind: 'SKILL',
@@ -60,9 +63,11 @@ export function competitionScope(
     };
   }
   if (types.has(undefined))
-    throw new Error('Unknown WOM metrics are unsupported.');
+    throw new Error(appText.domainCompetitionsUnknownWomMetricsAreUnsupported);
   if (types.size !== 1 || types.has('SKILL'))
-    throw new Error('Mixed metric types are unsupported by WOM.');
+    throw new Error(
+      appText.domainCompetitionsMixedMetricTypesAreUnsupportedByWom,
+    );
   return { kind: 'ACTIVITY', skills: [] };
 }
 export type CompetitionLifecycle = 'future' | 'running' | 'finished';

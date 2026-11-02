@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Portal tooltip escapes the scaled/clipped log window and stays inside the viewport. */
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { highlightCss, type HighlightColour } from '@clog/domain';
@@ -106,7 +107,10 @@ export function ItemMenu({
     >
       <div className="item-menu__heading">
         {open.hardcore && (
-          <span className="skull" aria-label="Hardcore collection">
+          <span
+            className="skull"
+            aria-label={appText.webItemMenuHardcoreCollection}
+          >
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path
                 fill="#deded3"
@@ -125,7 +129,7 @@ export function ItemMenu({
         <>
           {!!eventCredits.length && (
             <div className="item-menu__event">
-              <strong>First event collection</strong>
+              <strong>{appText.webItemMenuFirstEventCollection}</strong>
               {eventCredits.map((credit) => (
                 <p key={credit.submissionId}>{creditLine(credit)}</p>
               ))}
@@ -133,7 +137,7 @@ export function ItemMenu({
           )}
           {!!regularCredits.length && (
             <div className="item-menu__regular">
-              <strong>Regular collection</strong>
+              <strong>{appText.webItemMenuRegularCollection}</strong>
               {regularCredits.map((credit) => (
                 <p key={credit.submissionId}>{creditLine(credit)}</p>
               ))}
@@ -141,7 +145,7 @@ export function ItemMenu({
           )}
         </>
       ) : (
-        <p className="item-menu__empty">Not collected</p>
+        <p className="item-menu__empty">{appText.webItemMenuNotCollected}</p>
       )}
     </div>,
     document.body,

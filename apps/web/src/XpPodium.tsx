@@ -1,10 +1,11 @@
+import * as appText from '@clog/domain';
 import type { PodiumPlayer } from './xp-tracker.ts';
 import { formatCompetitionAmount } from '@clog/domain';
 export function XpPodium({
   players,
   title,
   sourceUrl,
-  unit = 'XP',
+  unit = appText.domainDisplayXpUnit,
 }: {
   players: PodiumPlayer[];
   title: string;
@@ -12,10 +13,13 @@ export function XpPodium({
   unit?: string;
 }) {
   return (
-    <aside className="xp-podium" aria-label={'XP podium for ' + title}>
-      <h2>Top players</h2>
+    <aside
+      className="xp-podium"
+      aria-label={appText.webXpPodiumXpPodiumFor(title)}
+    >
+      <h2>{appText.webXpPodiumTopPlayers}</h2>
       {!players.length ? (
-        <p>No finished results yet.</p>
+        <p>{appText.webXpPodiumNoFinishedResultsYet}</p>
       ) : (
         <ol className="xp-podium__places">
           {players.map((p, i) => (
@@ -30,7 +34,7 @@ export function XpPodium({
                 {p.displayName}
               </span>
               <span className="xp-podium__step">
-                <span className="sr-only">Place </span>
+                <span className="sr-only">{appText.webXpPodiumPlace}</span>
                 {i + 1}
               </span>
             </li>
@@ -40,7 +44,7 @@ export function XpPodium({
       {sourceUrl && (
         <div className="event-source">
           <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
-            View event on Wise Old Man ↗
+            {appText.webXpPodiumViewEventOnWiseOldMan}
           </a>
         </div>
       )}

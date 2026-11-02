@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** PID-1 child: one persistent installation, restricted workers, local PostgreSQL and root-only control. */
 import {
   spawn,
@@ -69,7 +70,11 @@ export async function runProcess(
     child.once('close', (code) =>
       code === 0
         ? resolve()
-        : reject(new Error('Installation command failed: ' + command)),
+        : reject(
+            new Error(
+              appText.apiInstallationInstallationCommandFailed(command),
+            ),
+          ),
     );
   });
 }
@@ -91,7 +96,9 @@ const delay = (ms: number) =>
 
 async function main() {
   if (process.getuid?.() !== 0)
-    throw new Error('Installation supervisor must initialize as root');
+    throw new Error(
+      appText.apiInstallationInstallationSupervisorMustInitializeAsRoot,
+    );
   process.setgroups?.([]);
   // Nginx reopens /dev/stdout and /dev/stderr after dropping privileges.
   // Docker's inherited pipe descriptors otherwise remain owned by root.
@@ -99,16 +106,18 @@ async function main() {
   fchownSync(2, 1000, 1000);
   const mode = process.env.CLOG_START_MODE || 'normal';
   if (!['normal', 'restore', 'maintenance'].includes(mode))
-    throw new Error('Invalid installation start mode');
+    throw new Error(appText.apiInstallationInvalidInstallationStartMode);
   const bundled = process.env.CLOG_DATABASE_MODE !== 'external';
   if (
     !['bundled', 'external'].includes(
       process.env.CLOG_DATABASE_MODE || 'bundled',
     )
   )
-    throw new Error('Invalid database mode');
+    throw new Error(appText.apiInstallationInvalidDatabaseMode);
   if (!bundled && mode === 'restore')
-    throw new Error('Restore uses the bundled database on a fresh volume');
+    throw new Error(
+      appText.apiInstallationRestoreUsesTheBundledDatabaseOnAFreshVolume,
+    );
   const layoutFile = join(systemDirectory, 'layout.json'),
     marker = join(systemDirectory, 'maintenance.json');
   const administratorFile =
@@ -124,13 +133,13 @@ async function main() {
     !existsSync(join(systemDirectory, 'postgres/installation.json'))
   )
     throw new Error(
-      'Installed credentials are missing; restore the complete installation',
+      appText.apiInstallationInstalledCredentialsAreMissingRestoreTheCompleteInstallation,
     );
   if (mode === 'restore' && (databaseExists || existingLayout))
-    throw new Error('Restore requires a new empty data volume');
+    throw new Error(appText.apiInstallationRestoreRequiresANewEmptyDataVolume);
   if (bundled && existingLayout?.databaseInitialized && !databaseExists)
     throw new Error(
-      'Installed database is missing; restore the complete installation',
+      appText.apiInstallationInstalledDatabaseIsMissingRestoreTheCompleteInstallation,
     );
   for (const directory of ['/run/clog', '/data/logs', systemDirectory])
     mkdirSync(directory, { recursive: true, mode: 0o755 });
@@ -159,16 +168,14 @@ async function main() {
     join(systemDirectory, 'postgres/rotation.json'),
   );
   if (readSecret('DATABASE_URL'))
-    throw new Error(
-      'Use DB_HOST, DB_PORT, DB_NAME and DB_USER for an external installation',
-    );
+    throw new Error(appText.apiInstallationUseDbHostDbPortDbNameAndDbUser);
   if (
     !bundled &&
     !existsSync(join(systemDirectory, 'postgres/value')) &&
     !readSecret('POSTGRES_PASSWORD', seedEnv)
   )
     throw new Error(
-      'Supply the external database owner password file on first initialization',
+      appText.apiInstallationSupplyTheExternalDatabaseOwnerPasswordFileOnFirstInitialization,
     );
   initializeSecrets(
     systemDirectory,
@@ -191,7 +198,10 @@ async function main() {
     process.env.ICON_STORAGE_PATH!,
     process.env.PROOF_STORAGE_PATH!,
   ]) {
-    if (!directory) throw new Error('Installation storage paths are required');
+    if (!directory)
+      throw new Error(
+        appText.apiInstallationInstallationStoragePathsAreRequired,
+      );
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     chownSync(directory, 1000, 1000);
   }
@@ -225,7 +235,9 @@ async function main() {
     });
     if (!ended) {
       child.kill('SIGKILL');
-      throw new Error('Installation shutdown deadline expired');
+      throw new Error(
+        appText.apiInstallationInstallationShutdownDeadlineExpired,
+      );
     }
   }
   async function stopWorkers() {
@@ -246,7 +258,9 @@ async function main() {
       const staging = '/data/.postgres-initializing';
       if (existsSync(staging)) {
         if (lstatSync(staging).isSymbolicLink())
-          throw new Error('Invalid database staging directory');
+          throw new Error(
+            appText.apiInstallationInvalidDatabaseStagingDirectory,
+          );
         if (!existsSync(join(staging, '.initialized')))
           rmSync(staging, { recursive: true });
       }
@@ -286,17 +300,17 @@ async function main() {
       if (stopping) return;
       if (existsSync(databaseDirectory)) {
         if (readdirSync(databaseDirectory).length)
-          throw new Error('Database directory is not empty');
+          throw new Error(appText.apiInstallationDatabaseDirectoryIsNotEmpty);
         rmSync(databaseDirectory);
       }
       renameSync(staging, databaseDirectory);
       writeFileSync(
         join(databaseDirectory, 'pg_hba.conf'),
-        'local all clog peer map=clog_owner\nlocal all all scram-sha-256\nhost all all 127.0.0.1/32 scram-sha-256\nhost all all ::1/128 scram-sha-256\n',
+        appText.apiInstallationLocalAllClogPeerMapClogOwnerLocalAllAll,
       );
       writeFileSync(
         join(databaseDirectory, 'pg_ident.conf'),
-        'clog_owner postgres clog\n',
+        appText.apiInstallationClogOwnerPostgresClog,
       );
       chownSync(join(databaseDirectory, 'pg_hba.conf'), 999, 999);
       chownSync(join(databaseDirectory, 'pg_ident.conf'), 999, 999);
@@ -329,7 +343,7 @@ async function main() {
     });
     child.once('exit', () => {
       if (!stopping && !expectedDatabaseStop && database === child) {
-        console.error('PostgreSQL stopped unexpectedly.');
+        console.error(appText.apiInstallationPostgreSqlStoppedUnexpectedly);
         void shutdown(1);
       }
     });
@@ -347,8 +361,12 @@ async function main() {
         await delay(500);
       }
     }
-    if (!ready) throw new Error('PostgreSQL readiness deadline expired');
-    if (stopping) throw new Error('Installation is stopping');
+    if (!ready)
+      throw new Error(
+        appText.apiInstallationPostgreSqlReadinessDeadlineExpired,
+      );
+    if (stopping)
+      throw new Error(appText.apiInstallationInstallationIsStopping);
     const pool = new pg.Pool({
       connectionString: databaseUrl({ ...process.env, DB_NAME: 'postgres' }),
       connectionTimeoutMillis: 5000,
@@ -366,7 +384,9 @@ async function main() {
   async function startWorkers() {
     if (workers || stopping) return;
     if (existsSync(join(systemDirectory, 'postgres/rotation.json')))
-      throw new Error('Resume pending secret rotation before starting writers');
+      throw new Error(
+        appText.apiInstallationResumePendingSecretRotationBeforeStartingWriters,
+      );
     phase = 'schema';
     const url = databaseUrl();
     await migrate(url);
@@ -410,12 +430,14 @@ async function main() {
     });
     child.once('exit', () => {
       if (!stopping && workers === child) {
-        console.error('Application supervisor stopped unexpectedly.');
+        console.error(
+          appText.apiInstallationApplicationSupervisorStoppedUnexpectedly,
+        );
         void shutdown(1);
       }
     });
     console.log(
-      'Installation initialized; starting website and optional Discord gateway.',
+      appText.apiInstallationInstallationInitializedStartingWebsiteAndOptionalDiscordGateway,
     );
   }
   const server = createServer((request, response) => {
@@ -441,13 +463,16 @@ async function main() {
     request.on('end', () => {
       const run = async () => {
         if (request.method !== 'POST' || request.url !== '/operation')
-          throw new Error('Unknown control request');
+          throw new Error(appText.apiInstallationUnknownControlRequest);
         const input = JSON.parse(body) as { operation: string; token?: string };
-        if (stopping) throw new Error('Installation is stopping');
+        if (stopping)
+          throw new Error(appText.apiInstallationInstallationIsStopping);
         switch (input.operation) {
           case 'pause':
             if (phase !== 'running' || existsSync(marker) || !input.token)
-              throw new Error('Installation is not available for maintenance');
+              throw new Error(
+                appText.apiInstallationInstallationIsNotAvailableForMaintenance,
+              );
             writeSystemFile(
               marker,
               JSON.stringify({ token: input.token, instance }) + '\n',
@@ -461,14 +486,16 @@ async function main() {
               input.token &&
               JSON.parse(readFileSync(marker, 'utf8')).token !== input.token
             )
-              throw new Error('Maintenance owner mismatch');
+              throw new Error(appText.apiInstallationMaintenanceOwnerMismatch);
             await startDatabase();
             await startWorkers();
             if (existsSync(marker)) unlinkSync(marker);
             break;
           case 'stop-database':
             if (!bundled)
-              throw new Error('External database is operator-managed');
+              throw new Error(
+                appText.apiInstallationExternalDatabaseIsOperatorManaged,
+              );
             await stopDatabase();
             break;
           case 'start-database':
@@ -476,7 +503,7 @@ async function main() {
             if (workers) phase = 'running';
             break;
           default:
-            throw new Error('Unknown maintenance operation');
+            throw new Error(appText.apiInstallationUnknownMaintenanceOperation);
         }
         return snapshot();
       };
@@ -487,7 +514,7 @@ async function main() {
         () => {
           response.statusCode = 409;
           response.end(
-            '{"error":"Installation maintenance failed; inspect the installation state."}',
+            appText.apiInstallationErrorInstallationMaintenanceFailedInspectTheInstallationState,
           );
         },
       );
@@ -535,7 +562,7 @@ async function main() {
         );
       phase = mode === 'restore' ? 'restore' : 'maintenance';
       console.log(
-        'PostgreSQL ready; application writers are paused for maintenance.',
+        appText.apiInstallationPostgreSqlReadyApplicationWritersArePausedForMaintenance,
       );
     } else await startWorkers();
   } catch (error) {
@@ -549,7 +576,7 @@ async function main() {
       }),
     );
     console.error(
-      'Inspect /data/logs/bootstrap.log. Writers remain stopped; use clog resume after repairing the installation.',
+      appText.apiInstallationInspectDataLogsBootstrapLogWritersRemainStoppedUseClog,
     );
   }
 }

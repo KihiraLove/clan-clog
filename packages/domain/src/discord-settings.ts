@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 /** Public Discord settings never contain either service credential. */
 export type DiscordConnectionState =
   'disabled' | 'connecting' | 'connected' | 'disconnected' | 'unavailable';
@@ -33,14 +34,16 @@ export const discordSnowflake = /^\d{17,20}$/u;
 export function parseDiscordFields(input: unknown): DiscordFields {
   const value = input as DiscordFields;
   if (!value || typeof value !== 'object' || typeof value.enabled !== 'boolean')
-    throw new Error('Invalid Discord settings.');
+    throw new Error(appText.domainDiscordSettingsInvalidDiscordSettings);
   for (const id of [value.applicationId, value.guildId, value.testGuildId]) {
     if (typeof id !== 'string' || (id !== '' && !discordSnowflake.test(id)))
-      throw new Error('Discord IDs must contain 17–20 digits.');
+      throw new Error(
+        appText.domainDiscordSettingsDiscordIdsMustContain1720Digits,
+      );
   }
   if (value.enabled && (!value.applicationId || !value.guildId))
     throw new Error(
-      'Application and server IDs are required to enable Discord.',
+      appText.domainDiscordSettingsApplicationAndServerIdsAreRequiredToEnableDiscord,
     );
   const limits = {} as DiscordLimits;
   for (const [key, maximum] of [
@@ -51,7 +54,9 @@ export function parseDiscordFields(input: unknown): DiscordFields {
   ] as const) {
     const number = value.limits?.[key];
     if (!Number.isInteger(number) || number < 1 || number > maximum)
-      throw new Error('Discord rate limits are outside the allowed range.');
+      throw new Error(
+        appText.domainDiscordSettingsDiscordRateLimitsAreOutsideTheAllowedRange,
+      );
     limits[key] = number;
   }
   return {
@@ -70,7 +75,7 @@ export function parseDiscordSettings(input: unknown): DiscordSettings {
     typeof value.tokenConfigured !== 'boolean' ||
     (fields.enabled && !value.tokenConfigured)
   )
-    throw new Error('Invalid Discord settings receipt.');
+    throw new Error(appText.domainDiscordSettingsInvalidDiscordSettingsReceipt);
   return {
     ...fields,
     revision: value.revision,

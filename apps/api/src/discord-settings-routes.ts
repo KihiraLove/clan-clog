@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { DiscordSettingsUpdate } from '@clog/domain';
 import {
@@ -17,14 +18,22 @@ export function discordSettingsRoutes(
   register = registerWithCredentials,
 ) {
   const owner = async (request: FastifyRequest, write = false) => {
-    if (!authorize) throw new ApiError(503, 'Staff sign-in is not configured.');
+    if (!authorize)
+      throw new ApiError(
+        503,
+        appText.apiDiscordSettingsRoutesStaffSignInIsNotConfigured,
+      );
     const actor = await authorize(request, write);
     if (write && actor.role !== 'admin')
       throw new ApiError(
         403,
-        'Only the administrator can manage Discord settings.',
+        appText.apiDiscordSettingsRoutesOnlyTheAdministratorCanManageDiscordSettings,
       );
-    if (!store) throw new ApiError(503, 'Discord settings are unavailable.');
+    if (!store)
+      throw new ApiError(
+        503,
+        appText.apiDiscordSettingsRoutesDiscordSettingsAreUnavailable,
+      );
     return actor;
   };
   const result = async <T>(operation: () => Promise<T>) => {
@@ -127,21 +136,21 @@ export function discordSettingsRoutes(
         if (config.revision !== request.body.expectedRevision)
           throw new ApiError(
             409,
-            'Discord settings changed. Reload before registering commands.',
+            appText.apiDiscordSettingsRoutesDiscordSettingsChangedReloadBeforeRegisteringCommands,
           );
         const guild =
           request.body.target === 'test' ? config.testGuildId : config.guildId;
         if (!config.token || !config.applicationId || !guild)
           throw new ApiError(
             422,
-            'Save the token, application ID and selected server ID before registering commands.',
+            appText.apiDiscordSettingsRoutesSaveTheTokenApplicationIdAndSelectedServerIdBefore,
           );
         try {
           await register(config.applicationId, guild, config.token);
         } catch {
           throw new ApiError(
             503,
-            'Discord command registration failed. Check the saved credentials and bot permissions.',
+            appText.apiDiscordSettingsRoutesDiscordCommandRegistrationFailedCheckTheSavedCredentialsAndBot,
           );
         }
         return { registered: true, guildId: guild, revision: config.revision };

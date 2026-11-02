@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 /** Reviewed WOM metric groups; keep synchronized with WOM's official Metric enum. */
 import { isSkill, type Skill } from './skills.js';
 import type { WomCompetition } from './competitions.js';
@@ -142,7 +143,7 @@ export function parseCustomCompetitionMetric(
   value: unknown,
 ): CustomCompetitionMetric {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid metric definition.');
+    throw new Error(appText.domainCompetitionMetricsInvalidMetricDefinition);
   const row = value as Record<string, unknown>;
   if (
     typeof row.metric !== 'string' ||
@@ -162,7 +163,7 @@ export function parseCustomCompetitionMetric(
     (['SKILL', 'COMPUTED'].includes(String(row.type)) && row.pageIds.length > 0)
   )
     throw new Error(
-      'Choose a valid metric type, name, active pages and supported XP skill.',
+      appText.domainCompetitionMetricsChooseAValidMetricTypeNameActivePagesAndSupported,
     );
   return {
     metric: row.metric,
@@ -198,7 +199,7 @@ export function competitionAmount(value: unknown, integerOnly = false): string {
       (Number.isInteger(value) && !Number.isSafeInteger(value))
     )
       throw new Error(
-        'Competition results must be available exact nonnegative values.',
+        appText.domainCompetitionMetricsCompetitionResultsMustBeAvailableExactNonnegativeValues,
       );
     const source = String(value);
     if (/e/iu.test(source)) {
@@ -219,13 +220,15 @@ export function competitionAmount(value: unknown, integerOnly = false): string {
     !/^(0|[1-9]\d{0,99})(?:\.\d{1,100})?$/u.test(value)
   )
     throw new Error(
-      'Competition results must be available exact nonnegative values.',
+      appText.domainCompetitionMetricsCompetitionResultsMustBeAvailableExactNonnegativeValues,
     );
   const normalized = value.includes('.')
     ? value.replace(/0+$/u, '').replace(/\.$/u, '')
     : value;
   if (integerOnly && normalized.includes('.'))
-    throw new Error('Competition counters and XP must be integers.');
+    throw new Error(
+      appText.domainCompetitionMetricsCompetitionCountersAndXpMustBeIntegers,
+    );
   return normalized;
 }
 export function compareCompetitionAmounts(a: string, b: string): number {
@@ -245,7 +248,7 @@ export function formatCompetitionAmount(value: string): string {
 }
 export function competitionMetricName(metric: string): string {
   if (metric === 'ehp' || metric === 'ehb') return metric.toUpperCase();
-  if (metric === 'total') return 'Overall';
+  if (metric === 'total') return appText.domainCompetitionMetricsOverall;
   return metric
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -263,16 +266,24 @@ export function parseCompetitionDefinitions(
   metrics: readonly string[],
 ): CompetitionMetric[] {
   if (!Array.isArray(value) || value.length !== metrics.length)
-    throw new Error('Incomplete competition metric definitions.');
+    throw new Error(
+      appText.domainCompetitionMetricsIncompleteCompetitionMetricDefinitions,
+    );
   return value.map((entry: unknown, index) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry))
-      throw new Error('Invalid competition metric definition.');
+      throw new Error(
+        appText.domainCompetitionMetricsInvalidCompetitionMetricDefinition,
+      );
     const row = entry as Record<string, unknown>;
     if (row.metric !== metrics[index])
-      throw new Error('Competition metric definitions do not match scope.');
+      throw new Error(
+        appText.domainCompetitionMetricsCompetitionMetricDefinitionsDoNotMatchScope,
+      );
     const weight = competitionAmount(row.weight === undefined ? 1 : row.weight);
     if (weight === '0')
-      throw new Error('Competition weights must be positive.');
+      throw new Error(
+        appText.domainCompetitionMetricsCompetitionWeightsMustBePositive,
+      );
     if (
       row.createdAt !== undefined &&
       (typeof row.createdAt !== 'string' ||
@@ -281,7 +292,9 @@ export function parseCompetitionDefinitions(
           row.createdAt,
         ))
     )
-      throw new Error('Invalid competition metric creation time.');
+      throw new Error(
+        appText.domainCompetitionMetricsInvalidCompetitionMetricCreationTime,
+      );
     return {
       metric: metrics[index]!,
       weight,
@@ -291,7 +304,9 @@ export function parseCompetitionDefinitions(
             definition: (() => {
               const definition = parseCustomCompetitionMetric(row.definition);
               if (definition.metric !== row.metric)
-                throw new Error('Metric definition key does not match scope.');
+                throw new Error(
+                  appText.domainCompetitionMetricsMetricDefinitionKeyDoesNotMatchScope,
+                );
               return definition;
             })(),
           }),
@@ -304,7 +319,8 @@ export function parseCompetitionDefinitions(
 export function competitionUnit(
   c: Pick<WomCompetition, 'metrics' | 'metricDefinitions'>,
 ): string {
-  if (competitionDefinitions(c).some((d) => d.weight !== '1')) return 'Score';
+  if (competitionDefinitions(c).some((d) => d.weight !== '1'))
+    return appText.domainCompetitionMetricsScore;
   const types = new Set(
     c.metrics.map((metric) =>
       competitionMetricType(metric, c.metricDefinitions),
@@ -312,11 +328,13 @@ export function competitionUnit(
   );
   if (types.size === 1 && types.has('SKILL'))
     return c.metrics.includes('overall') && c.metrics.length > 1
-      ? 'Score'
-      : 'XP';
-  if (types.size === 1 && types.has('BOSS')) return 'Kills';
-  if (types.size === 1 && types.has('COMPUTED')) return 'Hours';
-  return 'Score';
+      ? appText.domainCompetitionMetricsScore
+      : appText.domainDisplayXpUnit;
+  if (types.size === 1 && types.has('BOSS'))
+    return appText.domainCompetitionMetricsKills;
+  if (types.size === 1 && types.has('COMPUTED'))
+    return appText.domainCompetitionMetricsHours;
+  return appText.domainCompetitionMetricsScore;
 }
 export function competitionUsesPages(
   metrics: readonly string[],
@@ -347,11 +365,15 @@ export function parseCompetitionStandings(
   definitions: readonly CompetitionMetric[] = [],
 ): CompetitionStanding[] {
   if (!Array.isArray(value) || value.length > 10000)
-    throw new Error('Invalid competition standings.');
+    throw new Error(
+      appText.domainCompetitionMetricsInvalidCompetitionStandings,
+    );
   const seen = new Set<number>();
   return value.map((entry: unknown) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry))
-      throw new Error('Invalid competition participant.');
+      throw new Error(
+        appText.domainCompetitionMetricsInvalidCompetitionParticipant,
+      );
     const row = entry as Record<string, unknown>;
     if (
       !Number.isSafeInteger(row.playerId) ||
@@ -365,26 +387,36 @@ export function parseCompetitionStandings(
           Number(row.rank) <= 0 ||
           Number(row.rank) > 10000))
     )
-      throw new Error('Invalid or duplicate competition participant.');
+      throw new Error(
+        appText.domainCompetitionMetricsInvalidOrDuplicateCompetitionParticipant,
+      );
     seen.add(Number(row.playerId));
     const deltas =
       row.deltas === undefined
         ? undefined
         : (() => {
             if (!Array.isArray(row.deltas))
-              throw new Error('Invalid competition deltas.');
+              throw new Error(
+                appText.domainCompetitionMetricsInvalidCompetitionDeltas,
+              );
             const expected = new Set([
               ...metrics,
               ...(metrics.length > 1 ? ['total'] : []),
             ]);
             if (row.deltas.length !== expected.size)
-              throw new Error('Incomplete competition deltas.');
+              throw new Error(
+                appText.domainCompetitionMetricsIncompleteCompetitionDeltas,
+              );
             return row.deltas.map((delta: unknown) => {
               if (!delta || typeof delta !== 'object' || Array.isArray(delta))
-                throw new Error('Invalid competition delta.');
+                throw new Error(
+                  appText.domainCompetitionMetricsInvalidCompetitionDelta,
+                );
               const d = delta as Record<string, unknown>;
               if (typeof d.metric !== 'string' || !expected.delete(d.metric))
-                throw new Error('Unexpected or duplicate competition delta.');
+                throw new Error(
+                  appText.domainCompetitionMetricsUnexpectedOrDuplicateCompetitionDelta,
+                );
               return {
                 metric: d.metric,
                 gained: competitionAmount(
@@ -406,7 +438,9 @@ export function parseCompetitionStandings(
         (d) => d.metric === (metrics.length > 1 ? 'total' : metrics[0]),
       )?.gained !== gained
     )
-      throw new Error('Competition score does not match its metric delta.');
+      throw new Error(
+        appText.domainCompetitionMetricsCompetitionScoreDoesNotMatchItsMetricDelta,
+      );
     return {
       playerId: Number(row.playerId),
       displayName: row.displayName,

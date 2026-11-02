@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Logical DB dump plus quiescent assets; never archive a live PostgreSQL directory. */
 import { randomUUID, createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
@@ -47,7 +48,7 @@ export async function verifyBackup(directory: string, requireComplete = true) {
       .trim()
       .split('\n');
     if (lines.length !== expected.length)
-      throw new Error('Backup manifest is incomplete');
+      throw new Error(appText.apiInstallationBackupBackupManifestIsIncomplete);
     const seen = new Set<string>();
     for (const line of lines) {
       const match = /^([a-f0-9]{64}) {2}([A-Za-z0-9_.-]+)$/u.exec(line);
@@ -56,17 +57,17 @@ export async function verifyBackup(directory: string, requireComplete = true) {
         !expected.includes(match[2]! as never) ||
         seen.has(match[2]!)
       )
-        throw new Error('Invalid backup manifest');
+        throw new Error(appText.apiInstallationBackupInvalidBackupManifest);
       seen.add(match[2]!);
       if ((await hashFile(join(directory, match[2]!))) !== match[1])
-        throw new Error('Backup checksum mismatch');
+        throw new Error(appText.apiInstallationBackupBackupChecksumMismatch);
     }
   }
   if (
     requireComplete &&
     (await readFile(join(directory, 'COMPLETE'), 'utf8')).trim() !== 'complete'
   )
-    throw new Error('Backup is incomplete');
+    throw new Error(appText.apiInstallationBackupBackupIsIncomplete);
   for (const name of ['icons', 'screenshots', 'secrets'])
     await validateArchive(join(directory, name + '.tar.gz'));
   const manifest = await readFile(
@@ -82,9 +83,13 @@ export async function verifyBackup(directory: string, requireComplete = true) {
       file.split('/').includes('..') ||
       !/^[a-f0-9]{64}$/u.test(expected)
     )
-      throw new Error('Invalid infrastructure manifest');
+      throw new Error(
+        appText.apiInstallationBackupInvalidInfrastructureManifest,
+      );
     if ((await hashFile(join(directory, 'infrastructure', file))) !== expected)
-      throw new Error('Infrastructure checksum mismatch');
+      throw new Error(
+        appText.apiInstallationBackupInfrastructureChecksumMismatch,
+      );
   }
   const record = JSON.parse(
     await readFile(join(directory, 'release.json'), 'utf8'),
@@ -93,7 +98,7 @@ export async function verifyBackup(directory: string, requireComplete = true) {
     hash(manifest) !== record.bundleChecksum ||
     JSON.parse(manifest.toString()).revision !== record.revision
   )
-    throw new Error('Backup release identity mismatch');
+    throw new Error(appText.apiInstallationBackupBackupReleaseIdentityMismatch);
 }
 export async function validateArchive(file: string) {
   const names = (
@@ -107,7 +112,7 @@ export async function validateArchive(file: string) {
         !/^\.\/[A-Za-z0-9_./-]*$/u.test(name) || /(^|\/)\.\.(\/|$)/u.test(name),
     )
   )
-    throw new Error('Unsafe backup archive path');
+    throw new Error(appText.apiInstallationBackupUnsafeBackupArchivePath);
   const listing = (
     await exec('tar', ['-tvzf', file], { maxBuffer: 64 * 1024 * 1024 })
   ).stdout
@@ -115,7 +120,7 @@ export async function validateArchive(file: string) {
     .split('\n');
   if (listing.some((line) => !['-', 'd'].includes(line[0]!)))
     throw new Error(
-      'Backup archives must contain regular files and directories',
+      appText.apiInstallationBackupBackupArchivesMustContainRegularFilesAndDirectories,
     );
 }
 export async function verifyBackupArchive(requireComplete = true) {
@@ -288,12 +293,16 @@ export async function backupInstallation() {
       );
     await verifyBackup(directory, false);
     if ((await control()).instance !== before.instance)
-      throw new Error('Installation changed during backup');
+      throw new Error(
+        appText.apiInstallationBackupInstallationChangedDuringBackup,
+      );
     await control('resume', token);
     paused = false;
     await waitForWebsite();
     if ((await control()).instance !== before.instance)
-      throw new Error('Installation changed during backup');
+      throw new Error(
+        appText.apiInstallationBackupInstallationChangedDuringBackup,
+      );
     await writeFile(join(directory, 'COMPLETE'), 'complete\n');
     await runProcess('tar', ['-C', directory, '-czf', '-', '.']);
   } finally {
@@ -304,7 +313,7 @@ export async function backupInstallation() {
 export async function restoreInstallation() {
   if ((await control()).phase !== 'restore')
     throw new Error(
-      'Restore requires a fresh installation started in restore mode',
+      appText.apiInstallationBackupRestoreRequiresAFreshInstallationStartedInRestoreMode,
     );
   const directory = await mkdtemp('/run/clog/restore-');
   try {
@@ -323,7 +332,9 @@ export async function restoreInstallation() {
     );
     const manifest = await readFile('/opt/clog-release/manifest.json');
     if (record.bundleChecksum !== hash(manifest))
-      throw new Error('Restore image does not match the recorded release');
+      throw new Error(
+        appText.apiInstallationBackupRestoreImageDoesNotMatchTheRecordedRelease,
+      );
     for (const name of ['icons', 'screenshots', 'secrets'])
       await validateArchive(join(directory, name + '.tar.gz'));
     await postgresTool(

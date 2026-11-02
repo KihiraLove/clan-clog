@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import multipart from '@fastify/multipart';
 import type { BrandingFiles } from './route-services.js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -36,11 +37,15 @@ export function brandingRoutes(
         : '/api/v1/branding/:id.webp',
       async (request, reply) => {
         if (!assetIdPattern.test(request.params.id))
-          throw new ApiError(404, 'Logo not found.');
+          throw new ApiError(404, appText.apiBrandingRoutesLogoNotFound);
         if (!store || !storage)
-          throw new ApiError(503, 'Logo storage unavailable.');
+          throw new ApiError(
+            503,
+            appText.apiBrandingRoutesLogoStorageUnavailable,
+          );
         const record = await store.asset(request.params.id);
-        if (!record) throw new ApiError(404, 'Logo not found.');
+        if (!record)
+          throw new ApiError(404, appText.apiBrandingRoutesLogoNotFound);
         const asset = favicon ? record.favicon : record.logo;
         const bytes = await (favicon ? storage.favicons : storage).read(asset);
         const etag = '"' + asset.sha256 + '"';
@@ -59,12 +64,12 @@ export function brandingRoutes(
     );
   async function owner(request: FastifyRequest, write = false) {
     if (!authorize || !store || !storage)
-      throw new ApiError(503, 'Clan branding unavailable.');
+      throw new ApiError(503, appText.apiBrandingRoutesClanBrandingUnavailable);
     const actor = await authorize(request, write);
     if (write && actor.role !== 'admin')
       throw new ApiError(
         403,
-        'Only the administrator can change the clan logo.',
+        appText.apiBrandingRoutesOnlyTheAdministratorCanChangeTheClanLogo,
       );
     return actor;
   }
@@ -134,16 +139,29 @@ export function brandingRoutes(
             !/^branding-[1-9][0-9]*$/u.test(revision) ||
             revision.length > 40
           )
-            throw new ApiError(400, 'Supply the current logo revision.');
+            throw new ApiError(
+              400,
+              appText.apiBrandingRoutesSupplyTheCurrentLogoRevision,
+            );
           let input: Buffer | undefined;
           for await (const part of request.parts()) {
             if (part.type !== 'file' || part.fieldname !== 'logo')
-              throw new ApiError(400, 'Upload one logo image.');
+              throw new ApiError(
+                400,
+                appText.apiBrandingRoutesUploadOneLogoImage,
+              );
             input = await part.toBuffer();
             if (part.file.truncated)
-              throw new ApiError(413, 'Choose a logo up to 10 MiB.');
+              throw new ApiError(
+                413,
+                appText.apiBrandingRoutesChooseALogoUpTo10MiB,
+              );
           }
-          if (!input) throw new ApiError(400, 'Upload one logo image.');
+          if (!input)
+            throw new ApiError(
+              400,
+              appText.apiBrandingRoutesUploadOneLogoImage,
+            );
           const record = await storage!.saveLogo(input);
           // A failed read after a lost write receipt cannot establish
           // whether the new logo was committed. Defer reclamation.

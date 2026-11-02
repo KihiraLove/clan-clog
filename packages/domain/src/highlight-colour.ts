@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 /** Persisted RGBA highlights; alpha affects the outline, never the item sprite. */
 export interface HighlightColour {
   red: number;
@@ -23,7 +24,7 @@ export const defaultHardcoreHighlight: HighlightColour = {
 };
 export function parseHighlightColour(value: unknown): HighlightColour {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid highlight colour.');
+    throw new Error(appText.domainHighlightColourInvalidHighlightColour);
   const data = value as Record<string, unknown>;
   if (
     Object.keys(data).length !== 4 ||
@@ -40,7 +41,7 @@ export function parseHighlightColour(value: unknown): HighlightColour {
     data.alpha > 1
   )
     throw new Error(
-      'Highlight RGB channels must be integers from 0 to 255; alpha must be from 0 to 1.',
+      appText.domainHighlightColourHighlightRgbChannelsMustBeIntegersFrom0To255,
     );
   return {
     red: data.red as number,

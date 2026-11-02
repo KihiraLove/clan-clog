@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Public projections plus optional configured admin auth; unavailable services fail closed. */
 import { proofRoutes } from './proof-routes.js';
 import { discordSettingsRoutes } from './discord-settings-routes.js';
@@ -85,11 +86,11 @@ interface Options {
 }
 export function createApp(
   checkDatabase: () => Promise<void> = async () => {
-    throw new Error('Database not configured');
+    throw new Error(appText.apiAppDatabaseNotConfigured);
   },
   readSettings: () => Promise<Settings> = async () => ({
     revision: 'settings-disabled',
-    clanName: 'Clan name',
+    clanName: appText.apiAppClanName,
     hardcoreEnabled: false,
   }),
   options: Options = {},
@@ -119,7 +120,7 @@ export function createApp(
               req: () => ({ operation: 'http' }),
               err: (error: unknown) => ({
                 type: 'OperationError',
-                message: 'Operation failed',
+                message: appText.apiAppOperationFailed,
                 stack: '',
                 ...safeFailure(error),
               }),
@@ -130,7 +131,7 @@ export function createApp(
   const diagnostics =
     options.diagnostics ??
     new OperationalDiagnostics('api', (record) =>
-      app.log.info(record, 'Operation'),
+      app.log.info(record, appText.apiAppOperation),
     );
   trackHttpWork(app, work, diagnostics);
   app.addHook('onClose', async () => {
@@ -194,20 +195,20 @@ export function createApp(
         error instanceof ApiError || error instanceof WorkloadError
           ? error.message
           : status === 400
-            ? 'Invalid request fields.'
+            ? appText.apiAppInvalidRequestFields
             : status === 413
-              ? 'Request is too large.'
-              : 'Service temporarily unavailable.',
+              ? appText.apiAppRequestIsTooLarge
+              : appText.apiAppServiceTemporarilyUnavailable,
     });
   });
   app.setNotFoundHandler(async (_request, reply) =>
-    reply.code(404).send({ error: 'Not found.' }),
+    reply.code(404).send({ error: appText.apiAppNotFound }),
   );
   app.get('/healthz', async () => ({ status: 'ok', service: 'api' }));
   let wasReady: boolean | undefined;
   app.get('/readyz', async (_request, reply) => {
     try {
-      if (work.snapshot().stopping) throw new Error('Draining');
+      if (work.snapshot().stopping) throw new Error(appText.apiAppDraining);
       await checkReadiness(checkDatabase);
       if (wasReady !== true)
         diagnostics.record('readiness', {
@@ -268,7 +269,7 @@ export function createApp(
   for (const resource of ['catalog', 'collections'] as const) {
     app.get('/api/v1/' + resource, async (request, reply) => {
       if (!store)
-        throw new ApiError(503, 'The catalog service is not configured.');
+        throw new ApiError(503, appText.apiAppTheCatalogServiceIsNotConfigured);
       if (store.publicSnapshot) {
         const snapshot = await store.publicSnapshot(resource),
           etag = '"' + snapshot.revision + '"';
@@ -346,7 +347,7 @@ export function createApp(
   if (!requireAdmin) {
     app.get('/api/v1/auth/session', async () => ({ authenticated: false }));
     app.post('/api/v1/auth/login', async () => {
-      throw new ApiError(503, 'Admin password sign-in is not configured.');
+      throw new ApiError(503, appText.apiAppAdminPasswordSignInIsNotConfigured);
     });
   }
   app.get(
@@ -354,12 +355,12 @@ export function createApp(
     {
       onRequest: async (request) => {
         if (!requireAdmin)
-          throw new ApiError(503, 'Admin sign-in is not configured.');
+          throw new ApiError(503, appText.apiAppAdminSignInIsNotConfigured);
         const identity = await requireAdmin(request);
         if (identity.role !== 'admin')
           throw new ApiError(
             403,
-            'Only the administrator can read diagnostics.',
+            appText.apiAppOnlyTheAdministratorCanReadDiagnostics,
           );
       },
     },
@@ -400,7 +401,7 @@ export function createApp(
       {
         onRequest: async (request) => {
           if (!requireAdmin)
-            throw new ApiError(503, 'Admin sign-in is not configured.');
+            throw new ApiError(503, appText.apiAppAdminSignInIsNotConfigured);
           await requireAdmin(request);
         },
       },
@@ -433,7 +434,8 @@ export function createApp(
       },
     },
     async (request) => {
-      if (!store) throw new ApiError(503, 'Catalog search unavailable.');
+      if (!store)
+        throw new ApiError(503, appText.apiAppCatalogSearchUnavailable);
       const data = await store.catalog(),
         query = (request.query.q ?? '').trim().toLowerCase();
       return {

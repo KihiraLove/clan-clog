@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import type pg from 'pg';
 import {
   parseRuneLiteRules,
@@ -24,7 +25,11 @@ export async function readRuneLiteSettings(
         (lock ? ' FOR SHARE' : ''),
     )
   ).rows[0];
-  if (!row) throw new ApiError(503, 'RuneLite settings unavailable.');
+  if (!row)
+    throw new ApiError(
+      503,
+      appText.apiRuneliteSettingsRuneLiteSettingsUnavailable,
+    );
   return {
     revision: 'runelite-' + row.version,
     ...parseRuneLiteRules(row.rules),
@@ -43,7 +48,9 @@ export class PgRuneLiteSettingsStore implements RuneLiteSettingsStore {
     } catch (error) {
       throw new ApiError(
         422,
-        error instanceof Error ? error.message : 'Invalid RuneLite settings.',
+        error instanceof Error
+          ? error.message
+          : appText.apiRuneliteSettingsInvalidRuneLiteSettings,
       );
     }
     const client = await this.pool.connect();
@@ -54,11 +61,15 @@ export class PgRuneLiteSettingsStore implements RuneLiteSettingsStore {
           'SELECT version,rules FROM runelite_settings WHERE singleton=true FOR UPDATE',
         )
       ).rows[0];
-      if (!old) throw new ApiError(503, 'RuneLite settings unavailable.');
+      if (!old)
+        throw new ApiError(
+          503,
+          appText.apiRuneliteSettingsRuneLiteSettingsUnavailable,
+        );
       if (expectedRevision !== 'runelite-' + old.version)
         throw new ApiError(
           409,
-          'RuneLite settings changed. Reload before saving again.',
+          appText.apiRuneliteSettingsRuneLiteSettingsChangedReloadBeforeSavingAgain,
         );
       let requirement: RuneLiteSettings['clanKeyRequirement'];
       if (clanKeyRequirement) {
@@ -68,17 +79,20 @@ export class PgRuneLiteSettingsStore implements RuneLiteSettingsStore {
           )
         ).rows[0];
         if (!key)
-          throw new ApiError(503, 'Clan API key storage is unavailable.');
+          throw new ApiError(
+            503,
+            appText.apiRuneliteSettingsClanApiKeyStorageIsUnavailable,
+          );
         if (clanKeyRequirement.expectedRevision !== 'clan-key-' + key.version)
           throw new ApiError(
             409,
-            'API key settings changed. Reload before saving again.',
+            appText.apiRuneliteSettingsApiKeySettingsChangedReloadBeforeSavingAgain,
           );
         const enabled = clanKeyRequirement.enabled;
         if (!rules.matchClanName && !enabled)
           throw new ApiError(
             422,
-            'API key matching requires the clan API key.',
+            appText.apiRuneliteSettingsApiKeyMatchingRequiresTheClanApiKey,
           );
         await client.query(
           'UPDATE clan_api_keys SET enabled=$1,version=$2 WHERE singleton=true',

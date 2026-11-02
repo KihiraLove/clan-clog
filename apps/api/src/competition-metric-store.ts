@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Persist only explicitly confirmed definitions; resolution tokens never grant import credit. */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -46,7 +47,10 @@ export class PgCompetitionMetricStore implements CompetitionMetricService {
         'SELECT definition FROM custom_competition_metrics ORDER BY metric LIMIT 501',
       );
       if (rows.rows.length > 500)
-        throw new ApiError(503, 'Custom metric capacity exceeded.');
+        throw new ApiError(
+          503,
+          appText.apiCompetitionMetricStoreCustomMetricCapacityExceeded,
+        );
       return {
         revision: 'metrics-' + state.version,
         definitions: rows.rows.map((r) =>
@@ -81,7 +85,10 @@ export class PgCompetitionMetricStore implements CompetitionMetricService {
         )
       ).rows;
       if (pages.length > 2000)
-        throw new ApiError(503, 'Catalog page limit exceeded.');
+        throw new ApiError(
+          503,
+          appText.apiCompetitionMetricStoreCatalogPageLimitExceeded,
+        );
       return {
         ...discovery,
         resolutionToken: token,
@@ -101,12 +108,16 @@ export class PgCompetitionMetricStore implements CompetitionMetricService {
     let definitions: CustomCompetitionMetric[];
     try {
       if (!Array.isArray(values) || !values.length || values.length > 64)
-        throw new Error('Choose definitions for every unknown metric.');
+        throw new Error(
+          appText.apiCompetitionMetricStoreChooseDefinitionsForEveryUnknownMetric,
+        );
       definitions = values
         .map(parseCustomCompetitionMetric)
         .sort((a, b) => a.metric.localeCompare(b.metric));
       if (new Set(definitions.map((d) => d.metric)).size !== definitions.length)
-        throw new Error('Duplicate metrics cannot be registered.');
+        throw new Error(
+          appText.apiCompetitionMetricStoreDuplicateMetricsCannotBeRegistered,
+        );
     } catch (error) {
       throw new ApiError(422, (error as Error).message);
     }
@@ -131,12 +142,15 @@ export class PgCompetitionMetricStore implements CompetitionMetricService {
         if (replay.payload_hash !== payloadHash)
           throw new ApiError(
             409,
-            'Metric save key was used for a different request.',
+            appText.apiCompetitionMetricStoreMetricSaveKeyWasUsedForADifferentRequest,
           );
         return replay.receipt;
       }
       if (definitions.some((d) => womMetricType(d.metric)))
-        throw new ApiError(422, 'Built-in metrics cannot be registered.');
+        throw new ApiError(
+          422,
+          appText.apiCompetitionMetricStoreBuiltInMetricsCannotBeRegistered,
+        );
       const resolution = (
         await client.query<{
           actor_id: string;
@@ -152,7 +166,7 @@ export class PgCompetitionMetricStore implements CompetitionMetricService {
       if (!resolution || resolution.actor_id !== actor || !resolution.valid)
         throw new ApiError(
           409,
-          'Metric prompt expired or belongs to another staff member. Preview again.',
+          appText.apiCompetitionMetricStoreMetricPromptExpiredOrBelongsToAnotherStaffMemberPreview,
         );
       if (
         JSON.stringify([...resolution.discovery.unknownMetrics].sort()) !==
@@ -160,7 +174,7 @@ export class PgCompetitionMetricStore implements CompetitionMetricService {
       )
         throw new ApiError(
           422,
-          'Define exactly the unknown metrics from this competition.',
+          appText.apiCompetitionMetricStoreDefineExactlyTheUnknownMetricsFromThisCompetition,
         );
       const existing = (
         await client.query<{
@@ -179,24 +193,30 @@ export class PgCompetitionMetricStore implements CompetitionMetricService {
         )
           throw new ApiError(
             409,
-            'Another staff member saved a different definition. Preview again.',
+            appText.apiCompetitionMetricStoreAnotherStaffMemberSavedADifferentDefinitionPreviewAgain,
           );
         const pages = await client.query(
           'SELECT id FROM pages WHERE active AND id=ANY($1::text[]) FOR SHARE',
           [definition.pageIds],
         );
         if (pages.rowCount !== definition.pageIds.length)
-          throw new ApiError(422, 'Choose active catalog pages.');
+          throw new ApiError(
+            422,
+            appText.apiCompetitionMetricStoreChooseActiveCatalogPages,
+          );
       }
       const additions = definitions.filter(
         (d) => !existing.some((p) => p.metric === d.metric),
       );
       if (revision !== 'metrics-' + state.version && additions.length)
-        throw new ApiError(409, 'Metric definitions changed. Preview again.');
+        throw new ApiError(
+          409,
+          appText.apiCompetitionMetricStoreMetricDefinitionsChangedPreviewAgain,
+        );
       if (existing.length + additions.length > 500)
         throw new ApiError(
           422,
-          'The 500 custom metric limit has been reached.',
+          appText.apiCompetitionMetricStoreThe500CustomMetricLimitHasBeenReached,
         );
       const available = [...existing.map((r) => r.definition), ...additions];
       try {

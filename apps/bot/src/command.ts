@@ -1,17 +1,22 @@
+import * as appText from '@clog/domain';
 /** Guild slash-command contract; registration is always an explicit operation. */
 import { SlashCommandBuilder } from 'discord.js';
 
 export const collectionLogCommand = new SlashCommandBuilder()
   .setName('cc-clog')
-  .setDescription('Clan collection log')
+  .setDescription(appText.botCommandClanCollectionLog)
   .addSubcommand((command) =>
     command
       .setName('submit')
-      .setDescription('Submit proof of a collected item for admin review')
+      .setDescription(
+        appText.botCommandSubmitProofOfACollectedItemForAdminReview,
+      )
       .addStringOption((option) =>
         option
           .setName('item')
-          .setDescription('Choose an item or type its name for manual matching')
+          .setDescription(
+            appText.botCommandChooseAnItemOrTypeItsNameForManualMatching,
+          )
           .setRequired(true)
           .setAutocomplete(true)
           .setMaxLength(200),
@@ -19,14 +24,14 @@ export const collectionLogCommand = new SlashCommandBuilder()
       .addAttachmentOption((option) =>
         option
           .setName('screenshot')
-          .setDescription('PNG screenshot proof (up to 10 MiB)')
+          .setDescription(appText.botCommandPngScreenshotProofUpTo10MiB)
           .setRequired(true),
       )
       .addStringOption((option) =>
         option
           .setName('submitter-name')
           .setDescription(
-            'Collector name; defaults to your Discord display name',
+            appText.botCommandCollectorNameDefaultsToYourDiscordDisplayName,
           )
           .setMaxLength(80),
       )
@@ -34,7 +39,7 @@ export const collectionLogCommand = new SlashCommandBuilder()
         option
           .setName('hardcore')
           .setDescription(
-            'Claim the item was obtained on hardcore worlds (default: no)',
+            appText.botCommandClaimTheItemWasObtainedOnHardcoreWorldsDefaultNo,
           ),
       ),
   );

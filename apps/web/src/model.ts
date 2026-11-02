@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Public wire models, runtime payload checks and canonical-item display projections. */
 import {
   collectionState,
@@ -6,11 +7,11 @@ import {
 } from '@clog/domain';
 
 export const categories = [
-  { id: 'bosses', name: 'Bosses' },
-  { id: 'raids', name: 'Raids' },
-  { id: 'clues', name: 'Clues' },
-  { id: 'minigames', name: 'Minigames' },
-  { id: 'other', name: 'Other' },
+  { id: 'bosses', name: appText.webModelBosses },
+  { id: 'raids', name: appText.webModelRaids },
+  { id: 'clues', name: appText.webModelClues },
+  { id: 'minigames', name: appText.webModelMinigames },
+  { id: 'other', name: appText.webModelOther },
 ] as const;
 export type Category = string;
 export interface CatalogSection {
@@ -56,26 +57,27 @@ export interface LogData {
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid public log response');
+    throw new Error(appText.webModelInvalidPublicLogResponse);
   return value as Record<string, unknown>;
 }
 function text(value: unknown): string {
   if (typeof value !== 'string' || !value.trim())
-    throw new Error('Missing public log text');
+    throw new Error(appText.webModelMissingPublicLogText);
   return value;
 }
 function id(value: unknown): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0)
-    throw new Error('Invalid canonical item ID');
+    throw new Error(appText.webModelInvalidCanonicalItemId);
   return value;
 }
 function array(value: unknown): unknown[] {
-  if (!Array.isArray(value)) throw new Error('Missing public log list');
+  if (!Array.isArray(value))
+    throw new Error(appText.webModelMissingPublicLogList);
   return value;
 }
 function unique<T>(values: T[]): void {
   if (new Set(values).size !== values.length)
-    throw new Error('Duplicate public log identity');
+    throw new Error(appText.webModelDuplicatePublicLogIdentity);
 }
 
 /** Reject unsafe icon paths, duplicate identities and dangling page memberships. */
@@ -89,7 +91,8 @@ export function parseCatalog(value: unknown): Catalog {
           return { id: text(section.id), name: text(section.name) };
         });
   unique(sections.map((section) => section.id));
-  if (sections.length > 100) throw new Error('Too many catalog sections');
+  if (sections.length > 100)
+    throw new Error(appText.webModelTooManyCatalogSections);
   const items = array(data.items).map((entry): Item => {
     const item = record(entry);
     const iconPath = text(item.iconPath);
@@ -98,7 +101,7 @@ export function parseCatalog(value: unknown): Catalog {
       iconPath.startsWith('//') ||
       /[\\\s?#]/u.test(iconPath)
     )
-      throw new Error('Icons must use a same-origin asset path');
+      throw new Error(appText.webModelIconsMustUseASameOriginAssetPath);
     return { id: id(item.id), name: text(item.name), iconPath };
   });
   unique(items.map((item) => item.id));
@@ -107,11 +110,11 @@ export function parseCatalog(value: unknown): Catalog {
     const page = record(entry);
     const category = text(page.category);
     if (!sections.some((tab) => tab.id === category))
-      throw new Error('Unknown collection log category');
+      throw new Error(appText.webModelUnknownCollectionLogCategory);
     const ids = array(page.itemIds).map(id);
     unique(ids);
     if (ids.some((itemId) => !itemIds.has(itemId)))
-      throw new Error('Unknown page item');
+      throw new Error(appText.webModelUnknownPageItem);
     return {
       id: text(page.id),
       name: text(page.name),
@@ -147,15 +150,15 @@ export function parseCollections(value: unknown): Collections {
     const collectedOn = text(credit.collectedOn);
     validateCollectionDate(collectedOn);
     if (credit.hardcore !== undefined && typeof credit.hardcore !== 'boolean')
-      throw new Error('Invalid hardcore credit');
+      throw new Error(appText.webModelInvalidHardcoreCredit);
     if (
       credit.collectionType !== undefined &&
       credit.collectionType !== 'regular' &&
       credit.collectionType !== 'event'
     )
-      throw new Error('Invalid collection type');
+      throw new Error(appText.webModelInvalidCollectionType);
     if (credit.hardcore && credit.collectionType === 'event')
-      throw new Error('Hardcore cannot have Event collections');
+      throw new Error(appText.webModelHardcoreCannotHaveEventCollections);
     credits.push({
       submissionId: text(credit.submissionId),
       itemId: id(credit.itemId),
@@ -179,7 +182,7 @@ export function parseCollections(value: unknown): Collections {
 export function validateLog(data: LogData): LogData {
   const ids = new Set(data.catalog.items.map((item) => item.id));
   if (data.collections.credits.some((credit) => !ids.has(credit.itemId)))
-    throw new Error('Collection refers to an unknown catalog item');
+    throw new Error(appText.webModelCollectionRefersToAnUnknownCatalogItem);
   return data;
 }
 
@@ -223,5 +226,8 @@ export function progress(
 }
 /** Use the same collector/date wording for every occurrence of a shared item. */
 export function creditLine(credit: Credit): string {
-  return `Collected by ${credit.collectorName} on ${formatCollectionDate(credit.collectedOn)}`;
+  return appText.webModelCollectedByOn(
+    credit.collectorName,
+    formatCollectionDate(credit.collectedOn),
+  );
 }

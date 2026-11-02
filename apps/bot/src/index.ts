@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Discord gateway adapter with explicit disabled mode and graceful shutdown. */
 import { createServer } from 'node:http';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
@@ -178,7 +179,7 @@ async function main() {
     }
   } else {
     console.log(
-      'Discord bot disabled: configure credentials to enable gateway commands.',
+      appText.botIndexDiscordBotDisabledConfigureCredentialsToEnableGatewayCommands,
     );
   }
 }

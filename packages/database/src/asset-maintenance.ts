@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { databaseUrl as readDatabaseUrl } from './secrets.js';
 /** B08/R03: bounded, opt-in collection with durable retirement before unlink. */
 import { lstat, opendir, realpath, unlink } from 'node:fs/promises';
@@ -34,7 +35,7 @@ export function validateAssetMaintenanceOptions(
   options: AssetMaintenanceOptions,
 ) {
   if (typeof options.dryRun !== 'boolean')
-    throw new Error('Specify dryRun explicitly.');
+    throw new Error(appText.databaseAssetMaintenanceSpecifyDryRunExplicitly);
   for (const [key, min, max] of [
     ['graceHours', 24, 8760],
     ['maxFiles', 1, 500],
@@ -48,7 +49,9 @@ export function validateAssetMaintenanceOptions(
       options[key] < min ||
       options[key] > max
     )
-      throw new Error(`Invalid ${key}: use ${min}..${max}.`);
+      throw new Error(
+        appText.databaseAssetMaintenanceInvalidUse(key, min, max),
+      );
   }
   return options;
 }
@@ -86,20 +89,26 @@ export async function runAssetMaintenance(
     ).rows[0]!.isolation !== 'read committed'
   )
     throw new Error(
-      'Asset maintenance requires an idle READ COMMITTED connection.',
+      appText.databaseAssetMaintenanceAssetMaintenanceRequiresAnIdleReadCommittedConnection,
     );
   const roots = {} as Record<Kind, string>;
   for (const kind of kinds) {
     const value = directories[kind];
     if (!isAbsolute(value) || resolve(value) === parse(value).root)
-      throw new Error('Supply dedicated absolute icon/proof directories.');
+      throw new Error(
+        appText.databaseAssetMaintenanceSupplyDedicatedAbsoluteIconProofDirectories,
+      );
     const stat = await lstat(value);
     if (!stat.isDirectory() || stat.isSymbolicLink())
-      throw new Error('Storage root must be a real directory.');
+      throw new Error(
+        appText.databaseAssetMaintenanceStorageRootMustBeARealDirectory,
+      );
     roots[kind] = await realpath(value);
   }
   if (new Set(Object.values(roots)).size !== kinds.length)
-    throw new Error('Storage directories must be distinct.');
+    throw new Error(
+      appText.databaseAssetMaintenanceStorageDirectoriesMustBeDistinct,
+    );
   if (
     !(
       await client.query<{ acquired: boolean }>(
@@ -108,7 +117,9 @@ export async function runAssetMaintenance(
       )
     ).rows[0]!.acquired
   )
-    throw new Error('Another asset maintenance command is active.');
+    throw new Error(
+      appText.databaseAssetMaintenanceAnotherAssetMaintenanceCommandIsActive,
+    );
   const started = Date.now();
   try {
     await client.query("SET statement_timeout='10s'");
@@ -121,7 +132,7 @@ export async function runAssetMaintenance(
       AND tgenabled IN ('O','A') AND tgfoid='reject_retired_asset()'::regprocedure`);
     if (guards.rows[0]!.count !== 4)
       throw new Error(
-        'Apply database migrations and enable the asset write barriers first.',
+        appText.databaseAssetMaintenanceApplyDatabaseMigrationsAndEnableTheAssetWriteBarriersFirst,
       );
     const now = (
       await client.query<{ now: Date }>('SELECT clock_timestamp() AS now')
@@ -323,7 +334,9 @@ export function parseAssetMaintenanceOptions(args: string[]) {
       const match = /^--([a-z-]+)=(\d+)$/u.exec(arg);
       const key = match?.[1] as keyof typeof names;
       if (!match || !Object.hasOwn(names, key))
-        throw new Error('Unknown asset maintenance option.');
+        throw new Error(
+          appText.databaseAssetMaintenanceUnknownAssetMaintenanceOption,
+        );
       options[names[key]] = Number(match[2]);
     }
   }
@@ -340,7 +353,8 @@ if (
     query_timeout: 15000,
   });
   try {
-    if (!readDatabaseUrl()) throw new Error('DATABASE_URL is required.');
+    if (!readDatabaseUrl())
+      throw new Error(appText.databaseAssetMaintenanceDatabaseUrlIsRequired);
     await client.connect();
     const report = await runAssetMaintenance(
       client,
@@ -357,7 +371,7 @@ if (
     if (report.errors) process.exitCode = 1;
   } catch {
     console.error(
-      'Asset maintenance did not complete. Check database/mount configuration and retry; committed retirements remain safe to resume.',
+      appText.databaseAssetMaintenanceAssetMaintenanceDidNotCompleteCheckDatabaseMountConfigurationAnd,
     );
     process.exitCode = 1;
   } finally {

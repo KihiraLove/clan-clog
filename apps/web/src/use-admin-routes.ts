@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AdminClient } from './admin-model.ts';
 import type { AdminSession } from './xp-model.ts';
@@ -71,7 +72,8 @@ export function useAdminRoutes({
         ? {
             request,
             label: pendingRef.current!.label,
-            error: 'Loading cancelled. Retry navigation to load this page.',
+            error:
+              appText.webUseAdminRoutesLoadingCancelledRetryNavigationToLoadThisPage,
           }
         : undefined,
     );
@@ -89,10 +91,13 @@ export function useAdminRoutes({
       controller.current = next;
       const url = new URL(request.href, window.location.href);
       const target = url.pathname;
-      const label = isAdminPath(target) ? target : 'collection log';
+      const label = isAdminPath(target)
+        ? target
+        : appText.webUseAdminRoutesCollectionLog;
       setPending({ request, label });
       const timer = setTimeout(
-        () => next.abort(new Error('Navigation timed out.')),
+        () =>
+          next.abort(new Error(appText.webUseAdminRoutesNavigationTimedOut)),
         10000,
       );
       const entry = prepared.current;
@@ -119,10 +124,14 @@ export function useAdminRoutes({
         .then(async (data) => {
           if (current !== generation.current || next.signal.aborted) return;
           if ([...drafts.current.values()].some((draft) => draft.busy))
-            throw new Error('A staff operation is still running.');
+            throw new Error(
+              appText.webUseAdminRoutesAStaffOperationIsStillRunning,
+            );
           if (
             [...drafts.current.values()].some((draft) => draft.dirty) &&
-            !window.confirm('Discard unsaved changes and leave this page?')
+            !window.confirm(
+              appText.webUseAdminRoutesDiscardUnsavedChangesAndLeaveThisPage,
+            )
           ) {
             cancel();
             return;
@@ -150,16 +159,16 @@ export function useAdminRoutes({
               label,
               codeFailure: failure instanceof RouteCodeError,
               error: timedOut
-                ? 'Loading timed out. Retry or cancel navigation.'
+                ? appText.webUseAdminRoutesLoadingTimedOutRetryOrCancelNavigation
                 : classifyAccessFailure(failure) === 'denied'
-                  ? 'Your account is not allowed to view this page.'
+                  ? appText.webUseAdminRoutesYourAccountIsNotAllowedToViewThisPage
                   : failure instanceof RouteCodeError
                     ? failure.message
                     : failure instanceof Error &&
                         failure.message ===
-                          'A staff operation is still running.'
-                      ? 'Wait for the current staff operation to finish, then retry or cancel navigation.'
-                      : 'This page could not be loaded. Retry or cancel navigation.',
+                          appText.webUseAdminRoutesAStaffOperationIsStillRunning
+                      ? appText.webUseAdminRoutesWaitForTheCurrentStaffOperationToFinishThenRetry
+                      : appText.webUseAdminRoutesThisPageCouldNotBeLoadedRetryOrCancelNavigation,
             });
           }
         })

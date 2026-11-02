@@ -26,6 +26,7 @@
     "test:all": "node scripts/check-local.mjs",
     "test:tools": "node --test scripts/*.test.mjs",
     "check:docs": "node scripts/check-docs.mjs",
+    "check:text": "node scripts/check-application-text.mjs",
     "validate": "npm run format:check && npm run lint && npm run build && npm run catalog:check && npm run typecheck && npm test && npm run check:docs",
     "db:migrate": "npm run migrate -w @clog/database",
     "dev:web": "npm run dev -w @clog/web",

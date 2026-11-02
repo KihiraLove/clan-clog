@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import {
   competitionScope,
   parseCompetitionDefinitions,
@@ -66,19 +67,21 @@ export function parseWomCompetition(value: unknown): WomCompetition {
     id = identity(c.id),
     source = competitionUrl(text(c.sourceUrl));
   if (source.id !== id || !['SKILL', 'ACTIVITY'].includes(String(c.kind)))
-    throw new Error('Invalid competition identity or kind.');
+    throw new Error(appText.webCompetitionApiInvalidCompetitionIdentityOrKind);
   const startsAt = timestamp(c.startsAt),
     endsAt = timestamp(c.endsAt),
     metrics = list(c.metrics).map(text);
   if (Date.parse(endsAt) <= Date.parse(startsAt) || !metrics.length)
-    throw new Error('Invalid competition period or metrics.');
+    throw new Error(appText.webCompetitionApiInvalidCompetitionPeriodOrMetrics);
   unique(metrics);
   const definitions =
     c.metricDefinitions == null
       ? undefined
       : parseCompetitionDefinitions(c.metricDefinitions, metrics);
   if (competitionScope(metrics, definitions).kind !== c.kind)
-    throw new Error('Competition kind does not match its WOM metric scope.');
+    throw new Error(
+      appText.webCompetitionApiCompetitionKindDoesNotMatchItsWomMetricScope,
+    );
   return {
     id,
     kind: c.kind as CompetitionKind,
@@ -132,19 +135,22 @@ export class LiveCompetitionClient implements CompetitionClient {
           response.headers.get('ETag') === this.activityCache.etag))
     ) {
       signal.throwIfAborted();
-      if (!clock) throw new Error('Missing current competition clock.');
+      if (!clock)
+        throw new Error(
+          appText.webCompetitionApiMissingCurrentCompetitionClock,
+        );
       void response.body?.cancel();
       return { ...this.activityCache.data, serverNow: timestamp(clock) };
     }
     if (!response.ok)
       throw new CompetitionRequestError(
         response.status,
-        'Competitions could not be refreshed.',
+        appText.webCompetitionApiCompetitionsCouldNotBeRefreshed,
       );
     const value = object(await response.json());
     const competitions = list(value.competitions).map(parseWomCompetition);
     if (competitions.some((c) => c.kind !== 'ACTIVITY'))
-      throw new Error('Invalid activity listing.');
+      throw new Error(appText.webCompetitionApiInvalidActivityListing);
     unique(competitions.map((c) => c.id));
     const data = {
       serverNow: timestamp(clock ?? value.serverNow),

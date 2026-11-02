@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Transactional snapshots; retries survive process restarts and preview expiry. */
 import type pg from 'pg';
 import type { WomCompetition } from '@clog/domain';
@@ -39,7 +40,7 @@ function readHistoryCursor(
   const expired = () =>
     new ApiError(
       409,
-      'XP import history changed or cursor expired. Reload the first page.',
+      appText.apiXpStoreXpImportHistoryChangedOrCursorExpiredReloadTheFirst,
     );
   try {
     if (!cursor || cursor.length > 1024 || !/^[A-Za-z0-9_-]+$/u.test(cursor))
@@ -111,7 +112,7 @@ export class PgXpStore implements XpStore {
         'SELECT version::text AS version FROM xp_state WHERE singleton=true',
       )
     ).rows[0];
-    if (!row) throw new ApiError(503, 'XP state unavailable.');
+    if (!row) throw new ApiError(503, appText.apiXpStoreXpStateUnavailable);
     return revisionFor(row.version);
   }
   private async events(client: pg.PoolClient): Promise<Row[]> {
@@ -122,7 +123,7 @@ export class PgXpStore implements XpStore {
       )
     ).rows;
     if (rows.length > maxEvents)
-      throw new ApiError(503, 'XP event limit exceeded.');
+      throw new ApiError(503, appText.apiXpStoreXpEventLimitExceeded);
     return rows;
   }
   private async buildTracker(client: pg.PoolClient) {
@@ -138,7 +139,7 @@ export class PgXpStore implements XpStore {
       )
     ).rows;
     if (currentMetadata.length > maxEvents)
-      throw new ApiError(503, 'XP event limit exceeded.');
+      throw new ApiError(503, appText.apiXpStoreXpEventLimitExceeded);
     // Archived contributions stay in all-time totals and event browsing. Both
     // branches are independently bounded; archived metadata without XP is paged separately.
     const archivedMetadata = (
@@ -149,7 +150,7 @@ export class PgXpStore implements XpStore {
       )
     ).rows;
     if (archivedMetadata.length > maxEvents)
-      throw new ApiError(503, 'XP event limit exceeded.');
+      throw new ApiError(503, appText.apiXpStoreXpEventLimitExceeded);
     const metadata = [...currentMetadata, ...archivedMetadata];
     const totalPlayers = new Map<number, PodiumPlayer>();
     // Name snapshots follow the latest successful import; stable ID breaks timestamp ties.
@@ -278,7 +279,7 @@ export class PgXpStore implements XpStore {
   }
   async history(cursor?: string, limit = 20) {
     if (!Number.isInteger(limit) || limit < 1 || limit > 20)
-      throw new ApiError(400, 'Page size must be between 1 and 20.');
+      throw new ApiError(400, appText.apiXpStorePageSizeMustBeBetween1And20);
     return transaction(this.pool, 'snapshot', async (client) => {
       await client.query("SET LOCAL statement_timeout = '5s'");
       const state = (
@@ -286,7 +287,8 @@ export class PgXpStore implements XpStore {
           'SELECT history_version::text AS version FROM xp_state WHERE singleton',
         )
       ).rows[0];
-      if (!state) throw new ApiError(503, 'XP history state unavailable.');
+      if (!state)
+        throw new ApiError(503, appText.apiXpStoreXpHistoryStateUnavailable);
       const revision = 'xp-history-' + state.version;
       const key = readHistoryCursor(cursor, revision, limit);
       const rows = (
