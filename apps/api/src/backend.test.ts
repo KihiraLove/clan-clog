@@ -172,7 +172,13 @@ export class MemoryStore implements BackendStore {
     this.sessions.delete(hash);
   }
   async allowLogin() {
-    return ++this.attempts <= 20;
+    return ++this.attempts <= 20
+      ? { allowed: true as const }
+      : {
+          allowed: false as const,
+          scope: 'source' as const,
+          retryAfterSeconds: 60,
+        };
   }
 }
 function fixture() {
@@ -627,10 +633,14 @@ test('proxy login buckets distinguish clients and ignore spoofed forwarding pref
   for (const trusted of [['127.0.0.1/32'], ['127.0.0.1/32', '10.20.0.2/32']]) {
     const buckets = new Map<string, number>();
     const store: BackendStore = new MemoryStore();
-    store.allowLogin = async (hash) => {
-      const count = (buckets.get(hash) ?? 0) + 1;
-      buckets.set(hash, count);
-      return count <= 20;
+    store.allowLogin = async (attempt) => {
+      const key =
+        'sourceHash' in attempt ? attempt.sourceHash : attempt.accountId;
+      const count = (buckets.get(key) ?? 0) + 1;
+      buckets.set(key, count);
+      return count <= 20
+        ? { allowed: true }
+        : { allowed: false, scope: 'source', retryAfterSeconds: 60 };
     };
     const app = createApp(undefined, undefined, {
       store,

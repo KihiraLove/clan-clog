@@ -46,3 +46,36 @@ Operational logs/counters use bounded sanitized error classes and correlation
 IDs. Keep proof, keys, cookies and raw DB errors out of public logs. Run acceptance
 against a disposable stack, then verify HTTPS/proxy trust on your own host.
 See [testing](local-testing.md) and [recovery](release-recovery.md).
+
+## Staff credential admission
+
+`POST /api/v1/auth/login` reserves database-backed admission before account lookup
+or password work: 20 attempts per trusted client address and 5 per normalized
+username in independent 60-second windows. The source gate runs first. All
+admitted attempts count, including successes; rejected retries do not extend a
+window. Username matching uses PostgreSQL `lower()` exactly as account lookup
+does, equally for unknown, disabled and existing accounts. Account changes,
+including first-login setup, separately allow 5 current-password checks per staff
+account per 60 seconds. These are application defaults, not prescribed OWASP
+thresholds. Short recovery limits attacker-induced lockout; existing sessions and
+logout remain available. Password-work saturation retains its separate one-second
+retry and existing bounded scrypt queue.
+
+One short database metadata lock coordinates workers and a restart-safe cap of
+10,000 opaque credential buckets plus one bookkeeping row. Each admission cleans
+at most 64 expired rows using the expiry index; no global expired-row sweep or credential work occurs under the
+lock. Exhausted source/account buckets return via one indexed read, without
+waiting for this shared lock. Lock/statement deadlines bound contention. Capacity or unavailable limiter
+storage fails closed with a sanitized 503; existing sessions remain usable. A
+bucket expires logically after 60 seconds. Physical deletion happens in bounded
+batches during subsequent admission, so expired hashes can remain while idle;
+the shared cap bounds their cardinality. This trades temporary admission failures
+during a large distributed burst for bounded shared storage. No account is disabled or manually unlocked by this
+policy. Limiter state contains hashes, counts and deadlines, never raw usernames
+or addresses. Throttle diagnostics use fixed codes and no credential/client data;
+Nginx access logs omit client addresses and query strings.
+
+The sign-in form uses a validated `Retry-After`, clears submitted passwords and
+disables submission during the known delay. Only the bounded cooldown deadline is
+kept in tab session storage for reloads; credentials are never retained for retry.
+Client controls supplement the server policy and cannot bypass it.

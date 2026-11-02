@@ -75,7 +75,12 @@ function collectionTypeMatches(
 
 export class AdminRequestError extends Error {
   readonly status: number;
-  constructor(status: number, serverConflict?: string) {
+  declare readonly retryAfterSeconds: number | undefined;
+  constructor(
+    status: number,
+    serverConflict?: string,
+    retryAfterSeconds?: number,
+  ) {
     super(
       [400, 409].includes(status) &&
         serverConflict &&
@@ -115,6 +120,7 @@ export class AdminRequestError extends Error {
                       : appText.webAdminApiTheRequestCouldNotBeCompletedReloadOrRetryTo,
     );
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 export class LiveAdminClient implements AdminClient {
@@ -455,11 +461,8 @@ export class LiveAdminClient implements AdminClient {
     password: string,
     signal: AbortSignal,
   ): Promise<void> {
-    await this.response('/api/v1/auth/login', signal, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
+    const { login } = await import('./auth-login.ts');
+    await login(this.request, username, password, signal);
   }
   async accounts(signal: AbortSignal) {
     const result = object(await this.json('/api/v1/admin/accounts', signal));

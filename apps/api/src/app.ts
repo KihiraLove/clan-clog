@@ -342,6 +342,7 @@ export function createApp(
           previews,
           passwords,
           options.accessControl,
+          diagnostics,
         )
       : undefined;
   if (!requireAdmin) {

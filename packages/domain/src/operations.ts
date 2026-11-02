@@ -15,6 +15,10 @@ export const errorCategories = [
 export type ErrorCategory = (typeof errorCategories)[number];
 const codes = [
   'AUTH_REQUIRED',
+  'AUTH_SOURCE_LIMIT',
+  'AUTH_IDENTITY_LIMIT',
+  'AUTH_ACCOUNT_LIMIT',
+  'AUTH_LIMIT_STORAGE',
   'ACCESS_DENIED',
   'INVALID_INPUT',
   'CONFLICT',
@@ -96,9 +100,16 @@ export const safeCorrelation = (value: unknown): string | undefined =>
     ? value
     : undefined;
 type Event =
-  'request' | 'failure' | 'readiness' | 'shutdown' | 'receipt' | 'process';
+  | 'request'
+  | 'failure'
+  | 'readiness'
+  | 'shutdown'
+  | 'receipt'
+  | 'process'
+  | 'throttle';
 type Operation =
   | 'http'
+  | 'auth'
   | 'submission'
   | 'autocomplete'
   | 'pool'

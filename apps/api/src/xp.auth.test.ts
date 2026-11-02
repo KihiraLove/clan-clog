@@ -67,7 +67,7 @@ test('XP preview/apply/history require allowlisted browser session and CSRF; pub
       sessions.delete(k);
     },
     async allowLogin() {
-      return true;
+      return { allowed: true };
     },
   } as unknown as BackendStore;
   const token = 'A'.repeat(43);
