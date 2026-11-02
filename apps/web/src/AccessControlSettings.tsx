@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { useState } from 'react';
 import {
   staffPages,
@@ -29,13 +30,20 @@ export function AccessControlSettings({
     setPages(value.moderatorPages);
   };
   if (!saved)
-    return <p role="alert">Access control is unavailable. Reload this page.</p>;
+    return (
+      <p role="alert">
+        {
+          appText.webAccessControlSettingsAccessControlIsUnavailableReloadThisPage
+        }
+      </p>
+    );
   return (
     <section className="admin-panel access-control-settings">
-      <h2>Access control</h2>
+      <h2>{appText.webAccessControlSettingsAccessControl}</h2>
       <p>
-        Choose which pages all moderators can access. Administrator-only
-        controls remain restricted.
+        {
+          appText.webAccessControlSettingsChooseWhichPagesAllModeratorsCanAccessAdministratorOnlyControls
+        }
       </p>
       <form
         onSubmit={(event) => {
@@ -50,7 +58,9 @@ export function AccessControlSettings({
               );
               if (!signal.aborted) {
                 accept(value);
-                action.setMessage('Access control saved.');
+                action.setMessage(
+                  appText.webAccessControlSettingsAccessControlSaved,
+                );
               }
             },
             async (signal) => {
@@ -61,7 +71,7 @@ export function AccessControlSettings({
         }}
       >
         <fieldset disabled={action.busy}>
-          <legend>Moderator page access</legend>
+          <legend>{appText.webAccessControlSettingsModeratorPageAccess}</legend>
           {staffPages.map((page) => (
             <div className="access-control-row" key={page.id}>
               <span id={'access-label-' + page.id}>{page.label}</span>
@@ -83,14 +93,16 @@ export function AccessControlSettings({
                   action.setMessage(undefined);
                 }}
               >
-                {pages.includes(page.id) ? 'On' : 'Off'}
+                {pages.includes(page.id)
+                  ? appText.webAccessControlSettingsOn
+                  : appText.webAccessControlSettingsOff}
               </button>
             </div>
           ))}
         </fieldset>
         <div className="admin-actions">
           <button className="site-button" disabled={action.busy || !dirty}>
-            Save changes
+            {appText.webAccessControlSettingsSaveChanges}
           </button>
           <button
             type="button"
@@ -101,7 +113,7 @@ export function AccessControlSettings({
               action.setMessage(undefined);
             }}
           >
-            Discard changes
+            {appText.webAccessControlSettingsDiscardChanges}
           </button>
         </div>
       </form>

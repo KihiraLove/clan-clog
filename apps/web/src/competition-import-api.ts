@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Private competition import transport is loaded only when staff use it. */
 import {
   competitionAmount,
@@ -28,7 +29,10 @@ import {
 export class UnknownMetricRequestError extends CompetitionRequestError {
   readonly resolution: CompetitionMetricResolution;
   constructor(resolution: CompetitionMetricResolution) {
-    super(422, 'Choose how to record the unknown competition metrics.');
+    super(
+      422,
+      appText.webCompetitionImportApiChooseHowToRecordTheUnknownCompetitionMetrics,
+    );
     this.resolution = resolution;
   }
 }
@@ -57,13 +61,16 @@ export function parseMetricResolution(
     !/^metrics-[1-9][0-9]*$/u.test(revision) ||
     startsAt >= endsAt
   )
-    throw new Error('Invalid metric resolution prompt.');
+    throw new Error(
+      appText.webCompetitionImportApiInvalidMetricResolutionPrompt,
+    );
   const pages = list(row.pages).map((p) => ({
     id: text(object(p).id),
     name: text(object(p).name),
   }));
   unique(pages.map((p) => p.id));
-  if (pages.length > 2000) throw new Error('Invalid metric page choices.');
+  if (pages.length > 2000)
+    throw new Error(appText.webCompetitionImportApiInvalidMetricPageChoices);
   return {
     id,
     title: text(row.title),
@@ -98,9 +105,9 @@ async function json(
     if (!response.ok)
       throw new CompetitionRequestError(
         response.status,
-        'Competition request failed.',
+        appText.webCompetitionImportApiCompetitionRequestFailed,
       );
-    throw new Error('Invalid competition response.');
+    throw new Error(appText.webCompetitionImportApiInvalidCompetitionResponse);
   }
   if (
     response.status === 422 &&
@@ -115,7 +122,7 @@ async function json(
       response.status,
       typeof object(value).error === 'string'
         ? String(object(value).error)
-        : 'Competition request failed.',
+        : appText.webCompetitionImportApiCompetitionRequestFailed,
     );
   return value;
 }
@@ -139,7 +146,7 @@ export async function previewCompetition(
         error.resolution.id !== competitionUrl(url).id
       )
         throw new Error(
-          'Metric prompt does not match the requested competition.',
+          appText.webCompetitionImportApiMetricPromptDoesNotMatchTheRequestedCompetition,
         );
       throw error;
     }),
@@ -147,7 +154,7 @@ export async function previewCompetition(
   const competition = parseWomCompetition(p.competition);
   if (competition.id !== competitionUrl(url).id)
     throw new Error(
-      'Competition preview identity does not match the requested WOM link.',
+      appText.webCompetitionImportApiCompetitionPreviewIdentityDoesNotMatchTheRequestedWomLink,
     );
   if (
     !['future', 'running', 'finished'].includes(String(p.lifecycle)) ||
@@ -159,7 +166,7 @@ export async function previewCompetition(
       'import-metadata',
     ].includes(String(p.action))
   )
-    throw new Error('Invalid import action.');
+    throw new Error(appText.webCompetitionImportApiInvalidImportAction);
   const participants = list(p.participants).map((entry) => {
     const r = object(entry),
       gains = r.gains
@@ -183,7 +190,9 @@ export async function previewCompetition(
           competition.metricDefinitions,
         );
   if (p.lifecycle !== 'finished' && (participants.length || standings?.length))
-    throw new Error('Live imports must contain metadata only.');
+    throw new Error(
+      appText.webCompetitionImportApiLiveImportsMustContainMetadataOnly,
+    );
   const metadataOnly =
     !competitionUsesPages(competition.metrics, competition.metricDefinitions) &&
     p.lifecycle !== 'finished';
@@ -195,7 +204,9 @@ export async function previewCompetition(
         list(p.changes).length ||
         p.scheduleStartsAt !== null))
   )
-    throw new Error('Invalid metadata-only competition preview.');
+    throw new Error(
+      appText.webCompetitionImportApiInvalidMetadataOnlyCompetitionPreview,
+    );
   return {
     previewToken: text(p.previewToken),
     expectedRevision: text(p.expectedRevision),
@@ -245,7 +256,7 @@ export async function saveCompetitionMetrics(
       JSON.stringify(definitions.map((d) => d.metric).sort())
   )
     throw new Error(
-      'Unexpected metric save receipt. Retry the same choices to confirm.',
+      appText.webCompetitionImportApiUnexpectedMetricSaveReceiptRetryTheSameChoicesToConfirm,
     );
 }
 export async function applyCompetitionImport(
@@ -272,6 +283,6 @@ export async function applyCompetitionImport(
     }),
   );
   if (!['applied', 'unchanged'].includes(String(r.outcome)))
-    throw new Error('Invalid import receipt.');
+    throw new Error(appText.webCompetitionImportApiInvalidImportReceipt);
   return { outcome: r.outcome as 'applied' | 'unchanged' };
 }

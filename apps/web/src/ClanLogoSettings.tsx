@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { useEffect, useState } from 'react';
 import { classifyAccessFailure } from './admin-session.ts';
 import { AdminRequestError } from './admin-api.ts';
@@ -90,7 +91,7 @@ export function useClanLogoDraft(
       if (file === undefined) return;
       if (!saved)
         throw new Error(
-          'Clan logo settings are unavailable. Retry logo settings.',
+          appText.webClanLogoSettingsClanLogoSettingsAreUnavailableRetryLogoSettings,
         );
       if (file) validateLogoFile(file);
       try {
@@ -129,12 +130,12 @@ export function ClanLogoSettings({
 }) {
   return (
     <div className="clan-logo-settings">
-      <h3>Clan logo</h3>
+      <h3>{appText.webClanLogoSettingsClanLogo}</h3>
       {draft.readError && (
         <p role="alert">
-          Clan logo settings are unavailable.{' '}
+          {appText.webClanLogoSettingsClanLogoSettingsAreUnavailable}{' '}
           <button type="button" onClick={draft.retry}>
-            Retry logo settings
+            {appText.webClanLogoSettingsRetryLogoSettings}
           </button>
         </p>
       )}
@@ -146,20 +147,17 @@ export function ClanLogoSettings({
           <img
             className="clan-logo"
             src={draft.previewPath}
-            alt="Current clan logo"
+            alt={appText.webClanLogoSettingsCurrentClanLogo}
           />
         ) : (
           <div className="clan-logo-placeholder" aria-hidden="true" />
         )}
       </div>
-      <p>
-        JPEG, PNG, GIF, WebP, SVG, AVIF or TIFF up to 10MiB, maximum 8192x8193
-        pixels
-      </p>
+      <p>{appText.webClanLogoSettingsJpegPngGifWebPSvgAvifOrTiffUpTo}</p>
       <input
         key={draft.inputVersion}
         type="file"
-        aria-label="Logo image"
+        aria-label={appText.webClanLogoSettingsLogoImage}
         accept="image/*,.avif,.tif,.tiff"
         disabled={disabled || !draft.saved}
         onChange={(event) => draft.select(event.target.files?.[0])}
@@ -174,7 +172,7 @@ export function ClanLogoSettings({
         }
         onClick={draft.restoreDefault}
       >
-        Restore default logo
+        {appText.webClanLogoSettingsRestoreDefaultLogo}
       </button>
       {draft.error && <p role="alert">{draft.error}</p>}
     </div>

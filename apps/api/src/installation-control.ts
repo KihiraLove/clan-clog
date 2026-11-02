@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { request } from 'node:http';
 export interface InstallationStatus {
   instance: string;
@@ -31,13 +32,17 @@ export function control(
         res.on('data', (chunk) => {
           data += String(chunk);
           if (data.length > 8192)
-            req.destroy(new Error('Invalid installation response'));
+            req.destroy(
+              new Error(
+                appText.apiInstallationControlInvalidInstallationResponse,
+              ),
+            );
         });
         res.once('end', () => {
           try {
             if (res.statusCode !== 200)
               throw new Error(
-                'Installation operation failed; inspect clog status and the container log',
+                appText.apiInstallationControlInstallationOperationFailedInspectClogStatusAndTheContainerLog,
               );
             resolve(JSON.parse(data) as InstallationStatus);
           } catch (error) {
@@ -47,7 +52,9 @@ export function control(
       },
     );
     req.setTimeout(85000, () =>
-      req.destroy(new Error('Installation operation timed out')),
+      req.destroy(
+        new Error(appText.apiInstallationControlInstallationOperationTimedOut),
+      ),
     );
     req.once('error', reject);
     req.end(body);
@@ -66,5 +73,7 @@ export async function waitForWebsite() {
     }
     await new Promise<void>((resolve) => setTimeout(resolve, 500));
   }
-  throw new Error('Website readiness deadline expired');
+  throw new Error(
+    appText.apiInstallationControlWebsiteReadinessDeadlineExpired,
+  );
 }

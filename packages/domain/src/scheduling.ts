@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 export interface CollectionScheduleInput {
   title: string;
   startsAt: string;
@@ -6,7 +7,7 @@ export interface CollectionScheduleInput {
 }
 /** Legacy API reply retained by client adapters; current intake never rejects closed pages. */
 export const closedCollectionPageMessage =
-  'Submissions are closed for this item. At least one associated collection log page must be open.';
+  appText.domainSchedulingSubmissionsAreClosedForThisItemAtLeastOneAssociated;
 export interface CollectionSchedule extends CollectionScheduleInput {
   id: string;
 }
@@ -29,14 +30,16 @@ export function parsePermanentPageIds(value: unknown): string[] {
     ) ||
     new Set(value).size !== value.length
   )
-    throw new Error('Choose up to 2,000 distinct collection log pages.');
+    throw new Error(
+      appText.domainSchedulingChooseUpTo2000DistinctCollectionLogPages,
+    );
   return [...(value as string[])].sort();
 }
 export const scheduleIdPattern =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu;
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid schedule.');
+    throw new Error(appText.domainSchedulingInvalidSchedule);
   return value as Record<string, unknown>;
 }
 function utcTime(value: unknown): string {
@@ -47,10 +50,10 @@ function utcTime(value: unknown): string {
     ) ||
     value.startsWith('0000-')
   )
-    throw new Error('Use a complete UTC date and time.');
+    throw new Error(appText.domainSchedulingUseACompleteUtcDateAndTime);
   const date = new Date(value);
   if (!Number.isFinite(date.getTime()) || date.toISOString() !== value)
-    throw new Error('Invalid schedule date and time.');
+    throw new Error(appText.domainSchedulingInvalidScheduleDateAndTime);
   return value;
 }
 export function parseCollectionScheduleInput(
@@ -77,11 +80,12 @@ export function parseCollectionScheduleInput(
     new Set(row.pageIds).size !== row.pageIds.length
   )
     throw new Error(
-      'Choose a schedule name and one or more distinct collection log pages.',
+      appText.domainSchedulingChooseAScheduleNameAndOneOrMoreDistinctCollection,
     );
   const startsAt = utcTime(row.startsAt),
     endsAt = utcTime(row.endsAt);
-  if (startsAt >= endsAt) throw new Error('The end must be after the start.');
+  if (startsAt >= endsAt)
+    throw new Error(appText.domainSchedulingTheEndMustBeAfterTheStart);
   return {
     title: row.title.trim(),
     startsAt,
@@ -98,17 +102,17 @@ export function parseSchedulingState(value: unknown): SchedulingState {
     !Array.isArray(row.schedules) ||
     row.schedules.length > 500
   )
-    throw new Error('Invalid scheduling state.');
+    throw new Error(appText.domainSchedulingInvalidSchedulingState);
   const schedules = row.schedules.map((value) => {
     const { id, ...input } = record(value);
     if (typeof id !== 'string' || !scheduleIdPattern.test(id))
-      throw new Error('Invalid schedule ID.');
+      throw new Error(appText.domainSchedulingInvalidScheduleId);
     return { id, ...parseCollectionScheduleInput(input) };
   });
   if (
     new Set(schedules.map((schedule) => schedule.id)).size !== schedules.length
   )
-    throw new Error('Duplicate schedule IDs.');
+    throw new Error(appText.domainSchedulingDuplicateScheduleIds);
   return {
     revision: row.revision,
     enabled: row.enabled,

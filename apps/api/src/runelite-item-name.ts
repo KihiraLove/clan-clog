@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Optional submitted names are evidence, never a catalog matching key. */
 import { ApiError } from './types.js';
 
@@ -8,7 +9,7 @@ export function validateRuneLiteItemName(name: string | undefined) {
   )
     throw new ApiError(
       422,
-      'Supply a nonempty item name of up to 200 characters without NUL.',
+      appText.apiRuneliteItemNameSupplyANonemptyItemNameOfUpTo200Characters,
     );
 }
 
@@ -43,5 +44,5 @@ export function runeLiteItemName(
       .trim();
     if (name && name.length <= 200) return name;
   }
-  return `Name not supplied — game item #${fields.itemId}`;
+  return appText.apiRuneliteItemNameNameNotSuppliedGameItem(fields.itemId);
 }

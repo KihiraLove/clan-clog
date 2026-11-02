@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Validated aggregate tracker and private session HTTP reads. */
 import { parseTracker } from './xp-tracker.ts';
 import {
@@ -12,19 +13,19 @@ export class XpRequestError extends Error {
     super(
       status === 409 &&
         detail ===
-          'The XP tracker has reached its 2000-event capacity. Existing events can still be refreshed.'
+          appText.webXpApiTheXpTrackerHasReachedIts2000EventCapacityExisting
         ? detail
         : status === 401
-          ? 'Sign in with the admin password to import competitions.'
+          ? appText.webXpApiSignInWithTheAdminPasswordToImportCompetitions
           : status === 403
-            ? 'Your account is not allowed to import competitions.'
+            ? appText.webXpApiYourAccountIsNotAllowedToImportCompetitions
             : status === 409
-              ? 'This preview is out of date. Preview the competition again.'
+              ? appText.webXpApiThisPreviewIsOutOfDatePreviewTheCompetitionAgain
               : status === 429
-                ? 'The source is rate limited. Try again shortly.'
+                ? appText.webXpApiTheSourceIsRateLimitedTryAgainShortly
                 : [404, 501, 503].includes(status)
-                  ? 'The XP service is not available yet.'
-                  : 'Could not refresh XP. Your last successful results are preserved.',
+                  ? appText.webXpApiTheXpServiceIsNotAvailableYet
+                  : appText.webXpApiCouldNotRefreshXpYourLastSuccessfulResultsArePreserved,
     );
     this.status = status;
   }
@@ -94,7 +95,8 @@ export class LiveXpClient implements XpClient {
     const result = parseTracker(
       await this.json('/api/v1/xp/tracker', signal, {}, staged),
     );
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (signal.aborted)
+      throw new DOMException(appText.webXpApiAborted, 'AbortError');
     for (const [path, entry] of staged) this.cache.set(path, entry);
     return result;
   }

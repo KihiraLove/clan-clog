@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Render the five-tab log, per-category selection, canonical progress and item history. */
 import {
   useCallback,
@@ -40,8 +41,11 @@ function ItemIcon({ path }: { path: string }) {
     return () => window.clearTimeout(timer);
   }, [broken, attempt]);
   return broken ? (
-    <span className="icon-missing" aria-label="Icon unavailable">
-      ?
+    <span
+      className="icon-missing"
+      aria-label={appText.webCollectionLogIconUnavailable}
+    >
+      {appText.webCollectionLogQuestionMark}
     </span>
   ) : (
     <img
@@ -84,7 +88,12 @@ function ItemSlot({
     <button
       type="button"
       className={`item-slot${state.collected ? ' item-slot--collected' : ''}${state.hardcoreCollected ? ' item-slot--hardcore' : ''}${state.eventCollected ? ' item-slot--event' : ''}`}
-      aria-label={`${item.name}: ${state.collected ? 'collected' : 'not collected'}${state.hardcoreCollected ? ', hardcore' : ''}${state.obtainCount >= 2 ? `, ${state.obtainCount} obtains` : ''}`}
+      aria-label={appText.webCollectionLogItemLabel(
+        item.name,
+        state.collected,
+        state.hardcoreCollected,
+        state.obtainCount,
+      )}
       aria-describedby={active ? `item-menu-${item.id}` : undefined}
       onPointerEnter={(event) => {
         if (event.pointerType !== 'touch') reveal(event.currentTarget, false);
@@ -251,7 +260,7 @@ export function CollectionLog({
   return (
     <section
       className="collection-section public-log-layout"
-      aria-label="Clan collection log"
+      aria-label={appText.webCollectionLogClanCollectionLog}
       style={{ '--log-scale': scale } as CSSProperties}
     >
       <h1 className="log-help" data-page-heading>
@@ -263,7 +272,7 @@ export function CollectionLog({
         />
         <span>
           {copy.collectionCaption}
-          {hardcore && ' Hardcore worlds'}
+          {hardcore && appText.webCollectionLogHardcoreWorlds}
         </span>
       </h1>
       {activity}
@@ -272,11 +281,11 @@ export function CollectionLog({
           <div className="game-window">
             <header className="game-titlebar">
               <h2>
-                Collection Log
+                {appText.webCollectionLogCollectionLog}
                 {catalog && (
                   <>
                     {' '}
-                    -{' '}
+                    {appText.webCollectionLogDash}{' '}
                     <span
                       className={
                         globalProgress.collected === globalProgress.total &&
@@ -301,13 +310,16 @@ export function CollectionLog({
                   setQuery('');
                 }}
               >
-                <span aria-hidden="true">⌕</span> Search
+                <span aria-hidden="true">
+                  {appText.webCollectionLogSearchSymbol}
+                </span>
+                {appText.webCollectionLogSearch}
               </button>
             </header>
             <div
               className="game-tabs"
               role="tablist"
-              aria-label="Collection log categories"
+              aria-label={appText.webCollectionLogCollectionLogCategories}
             >
               {categories.map((tab, index) => (
                 <button
@@ -333,16 +345,20 @@ export function CollectionLog({
             >
               <aside
                 className="game-sidebar"
-                aria-label={`${categories.find((tab) => tab.id === category)?.name ?? 'Collection log'} pages`}
+                aria-label={appText.webCollectionLogPages(
+                  categories.find((tab) => tab.id === category)?.name,
+                )}
               >
                 {searching && (
                   <label className="page-search" id="page-search">
-                    <span className="sr-only">Search pages</span>
+                    <span className="sr-only">
+                      {appText.webCollectionLogSearchPages}
+                    </span>
                     <input
                       ref={searchRef}
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Search pages..."
+                      placeholder={appText.webCollectionLogSearchPages2}
                       onKeyDown={(event) => {
                         if (event.key === 'Escape') {
                           setSearching(false);
@@ -391,8 +407,8 @@ export function CollectionLog({
                   {catalog && !visiblePages.length && (
                     <p className="list-empty">
                       {query
-                        ? 'No matching pages.'
-                        : 'No pages in this category.'}
+                        ? appText.webCollectionLogNoMatchingPages
+                        : appText.webCollectionLogNoPagesInThisCategory}
                     </p>
                   )}
                 </div>
@@ -403,7 +419,7 @@ export function CollectionLog({
                     <div className="page-heading">
                       <h3>{page.name}</h3>
                       <p>
-                        Obtained:{' '}
+                        {appText.webCollectionLogObtained}{' '}
                         <span
                           className={progressClass(
                             pageProgress.collected,
@@ -417,7 +433,7 @@ export function CollectionLog({
                     <div className="item-area game-scroll" ref={gridRef}>
                       <div
                         className="item-grid"
-                        aria-label={`${page.name} items`}
+                        aria-label={appText.webCollectionLogItems(page.name)}
                       >
                         {page.itemIds.map((itemId) => (
                           <ItemSlot
@@ -432,7 +448,9 @@ export function CollectionLog({
                         ))}
                       </div>
                       {!page.itemIds.length && (
-                        <p className="list-empty">No items on this page yet.</p>
+                        <p className="list-empty">
+                          {appText.webCollectionLogNoItemsOnThisPageYet}
+                        </p>
                       )}
                     </div>
                   </>
@@ -440,16 +458,16 @@ export function CollectionLog({
                   <div className="log-state" role={error ? 'alert' : 'status'}>
                     <h3>
                       {loading
-                        ? 'Loading collection log...'
+                        ? appText.webCollectionLogLoadingCollectionLog
                         : error
-                          ? 'Collection log unavailable'
-                          : 'No catalog yet'}
+                          ? appText.webCollectionLogCollectionLogUnavailable
+                          : appText.webCollectionLogNoCatalogYet}
                     </h3>
                     <p>
                       {loading
-                        ? 'Fetching pages and collected items.'
+                        ? appText.webCollectionLogFetchingPagesAndCollectedItems
                         : (error ??
-                          'No collection-log pages have been published.')}
+                          appText.webCollectionLogNoCollectionLogPagesHaveBeenPublished)}
                     </p>
                     {retry && !loading && (
                       <button
@@ -457,7 +475,7 @@ export function CollectionLog({
                         type="button"
                         onClick={retry}
                       >
-                        Try again
+                        {appText.webCollectionLogTryAgain}
                       </button>
                     )}
                   </div>
@@ -469,9 +487,10 @@ export function CollectionLog({
       </div>
       {data && error && (
         <p className="refresh-error" role="status">
-          {error} Showing the last successful update.{' '}
+          {error}
+          {appText.webCollectionLogShowingTheLastSuccessfulUpdate}{' '}
           <button type="button" onClick={retry}>
-            Retry
+            {appText.webCollectionLogRetry}
           </button>
         </p>
       )}

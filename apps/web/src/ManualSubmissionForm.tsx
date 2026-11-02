@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Admin-authored drops use the same review and world-credit ledger as bot claims. */
 import { AdminRequestError } from './admin-api.ts';
 import { useAdminAction } from './use-admin-action.ts';
@@ -65,14 +66,16 @@ export function ManualSubmissionForm({
     if (busy) return;
     setError(undefined);
     if (!chosen || !collectorName.trim() || !collectedOn) {
-      setError('Select a specific item, collector and collection date.');
+      setError(
+        appText.webManualSubmissionFormSelectASpecificItemCollectorAndCollectionDate,
+      );
       return;
     }
     if (
       screenshot &&
       (screenshot.type !== 'image/png' || screenshot.size > 10 * 1024 * 1024)
     ) {
-      setError('Choose a PNG screenshot up to 10 MiB.');
+      setError(appText.webManualSubmissionFormChooseAPngScreenshotUpTo10MiB);
       return;
     }
     await action.execute(async (signal) => {
@@ -124,14 +127,16 @@ export function ManualSubmissionForm({
       setFormVersion((value) => value + 1);
       setApprove(true);
       setReason('');
-      action.setMessage('Manual submission created successfully.');
+      action.setMessage(
+        appText.webManualSubmissionFormManualSubmissionCreatedSuccessfully,
+      );
       onCreated(result);
     });
   };
 
   return (
     <section className="admin-panel">
-      <h2>Manual submission</h2>
+      <h2>{appText.webManualSubmissionFormManualSubmission}</h2>
       <div className="admin-actions">
         <button
           className="site-button"
@@ -139,7 +144,9 @@ export function ManualSubmissionForm({
           disabled={busy}
           onClick={() => setOpen(!open)}
         >
-          {open ? 'Cancel manual entry' : 'Add manual submission'}
+          {open
+            ? appText.webManualSubmissionFormCancelManualEntry
+            : appText.webManualSubmissionFormAddManualSubmission}
         </button>
       </div>
       {action.message && (
@@ -156,7 +163,7 @@ export function ManualSubmissionForm({
             <div className="admin-form-grid manual-submission-columns">
               <div>
                 <label>
-                  Collector name
+                  {appText.webManualSubmissionFormCollectorName}
                   <input
                     required
                     maxLength={80}
@@ -165,16 +172,18 @@ export function ManualSubmissionForm({
                   />
                 </label>
                 <label>
-                  PNG screenshot (optional)
+                  {appText.webManualSubmissionFormPngScreenshotOptional}
                   <input
                     type="file"
                     accept="image/png,.png"
                     onChange={(event) => setScreenshot(event.target.files?.[0])}
                   />
-                  <span className="admin-note">Up to 10 MiB.</span>
+                  <span className="admin-note">
+                    {appText.webManualSubmissionFormUpTo10MiB}
+                  </span>
                 </label>
                 <label>
-                  Reason or note (optional)
+                  {appText.webManualSubmissionFormReasonOrNoteOptional}
                   <textarea
                     maxLength={1000}
                     rows={2}
@@ -185,7 +194,7 @@ export function ManualSubmissionForm({
               </div>
               <div>
                 <label>
-                  Search catalog items
+                  {appText.webManualSubmissionFormSearchCatalogItems}
                   <input
                     type="search"
                     value={search}
@@ -193,25 +202,30 @@ export function ManualSubmissionForm({
                   />
                 </label>
                 <label>
-                  Canonical item
+                  {appText.webManualSubmissionFormCanonicalItem}
                   <select
-                    aria-label="Canonical item"
+                    aria-label={appText.webManualSubmissionFormCanonicalItem}
                     className="catalog-choice-list"
                     required
                     size={5}
                     value={itemId}
                     onChange={(event) => setItemId(event.target.value)}
                   >
-                    <option value="">Choose the exact item…</option>
+                    <option value="">
+                      {appText.webManualSubmissionFormChooseTheExactItem}
+                    </option>
                     {visible.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.name} · #{item.id}
+                        {appText.webManualSubmissionFormItemIdentity(
+                          item.name,
+                          item.id,
+                        )}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label>
-                  Collection date
+                  {appText.webManualSubmissionFormCollectionDate}
                   <input
                     type="date"
                     required
@@ -234,7 +248,7 @@ export function ManualSubmissionForm({
                     )
                   }
                 />
-                Obtained during events
+                {appText.webManualSubmissionFormObtainedDuringEvents}
               </label>
               <label className="admin-checkbox">
                 <input
@@ -245,7 +259,7 @@ export function ManualSubmissionForm({
                     setCollectionType('regular');
                   }}
                 />
-                Collected on hardcore worlds
+                {appText.webManualSubmissionFormCollectedOnHardcoreWorlds}
               </label>
               <label className="admin-checkbox">
                 <input
@@ -253,13 +267,15 @@ export function ManualSubmissionForm({
                   checked={approve}
                   onChange={(event) => setApprove(event.target.checked)}
                 />
-                Approve immediately
+                {appText.webManualSubmissionFormApproveImmediately}
               </label>
             </div>
           </fieldset>
           {pending && (
             <p className="admin-note">
-              Retry to confirm this submission before changing its details.
+              {
+                appText.webManualSubmissionFormRetryToConfirmThisSubmissionBeforeChangingItsDetails
+              }
             </p>
           )}
           {error && (
@@ -269,10 +285,10 @@ export function ManualSubmissionForm({
           )}
           <button className="site-button" type="submit" disabled={busy}>
             {busy
-              ? 'Saving…'
+              ? appText.webManualSubmissionFormSaving
               : pending
-                ? 'Retry manual submission'
-                : 'Create manual submission'}
+                ? appText.webManualSubmissionFormRetryManualSubmission
+                : appText.webManualSubmissionFormCreateManualSubmission}
           </button>
         </form>
       )}

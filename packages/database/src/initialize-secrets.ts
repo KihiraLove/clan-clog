@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Explicit installation initialization; managed secret files are persistent, not image data. */
 import { randomBytes, randomUUID } from 'node:crypto';
 import {
@@ -31,12 +32,12 @@ export function initializeSecrets(
     existsSync(join(root, 'postgres', 'rotation.json'))
   )
     throw new Error(
-      'A secret rotation is incomplete; resume the rotation before startup',
+      appText.databaseInitializeSecretsASecretRotationIsIncompleteResumeTheRotationBeforeStartup,
     );
   const populated = existsSync(join(database, 'PG_VERSION'));
   if (!existing && populated && !adopt)
     throw new Error(
-      'Existing database needs explicit init --adopt-environment with all three existing secrets',
+      appText.databaseInitializeSecretsExistingDatabaseNeedsExplicitInitAdoptEnvironmentWithAllThree,
     );
   const values: Partial<Record<SecretKind, string>> = {};
   for (const [kind, name] of Object.entries(managedSecrets) as [
@@ -46,7 +47,9 @@ export function initializeSecrets(
     const directory = join(root, kind);
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     if (lstatSync(directory).isSymbolicLink())
-      throw new Error('Secret directories must be regular directories');
+      throw new Error(
+        appText.databaseInitializeSecretsSecretDirectoriesMustBeRegularDirectories,
+      );
     if (process.platform !== 'win32') {
       chmodSync(directory, 0o700);
       if (process.getuid?.() === 0) chownSync(directory, 1000, 1000);
@@ -57,26 +60,36 @@ export function initializeSecrets(
       values[kind] = readSecret(name, { [name + '_FILE']: file })!;
       if (supplied && supplied !== values[kind])
         throw new Error(
-          `${name} differs from the installed secret; use explicit rotation`,
+          appText.databaseInitializeSecretsDiffersFromTheInstalledSecretUseExplicitRotation(
+            name,
+          ),
         );
     } else {
       if (existing || (populated && !adopt))
         throw new Error(
-          `Installed ${name} is missing; restore it before startup`,
+          appText.databaseInitializeSecretsInstalledIsMissingRestoreItBeforeStartup(
+            name,
+          ),
         );
       if (adopt && !supplied)
-        throw new Error(`Adoption requires the existing ${name}`);
+        throw new Error(
+          appText.databaseInitializeSecretsAdoptionRequiresTheExisting(name),
+        );
       values[kind] = supplied ?? randomBytes(32).toString('hex');
     }
     if (!/^[a-f\d]{64,256}$/iu.test(values[kind]!))
-      throw new Error(`${name} must contain 32–128 random bytes as hex`);
+      throw new Error(
+        appText.databaseInitializeSecretsMustContain32128RandomBytesAsHex(name),
+      );
   }
   if (
     values.postgres === values.app ||
     values.session === values.postgres ||
     values.session === values.app
   )
-    throw new Error('All three installation secrets must differ');
+    throw new Error(
+      appText.databaseInitializeSecretsAllThreeInstallationSecretsMustDiffer,
+    );
   for (const kind of Object.keys(managedSecrets) as SecretKind[]) {
     const file = join(root, kind, 'value');
     if (!existsSync(file)) writeManagedFile(file, values[kind]! + '\n');
@@ -92,7 +105,9 @@ export function initializeSecrets(
       id?: string;
     };
     if (state.format !== 1 || !state.id)
-      throw new Error('Invalid installation secret manifest');
+      throw new Error(
+        appText.databaseInitializeSecretsInvalidInstallationSecretManifest,
+      );
   }
 }
 
@@ -111,7 +126,9 @@ if (
         !/^[a-f0-9-]{36}$/u.test(state.id) ||
         (state.generation && !/^[a-f0-9-]{36}$/u.test(state.generation))
       )
-        throw new Error('Invalid installation secret manifest');
+        throw new Error(
+          appText.databaseInitializeSecretsInvalidInstallationSecretManifest,
+        );
       console.log(
         JSON.stringify({
           id: state.id,
@@ -123,7 +140,9 @@ if (
     const rotation = args.find((arg) => arg.startsWith('--rotate='));
     if (rotation) {
       if (args.some((arg) => arg !== rotation && arg !== '--resume'))
-        throw new Error('Usage: init --rotate=postgres|app|session [--resume]');
+        throw new Error(
+          appText.databaseInitializeSecretsUsageInitRotatePostgresAppSessionResume,
+        );
       const { rotateSecret } = await import('./rotate-secret.js');
       await rotateSecret(
         root,
@@ -131,11 +150,13 @@ if (
         args.includes('--resume'),
       );
       console.log(
-        'Secret rotated; recreate affected services before resuming writes.',
+        appText.databaseInitializeSecretsSecretRotatedRecreateAffectedServicesBeforeResumingWrites,
       );
     } else {
       if (args.some((arg) => arg !== '--adopt-environment'))
-        throw new Error('Usage: init [--adopt-environment]');
+        throw new Error(
+          appText.databaseInitializeSecretsUsageInitAdoptEnvironment,
+        );
       initializeSecrets(
         root,
         process.env.CLOG_DATABASE_DATA || '/database-data',
@@ -143,7 +164,7 @@ if (
         args.includes('--adopt-environment'),
       );
       console.log(
-        'Installation secrets ready; existing credentials preserved.',
+        appText.databaseInitializeSecretsInstallationSecretsReadyExistingCredentialsPreserved,
       );
     }
   } catch (error) {
@@ -153,7 +174,7 @@ if (
         message,
       )
         ? message
-        : 'Secret operation failed; check protected storage and configuration. Resume an interrupted rotation before starting services.',
+        : appText.databaseInitializeSecretsSecretOperationFailedCheckProtectedStorageAndConfigurationResumeAn,
     );
     process.exitCode = 1;
   }

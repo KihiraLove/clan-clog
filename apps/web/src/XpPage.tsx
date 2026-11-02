@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Event sidebar and skill grid; totals and all events arrive as one validated snapshot. */
 import { useEffect, useState } from 'react';
 import {
@@ -38,7 +39,7 @@ export function XpPage({
         }
       } catch {
         if (active && reportPublicFailure(signal))
-          setError('XP could not be refreshed. Try again shortly.');
+          setError(appText.webXpPageXpCouldNotBeRefreshedTryAgainShortly);
       } finally {
         if (active && reportPublicFailure(signal)) setLoading(false);
       }
@@ -66,18 +67,22 @@ export function XpPage({
       {error && (
         <p role="alert">
           {error}{' '}
-          <button onClick={() => setRefresh((n) => n + 1)}>Retry XP</button>
+          <button onClick={() => setRefresh((n) => n + 1)}>
+            {appText.webXpPageRetryXp}
+          </button>
         </p>
       )}
-      {loading && !data && <p role="status">Loading clan XP…</p>}
+      {loading && !data && (
+        <p role="status">{appText.webXpPageLoadingClanXp}</p>
+      )}
       <div className="event-tracker__layout">
-        <nav className="event-sidebar" aria-label="XP events">
+        <nav className="event-sidebar" aria-label={appText.webXpPageXpEvents}>
           <button
             className="event-choice event-choice--total"
             aria-current={selected === undefined ? 'true' : undefined}
             onClick={() => setSelected(undefined)}
           >
-            Total
+            {appText.webXpPageTotal}
           </button>
           <div className="event-list">
             {data?.events.map((entry) => (
@@ -90,7 +95,9 @@ export function XpPage({
                 {entry.title}
               </button>
             ))}
-            {data && !data.events.length && <p>No events added yet.</p>}
+            {data && !data.events.length && (
+              <p>{appText.webXpPageNoEventsAddedYet}</p>
+            )}
           </div>
         </nav>
         <div className="event-skills">
@@ -101,7 +108,7 @@ export function XpPage({
             <div
               className="skill-grid"
               role="group"
-              aria-label="Event skill XP"
+              aria-label={appText.webXpPageEventSkillXp}
             >
               {skills.map(([id, name]) => (
                 <XpAmount
@@ -113,15 +120,19 @@ export function XpPage({
               ))}
             </div>
             <div className="skill-panel__total">
-              <span>Total XP gained</span>
-              <XpAmount xp={totals ? sumXp(totals) : null} label="All skills" />
+              <span>{appText.webXpPageTotalXpGained}</span>
+              <XpAmount
+                xp={totals ? sumXp(totals) : null}
+                label={appText.webXpPageAllSkills}
+              />
             </div>
           </div>
           {missing && (
             <div className="event-source">
               <p role="status">
-                This event is no longer available. Choose Total or another
-                event.
+                {
+                  appText.webXpPageThisEventIsNoLongerAvailableChooseTotalOrAnother
+                }
               </p>
             </div>
           )}
@@ -137,12 +148,17 @@ export function XpPage({
                 ? (event.competition?.standings ?? event.podium ?? [])
                 : (data?.podium ?? [])
           }
-          title={event?.title ?? (missing ? 'Unavailable event' : 'Total')}
+          title={
+            event?.title ??
+            (missing
+              ? appText.webXpPageUnavailableEvent
+              : appText.webXpPageTotal)
+          }
           sourceUrl={event?.sourceUrl}
           unit={
             event?.competition?.standings
               ? competitionUnit(event.competition)
-              : 'XP'
+              : appText.domainDisplayXpUnit
           }
         />
       </div>

@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 export type CollectionType = 'regular' | 'event';
 export interface IntakeSchedulingEvidence {
   receivedAt: string;
@@ -8,10 +9,10 @@ export interface IntakeSchedulingEvidence {
 }
 export const collectionTypeLabel = (type: CollectionType | null | undefined) =>
   type === null
-    ? 'Awaiting item match'
+    ? appText.domainCollectionTypesAwaitingItemMatch
     : type === 'event'
-      ? 'Event collection'
-      : 'Regular collection';
+      ? appText.domainCollectionTypesEventCollection
+      : appText.domainCollectionTypesRegularCollection;
 
 /** Only the catalog membership and windows frozen at receipt can establish an event. */
 export function classifyCollection(

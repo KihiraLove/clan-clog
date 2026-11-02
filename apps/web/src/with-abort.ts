@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Settle on cancellation even if a client ignores its signal. */
 export function withAbort<T>(
   work: Promise<T>,
@@ -5,7 +6,10 @@ export function withAbort<T>(
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const abort = () =>
-      reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+      reject(
+        signal.reason ??
+          new DOMException(appText.webWithAbortAborted, 'AbortError'),
+      );
     if (signal.aborted) abort();
     else signal.addEventListener('abort', abort, { once: true });
     work

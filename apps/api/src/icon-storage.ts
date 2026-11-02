@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Durable generated filenames; decode/re-encode uploads before they can become public. */
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
@@ -17,9 +18,9 @@ export interface IconRecord {
 export const iconPath = (id: string) => `/api/v1/catalog/icons/${id}.webp`;
 export async function decodeIcon(input: Buffer, mime: string) {
   if (!input.length || input.length > MAX_ICON_BYTES)
-    throw new ApiError(413, 'Choose an icon up to 2 MiB.');
+    throw new ApiError(413, appText.apiIconStorageChooseAnIconUpTo2MiB);
   if (!['image/png', 'image/webp'].includes(mime))
-    throw new ApiError(400, 'Choose a PNG or WebP icon.');
+    throw new ApiError(400, appText.apiIconStorageChooseAPngOrWebPIcon);
   try {
     const decoder = sharp(input, {
       limitInputPixels: 512 * 512,
@@ -35,28 +36,32 @@ export async function decodeIcon(input: Buffer, mime: string) {
       metadata.height > 512 ||
       (metadata.pages ?? 1) !== 1
     )
-      throw new Error('Unsupported dimensions or animation');
+      throw new Error(appText.apiIconStorageUnsupportedDimensionsOrAnimation);
     // Native pixels and alpha are retained; scripts, metadata and trailing input are discarded.
     const { data, info } = await decoder
       .webp({ lossless: true, effort: 2 })
       .toBuffer({ resolveWithObject: true });
-    if (data.length > MAX_ICON_BYTES) throw new Error('Decoded icon too large');
+    if (data.length > MAX_ICON_BYTES)
+      throw new Error(appText.apiIconStorageDecodedIconTooLarge);
     return { bytes: data, width: info.width, height: info.height };
   } catch {
     throw new ApiError(
       400,
-      'The icon must decode as a still PNG or WebP between 1 and 512 pixels.',
+      appText.apiIconStorageTheIconMustDecodeAsAStillPngOrWebP,
     );
   }
 }
 export class IconStorage {
   constructor(readonly directory: string) {
     if (!isAbsolute(directory))
-      throw new Error('ICON_STORAGE_PATH must be an absolute path');
+      throw new Error(
+        appText.apiIconStorageIconStoragePathMustBeAnAbsolutePath,
+      );
   }
   protected extension = 'webp';
   private path(id: string) {
-    if (!assetIdPattern.test(id)) throw new ApiError(404, 'Icon not found.');
+    if (!assetIdPattern.test(id))
+      throw new ApiError(404, appText.apiIconStorageIconNotFound);
     return join(this.directory, id + '.' + this.extension);
   }
   async initialize() {
@@ -100,7 +105,10 @@ export class IconStorage {
     } catch {
       await unlink(temporary).catch(() => {});
       await unlink(destination).catch(() => {});
-      throw new ApiError(503, 'Image storage is unavailable. Try again later.');
+      throw new ApiError(
+        503,
+        appText.apiIconStorageImageStorageIsUnavailableTryAgainLater,
+      );
     }
     return {
       id,
@@ -117,10 +125,10 @@ export class IconStorage {
         bytes.length !== record.byteSize ||
         createHash('sha256').update(bytes).digest('hex') !== record.sha256
       )
-        throw new Error('Icon checksum mismatch');
+        throw new Error(appText.apiIconStorageIconChecksumMismatch);
       return bytes;
     } catch {
-      throw new ApiError(503, 'Icon storage is unavailable.');
+      throw new ApiError(503, appText.apiIconStorageIconStorageIsUnavailable);
     }
   }
   async remove(id: string) {

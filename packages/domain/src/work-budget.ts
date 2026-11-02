@@ -1,7 +1,10 @@
+import * as appText from './text.js';
 /** Bounded in-process admission. Reject before work; never queue network writes. */
 export class WorkloadError extends Error {
   constructor(readonly retryAfterSeconds = 1) {
-    super(`Service is busy. Try again in ${retryAfterSeconds} seconds.`);
+    super(
+      appText.domainWorkBudgetServiceIsBusyTryAgainInSeconds(retryAfterSeconds),
+    );
   }
 }
 export interface WorkLimit {
@@ -28,9 +31,9 @@ export class WorkBudget {
         !Number.isInteger(limit.perMinute) ||
         limit.perMinute < 1
       )
-        throw new Error('Invalid work budget');
+        throw new Error(appText.domainWorkBudgetInvalidWorkBudget);
     if (!Number.isInteger(maxKeys) || maxKeys < 1)
-      throw new Error('Invalid key budget');
+      throw new Error(appText.domainWorkBudgetInvalidKeyBudget);
     this.scopes = limits.map(() => new Map());
   }
   private expire(window: Window, now: number) {
@@ -44,7 +47,7 @@ export class WorkBudget {
       keys.length !== this.scopes.length ||
       keys.some((key) => !key || key.length > 200)
     )
-      throw new Error('Invalid work scope');
+      throw new Error(appText.domainWorkBudgetInvalidWorkScope);
     const now = this.clock();
     const deny = (seconds = 1): never => {
       this.rejected++;

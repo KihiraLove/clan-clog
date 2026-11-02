@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { transaction } from './transaction.js';
@@ -31,7 +32,7 @@ export function requireXpCapacity(count: number, existing: boolean) {
   if (!existing && count >= 2000)
     throw new ApiError(
       409,
-      'The XP tracker has reached its 2000-event capacity. Existing events can still be refreshed.',
+      appText.apiImportReconciliationTheXpTrackerHasReachedIts2000EventCapacityExisting,
     );
 }
 export function legacyCompetition(snapshot: XpSnapshot): CompetitionSnapshot {
@@ -69,7 +70,7 @@ function requireSnapshot(snapshot: CompetitionSnapshot) {
   )
     throw new ApiError(
       422,
-      'WOM metric scope does not match its canonical skills.',
+      appText.apiImportReconciliationWomMetricScopeDoesNotMatchItsCanonicalSkills,
     );
   const xp = snapshot.results?.xp;
   if (
@@ -80,10 +81,13 @@ function requireSnapshot(snapshot: CompetitionSnapshot) {
   )
     throw new ApiError(
       422,
-      'XP results do not match the competition identity and scope.',
+      appText.apiImportReconciliationXpResultsDoNotMatchTheCompetitionIdentityAndScope,
     );
   if (snapshot.results && scope.kind === 'SKILL' && !xp)
-    throw new ApiError(422, 'Finished SKILL imports require exact XP results.');
+    throw new ApiError(
+      422,
+      appText.apiImportReconciliationFinishedSkillImportsRequireExactXpResults,
+    );
 }
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 async function requireMetricRevision(
@@ -99,7 +103,10 @@ async function requireMetricRevision(
     )
   ).rows[0];
   if (!state || snapshot.metricRevision !== 'metrics-' + state.version)
-    throw new ApiError(409, 'Metric definitions changed. Preview again.');
+    throw new ApiError(
+      409,
+      appText.apiImportReconciliationMetricDefinitionsChangedPreviewAgain,
+    );
 }
 type Stored = WomCompetition & {
   skills: string[];
@@ -149,18 +156,18 @@ function requireScope(
     )
       throw new ApiError(
         409,
-        'Saved metric semantics changed. This competition retains its original definition.',
+        appText.apiImportReconciliationSavedMetricSemanticsChangedThisCompetitionRetainsItsOriginalDefinition,
       );
   }
   if (prior.archivedAt)
     throw new ApiError(
       409,
-      'Competition is archived. Restore it before importing again.',
+      appText.apiImportReconciliationCompetitionIsArchivedRestoreItBeforeImportingAgain,
     );
   if (prior.kind !== snapshot.competition.kind)
     throw new ApiError(
       422,
-      'This WOM competition already has a different kind. Its identity cannot be duplicated.',
+      appText.apiImportReconciliationThisWomCompetitionAlreadyHasADifferentKindItsIdentity,
     );
   const old = prior.kind === 'SKILL' ? prior.skills : prior.metrics;
   const next =
@@ -168,12 +175,12 @@ function requireScope(
   if (old.some((metric) => !next.includes(metric)))
     throw new ApiError(
       422,
-      'Removing saved WOM metrics requires manual reconciliation.',
+      appText.apiImportReconciliationRemovingSavedWomMetricsRequiresManualReconciliation,
     );
   if (prior.resultsImportedAt && snapshot.lifecycle !== 'finished')
     throw new ApiError(
       422,
-      'A finalized competition cannot be replaced with live metadata.',
+      appText.apiImportReconciliationAFinalizedCompetitionCannotBeReplacedWithLiveMetadata,
     );
 }
 async function xpEvents(client: pg.PoolClient): Promise<XpEvent[]> {
@@ -182,7 +189,11 @@ async function xpEvents(client: pg.PoolClient): Promise<XpEvent[]> {
       'SELECT competition_id::float8 AS id,title,source_url AS "sourceUrl",skills,gains FROM xp_events ORDER BY competition_id LIMIT 2001',
     )
   ).rows;
-  if (rows.length > 2000) throw new ApiError(503, 'XP event limit exceeded.');
+  if (rows.length > 2000)
+    throw new ApiError(
+      503,
+      appText.apiImportReconciliationXpEventLimitExceeded,
+    );
   return rows;
 }
 export class ImportReconciliation {
@@ -205,7 +216,10 @@ export class ImportReconciliation {
       )
     ).rows;
     if (rows.length > 2000)
-      throw new ApiError(503, 'Competition listing exceeds supported limits.');
+      throw new ApiError(
+        503,
+        appText.apiImportReconciliationCompetitionListingExceedsSupportedLimits,
+      );
     return {
       competitions: rows.map((r) => ({
         ...r,
@@ -260,17 +274,17 @@ export class ImportReconciliation {
       if (legacy && lifecycle !== 'finished')
         throw new ApiError(
           422,
-          'Use the competition schedule importer for future or running competitions. XP results are imported only after the end.',
+          appText.apiImportReconciliationUseTheCompetitionScheduleImporterForFutureOrRunningCompetitions,
         );
       if (lifecycle === 'finished' && !snapshot.results)
         throw new ApiError(
           409,
-          'Competition finished during fetch. Preview again to import final results.',
+          appText.apiImportReconciliationCompetitionFinishedDuringFetchPreviewAgainToImportFinalResults,
         );
       if (lifecycle !== 'finished' && snapshot.results)
         throw new ApiError(
           409,
-          'Competition time state changed. Preview again.',
+          appText.apiImportReconciliationCompetitionTimeStateChangedPreviewAgain,
         );
       snapshot = { ...snapshot, lifecycle };
       const metadataOnly = !competitionUsesPages(
@@ -280,7 +294,7 @@ export class ImportReconciliation {
       if (metadataOnly && pageIds?.length)
         throw new ApiError(
           422,
-          'These competition metrics do not open collection log pages. Import the metadata without page selections.',
+          appText.apiImportReconciliationTheseCompetitionMetricsDoNotOpenCollectionLogPagesImport,
         );
       const prior = await stored(client, snapshot.competition.id);
       requireScope(prior, snapshot);
@@ -354,7 +368,10 @@ export class ImportReconciliation {
           lifecycle !== 'finished' &&
           selected.some((id) => !pages.some((p) => p.id === id)))
       )
-        throw new ApiError(422, 'Choose distinct active collection log pages.');
+        throw new ApiError(
+          422,
+          appText.apiImportReconciliationChooseDistinctActiveCollectionLogPages,
+        );
       const action = competitionImportAction(
         snapshot.competition.kind,
         lifecycle,
@@ -422,44 +439,44 @@ export class ImportReconciliation {
           ))
       )
         warnings.push(
-          'The competition participant roster changed. Review the reconciliation.',
+          appText.apiImportReconciliationTheCompetitionParticipantRosterChangedReviewTheReconciliation,
         );
       if (prior?.scheduleArchived)
         warnings.push(
-          'The linked staff schedule is archived and retained. This import will not restore or reopen it; manage its lifecycle separately.',
+          appText.apiImportReconciliationTheLinkedStaffScheduleIsArchivedAndRetainedThisImport,
         );
       else if (metadataOnly && prior?.scheduleCreated)
         warnings.push(
           linked
-            ? 'The previously linked staff schedule is preserved. This import will not edit or open pages; manage that schedule in Scheduling.'
-            : 'The previously linked schedule was deleted. This import will not recreate it.',
+            ? appText.apiImportReconciliationThePreviouslyLinkedStaffScheduleIsPreservedThisImportWill
+            : appText.apiImportReconciliationThePreviouslyLinkedScheduleWasDeletedThisImportWillNot,
         );
       if (mapped.some((id) => !pages.some((p) => p.id === id)))
         warnings.push(
-          'Some mapped pages are unavailable. Review the active page selections before applying.',
+          appText.apiImportReconciliationSomeMappedPagesAreUnavailableReviewTheActivePageSelections,
         );
       if (action === 'preserve-deletion' && !prior?.scheduleArchived)
         warnings.push(
-          'The linked schedule was deleted by staff. Importing again will preserve that deletion. Create a manual schedule to reopen pages.',
+          appText.apiImportReconciliationTheLinkedScheduleWasDeletedByStaffImportingAgainWill,
         );
       if (action === 'create-schedule' && !selected.length)
         warnings.push(
-          'Choose at least one active page before applying. This metric has no automatic page mapping.',
+          appText.apiImportReconciliationChooseAtLeastOneActivePageBeforeApplyingThisMetric,
         );
       if (!metadataOnly && !schedules.enabled && lifecycle !== 'finished')
         warnings.push(
-          'Scheduling is disabled. This import will not enable enforcement.',
+          appText.apiImportReconciliationSchedulingIsDisabledThisImportWillNotEnableEnforcement,
         );
       if (changes.some((c) => BigInt(c.change) < 0n))
         warnings.push(
-          'This correction reduces recorded XP and requires acknowledgement.',
+          appText.apiImportReconciliationThisCorrectionReducesRecordedXpAndRequiresAcknowledgement,
         );
       if (
         snapshot.results?.xp &&
         events.some((e) => e.id !== snapshot.competition.id)
       )
         warnings.push(
-          'Overlapping competitions count their reported XP independently.',
+          appText.apiImportReconciliationOverlappingCompetitionsCountTheirReportedXpIndependently,
         );
       return {
         previewToken: token,
@@ -518,7 +535,11 @@ export class ImportReconciliation {
           'SELECT version::text FROM xp_state WHERE singleton=true FOR UPDATE',
         )
       ).rows[0]!;
-      if (!state) throw new ApiError(503, 'XP state unavailable.');
+      if (!state)
+        throw new ApiError(
+          503,
+          appText.apiImportReconciliationXpStateUnavailable,
+        );
       if (legacy) {
         const replay = (
           await client.query<{
@@ -540,7 +561,7 @@ export class ImportReconciliation {
           )
             throw new ApiError(
               409,
-              'Import key already used for a different request.',
+              appText.apiImportReconciliationImportKeyAlreadyUsedForADifferentRequest,
             );
 
           return {
@@ -564,13 +585,13 @@ export class ImportReconciliation {
       if (legacy && replay)
         throw new ApiError(
           409,
-          'Import key already used for a different request.',
+          appText.apiImportReconciliationImportKeyAlreadyUsedForADifferentRequest,
         );
       if (!legacy && replay) {
         if (replay.request_hash !== requestHash)
           throw new ApiError(
             409,
-            'Import key already used for a different request.',
+            appText.apiImportReconciliationImportKeyAlreadyUsedForADifferentRequest,
           );
 
         return replay.receipt;
@@ -587,7 +608,7 @@ export class ImportReconciliation {
       )
         throw new ApiError(
           409,
-          'Import key already used for a different request.',
+          appText.apiImportReconciliationImportKeyAlreadyUsedForADifferentRequest,
         );
       let row = (
         await client.query<{
@@ -629,7 +650,7 @@ export class ImportReconciliation {
       if (!row || row.actor_id !== actor || row.expires_at <= now)
         throw new ApiError(
           409,
-          'Preview expired or belongs to another staff member.',
+          appText.apiImportReconciliationPreviewExpiredOrBelongsToAnotherStaffMember,
         );
       const schedules = await readState(client);
       if (
@@ -641,7 +662,7 @@ export class ImportReconciliation {
       )
         throw new ApiError(
           409,
-          'Competitions or schedules changed. Preview again.',
+          appText.apiImportReconciliationCompetitionsOrSchedulesChangedPreviewAgain,
         );
       const snapshot = row.snapshot,
         c = snapshot.competition;
@@ -653,13 +674,13 @@ export class ImportReconciliation {
       )
         throw new ApiError(
           409,
-          'Competition page-opening behavior changed. Preview again to import without opening pages.',
+          appText.apiImportReconciliationCompetitionPageOpeningBehaviorChangedPreviewAgainToImportWithout,
         );
       const lifecycle = competitionLifecycle(c, now.getTime());
       if ((lifecycle === 'finished') !== !!snapshot.results)
         throw new ApiError(
           409,
-          'Competition changed time state. Preview again to fetch final results.',
+          appText.apiImportReconciliationCompetitionChangedTimeStatePreviewAgainToFetchFinalResults,
         );
       const prior = await stored(client, c.id);
       requireScope(prior, { ...snapshot, lifecycle });
@@ -699,22 +720,31 @@ export class ImportReconciliation {
           [addedPages],
         );
         if (pages.rowCount !== addedPages.length)
-          throw new ApiError(409, 'Mapped pages changed. Preview again.');
+          throw new ApiError(
+            409,
+            appText.apiImportReconciliationMappedPagesChangedPreviewAgain,
+          );
       }
       if (createSchedule) {
         if (!row.page_ids.length || row.page_ids.length > 200)
           throw new ApiError(
             422,
-            'Choose at least one active collection log page.',
+            appText.apiImportReconciliationChooseAtLeastOneActiveCollectionLogPage,
           );
         if (schedules.schedules.length >= 500)
-          throw new ApiError(422, 'The schedule limit has been reached.');
+          throw new ApiError(
+            422,
+            appText.apiImportReconciliationTheScheduleLimitHasBeenReached,
+          );
         const pages = await client.query(
           'SELECT id FROM pages WHERE id=ANY($1::text[]) AND active ORDER BY id FOR SHARE',
           [row.page_ids],
         );
         if (pages.rowCount !== row.page_ids.length)
-          throw new ApiError(422, 'Choose active collection log pages.');
+          throw new ApiError(
+            422,
+            appText.apiImportReconciliationChooseActiveCollectionLogPages,
+          );
         scheduleId = randomUUID();
         await client.query(
           'INSERT INTO collection_log_schedules(id,title,starts_at,ends_at) VALUES($1,$2,$3,$4)',
@@ -786,7 +816,7 @@ export class ImportReconciliation {
       if (changes.some((v) => BigInt(v.change) < 0n) && !acknowledgeCorrections)
         throw new ApiError(
           422,
-          'Acknowledge negative XP corrections before applying.',
+          appText.apiImportReconciliationAcknowledgeNegativeXpCorrectionsBeforeApplying,
         );
       if (changed) {
         await client.query(

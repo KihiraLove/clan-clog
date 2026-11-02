@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { CompetitionPreviewInput } from '@clog/domain';
 import { ApiError, type AdminIdentity, type StaffAccount } from './types.js';
@@ -18,11 +19,19 @@ export function competitionRoutes(
   previews = new PreviewWork(),
 ) {
   const available = () => {
-    if (!store) throw new ApiError(503, 'Competition service unavailable.');
+    if (!store)
+      throw new ApiError(
+        503,
+        appText.apiCompetitionRoutesCompetitionServiceUnavailable,
+      );
     return store;
   };
   const staff = async (request: FastifyRequest, write = false) => {
-    if (!authorize) throw new ApiError(503, 'Staff sign-in is not configured.');
+    if (!authorize)
+      throw new ApiError(
+        503,
+        appText.apiCompetitionRoutesStaffSignInIsNotConfigured,
+      );
     return authorize(request, write);
   };
   app.get('/api/v1/competitions/activities', async (request, reply) => {
@@ -104,9 +113,9 @@ export function competitionRoutes(
         )
           throw new ApiError(
             422,
-            'The legacy kind hint does not match WOM metadata. Detected kind: ' +
-              snapshot.competition.kind +
-              '.',
+            appText.apiCompetitionRoutesTheLegacyKindHintDoesNotMatchWomMetadataDetected(
+              snapshot.competition.kind,
+            ),
           );
         return service.preview(snapshot, actor.id, r.body.pageIds);
       });
@@ -149,7 +158,11 @@ export function competitionRoutes(
     async (r) => {
       const actor = await staff(r, true);
       const registry = available().metricRegistry;
-      if (!registry) throw new ApiError(503, 'Metric definitions unavailable.');
+      if (!registry)
+        throw new ApiError(
+          503,
+          appText.apiCompetitionRoutesMetricDefinitionsUnavailable,
+        );
       const key = r.headers['idempotency-key'];
       if (
         typeof key !== 'string' ||
@@ -157,7 +170,10 @@ export function competitionRoutes(
           key,
         )
       )
-        throw new ApiError(400, 'A UUID Idempotency-Key is required.');
+        throw new ApiError(
+          400,
+          appText.apiCompetitionRoutesAUuidIdempotencyKeyIsRequired,
+        );
       return registry.save(
         r.body.resolutionToken,
         r.body.expectedRevision,
@@ -211,7 +227,10 @@ export function competitionRoutes(
           key,
         )
       )
-        throw new ApiError(400, 'A UUID Idempotency-Key is required.');
+        throw new ApiError(
+          400,
+          appText.apiCompetitionRoutesAUuidIdempotencyKeyIsRequired,
+        );
       return available().apply(
         r.body.previewToken,
         r.body.expectedRevision,

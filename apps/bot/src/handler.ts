@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Discord is an adapter; only an API 200/201 may produce a saved receipt. */
 import { WorkloadError, type OperationalDiagnostics } from '@clog/domain';
 import { type BotWorkloads, searchRetryChoice } from './workloads.js';
@@ -39,42 +40,38 @@ export function collectorSnapshot(
     return member.nick.trim();
   return username;
 }
-const submissionSuccessMessage = 'Item submitted to review';
+const submissionSuccessMessage = appText.botHandlerItemSubmittedToReview;
 /** Discord snowflakes are safe operator correlation IDs, not bearer credentials. */
 function interactionReference(id: string | undefined): string {
   return id && /^\d{17,20}$/u.test(id)
-    ? '\nDiscord interaction ID: ' + id + '.'
+    ? appText.botHandlerDiscordInteractionId(id)
     : '';
 }
 
 function unconfirmedMessage(interactionId?: string): string {
-  return (
-    'Submission could not be confirmed. It might have reached the server ' +
-    'and been saved for review, but no valid receipt was received.' +
-    interactionReference(interactionId) +
-    '\nAsk a clan admin to check this interaction ID in the submission history. ' +
-    'Do not repeat /cc-clog submit as a new command until checked: Discord ' +
-    'assigns a new interaction ID, which can create another submission. ' +
-    'No approval or collection credit is implied.'
+  return appText.botHandlerSubmissionCouldNotBeConfirmedItMightHaveReachedThe(
+    interactionReference(interactionId),
   );
 }
 
 export function failureMessage(error: unknown, interactionId?: string): string {
   if (error instanceof ScreenshotError)
-    return error.message + ' Nothing was sent to the submission service.';
+    return appText.botHandlerNothingWasSentToTheSubmissionService(
+      error.message,
+    );
   if (error instanceof UnconfirmedSubmissionError)
     return unconfirmedMessage(error.interactionId);
   if (error instanceof BotApiError) {
     if (error.status === 403 && error.message === closedCollectionPageMessage)
       return closedCollectionPageMessage;
     if (error.status === 409)
-      return 'This Discord interaction ID was already submitted with different details. Nothing new was saved.';
+      return appText.botHandlerThisDiscordInteractionIdWasAlreadySubmittedWithDifferentDetails;
     if ([400, 413, 415, 422].includes(error.status))
-      return 'The submitted item, date or proof was rejected by the API. Nothing was saved.';
+      return appText.botHandlerTheSubmittedItemDateOrProofWasRejectedByThe;
     if (error.status === 403 || error.status === 401)
-      return 'The submission service rejected the configured bot credentials or guild. Nothing was saved.';
+      return appText.botHandlerTheSubmissionServiceRejectedTheConfiguredBotCredentialsOrGuild;
     if (error.status === 429)
-      return 'The submission service is temporarily rate-limited. No receipt could be confirmed; retry later.';
+      return appText.botHandlerTheSubmissionServiceIsTemporarilyRateLimitedNoReceiptCould;
   }
   return unconfirmedMessage(interactionId);
 }
@@ -121,7 +118,9 @@ export async function handleAutocomplete(
           error instanceof WorkloadError
             ? [
                 {
-                  name: `Search busy: wait ${error.retryAfterSeconds}s or type an item name`,
+                  name: appText.botHandlerSearchBusyWaitSOrTypeAnItemName(
+                    error.retryAfterSeconds,
+                  ),
                   value: searchRetryChoice,
                 },
               ]
@@ -150,7 +149,7 @@ export async function handleSubmission(
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   if (interaction.guildId !== guildId) {
     await interaction.editReply(
-      'This command can only be used in the configured clan server.',
+      appText.botHandlerThisCommandCanOnlyBeUsedInTheConfiguredClan,
     );
     return;
   }
@@ -164,14 +163,14 @@ export async function handleSubmission(
     const rawItemText = interaction.options.getString('item', true);
     if (rawItemText === searchRetryChoice) {
       await interaction.editReply(
-        'Item search was busy. Wait a few seconds, then search again or type the item name manually. This delivery was not sent to the submission service.',
+        appText.botHandlerItemSearchWasBusyWaitAFewSecondsThenSearch,
       );
       return;
     }
     const screenshot = interaction.options.getAttachment('screenshot');
     if (!screenshot)
       throw new ScreenshotError(
-        'Attach a PNG screenshot. If this option is missing, ask an administrator to register /cc-clog again.',
+        appText.botHandlerAttachAPngScreenshotIfThisOptionIsMissingAsk,
       );
     validateScreenshot(screenshot);
     const collectorName = collectorSnapshot(
@@ -187,7 +186,7 @@ export async function handleSubmission(
       collectorName.length > 80
     ) {
       await interaction.editReply(
-        'Use a nonblank item and a collector name up to 80 characters.',
+        appText.botHandlerUseANonblankItemAndACollectorNameUpTo,
       );
       return;
     }
@@ -198,7 +197,7 @@ export async function handleSubmission(
       (!Number.isSafeInteger(itemId) || itemId > 2147483647)
     ) {
       await interaction.editReply(
-        'The selected catalog item is invalid. Please choose an autocomplete item again.',
+        appText.botHandlerTheSelectedCatalogItemIsInvalidPleaseChooseAnAutocomplete,
       );
       return;
     }
@@ -246,9 +245,10 @@ export async function handleSubmission(
         saved
           ? submissionSuccessMessage
           : error instanceof WorkloadError
-            ? `Submission busy. Wait ${error.retryAfterSeconds} seconds and try again. This delivery was not sent to the submission service.` +
-              interactionReference(interaction.id) +
-              '\nIf this interaction was attempted earlier or had an unconfirmed reply, ask an admin to check its receipt before starting a new command.'
+            ? appText.botHandlerSubmissionBusyWaitSecondsAndTryAgainThisDeliveryWas(
+                error.retryAfterSeconds,
+                interactionReference(interaction.id),
+              )
             : failureMessage(error, interaction.id),
       )
       .catch(() =>

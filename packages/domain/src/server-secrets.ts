@@ -1,3 +1,4 @@
+import * as appText from './text.js';
 /** Node-side secret inputs; never copy file contents into process.env or diagnostics. */
 import { constants, openSync, fstatSync, readSync, closeSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
@@ -7,10 +8,14 @@ export function readSecret(name: string, env: NodeJS.ProcessEnv = process.env) {
   const value = env[name] || undefined;
   const file = env[name + '_FILE'] || undefined;
   if (value && file)
-    throw new SecretInputError(`Set only ${name} or ${name}_FILE`);
+    throw new SecretInputError(
+      appText.domainServerSecretsSetOnlyOrFile(name, name),
+    );
   if (!file) return value;
   if (!isAbsolute(file))
-    throw new SecretInputError(`${name}_FILE must be absolute`);
+    throw new SecretInputError(
+      appText.domainServerSecretsFileMustBeAbsolute(name),
+    );
   let fd: number | undefined;
   try {
     fd = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
@@ -31,7 +36,9 @@ export function readSecret(name: string, env: NodeJS.ProcessEnv = process.env) {
     if (!text || /[\r\n\0]/u.test(text)) throw new Error();
     return text;
   } catch {
-    throw new SecretInputError(`Cannot read a valid ${name}_FILE`);
+    throw new SecretInputError(
+      appText.domainServerSecretsCannotReadAValidFile(name),
+    );
   } finally {
     if (fd !== undefined) closeSync(fd);
   }

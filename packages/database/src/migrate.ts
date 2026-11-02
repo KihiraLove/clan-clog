@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { databaseUrl as readDatabaseUrl } from './secrets.js';
 /** Apply forward-only SQL migrations; reject unknown or non-prefix database history. */
 import { createHash } from 'node:crypto';
@@ -30,22 +31,32 @@ export function validateMigrationHistory(
       expected.has(entry.name) ||
       !/^[a-f0-9]{64}$/u.test(entry.checksum)
     )
-      throw new Error('Invalid ordered bundled migration manifest');
+      throw new Error(
+        appText.databaseMigrateInvalidOrderedBundledMigrationManifest,
+      );
     expected.add(entry.name);
   }
   let previousTime = -Infinity;
   for (const [index, entry] of applied.entries()) {
     const match = bundled[index];
     if (!match || !expected.has(entry.name))
-      throw new Error(`Unknown applied migration: ${entry.name}`);
+      throw new Error(
+        appText.databaseMigrateUnknownAppliedMigration(entry.name),
+      );
     if (match.name !== entry.name)
-      throw new Error(`Non-prefix migration history at: ${entry.name}`);
+      throw new Error(
+        appText.databaseMigrateNonPrefixMigrationHistoryAt(entry.name),
+      );
     if (match.checksum !== entry.checksum)
-      throw new Error(`Applied migration changed: ${entry.name}`);
+      throw new Error(
+        appText.databaseMigrateAppliedMigrationChanged(entry.name),
+      );
     if (entry.applied_at !== undefined) {
       const time = new Date(entry.applied_at).getTime();
       if (!Number.isFinite(time) || time < previousTime)
-        throw new Error(`Reordered migration history at: ${entry.name}`);
+        throw new Error(
+          appText.databaseMigrateReorderedMigrationHistoryAt(entry.name),
+        );
       previousTime = time;
     }
   }
@@ -81,7 +92,7 @@ export async function migrate(
     lockTimeoutMs < 1 ||
     lockTimeoutMs > 10000
   )
-    throw new Error('Migration lock timeout must be 1–10000 ms');
+    throw new Error(appText.databaseMigrateMigrationLockTimeoutMustBe110000Ms);
   // Read all exact SQL bytes before opening the transaction; no partially
   // available image may mutate a database.
   const manifest = await bundledMigrations();
@@ -148,7 +159,7 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   const url = readDatabaseUrl();
-  if (!url) throw new Error('DATABASE_URL is required');
+  if (!url) throw new Error(appText.databaseMigrateDatabaseUrlIsRequired);
   await migrate(url);
-  console.log('Database migrations applied');
+  console.log(appText.databaseMigrateDatabaseMigrationsApplied);
 }

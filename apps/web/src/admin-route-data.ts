@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Prepare authorized reads before mounting any destination editor. */
 import { createContext, useContext, useId, useLayoutEffect } from 'react';
 import type {
@@ -44,17 +45,17 @@ export interface PreparedAdminData {
   denial?: string;
 }
 export const adminRouteLabels: Record<string, string> = {
-  '/admin': 'Submissions',
-  '/admin/catalog': 'Items catalog',
-  '/admin/xp': 'Scheduling and Competitions',
-  '/admin/schedules': 'Scheduling and Competitions',
-  '/admin/settings': 'Site settings',
-  '/admin/settings/hardcore': 'Hardcore worlds',
-  '/admin/runelite': 'RuneLite submissions',
-  '/admin/discord': 'Discord bot',
-  '/admin/accounts': 'Moderator accounts',
-  '/admin/access-control': 'Access control',
-  '/admin/account': 'Your account',
+  '/admin': appText.webAdminRouteDataSubmissions,
+  '/admin/catalog': appText.webAdminRouteDataItemsCatalog,
+  '/admin/xp': appText.webAdminRouteDataSchedulingAndCompetitions,
+  '/admin/schedules': appText.webAdminRouteDataSchedulingAndCompetitions,
+  '/admin/settings': appText.webAdminRouteDataSiteSettings,
+  '/admin/settings/hardcore': appText.webAdminRouteDataHardcoreWorlds,
+  '/admin/runelite': appText.webAdminRouteDataRuneLiteSubmissions,
+  '/admin/discord': appText.webAdminRouteDataDiscordBot,
+  '/admin/accounts': appText.webAdminRouteDataModeratorAccounts,
+  '/admin/access-control': appText.webAdminRouteDataAccessControl,
+  '/admin/account': appText.webAdminRouteDataYourAccount,
 };
 export function isAdminPath(path: string) {
   return path === '/admin' || path.startsWith('/admin/');
@@ -84,14 +85,14 @@ async function readAdminRoute(
       kind: 'denied',
       denial:
         path === '/admin/accounts'
-          ? 'Only the administrator can create moderator accounts.'
-          : 'Only the administrator can manage access control.',
+          ? appText.webAdminRouteDataOnlyTheAdministratorCanCreateModeratorAccounts
+          : appText.webAdminRouteDataOnlyTheAdministratorCanManageAccessControl,
     };
   const page = staffPageForPath(path) ?? 'submissions';
   if (!canAccessStaffPage(session, page))
     return {
       kind: 'denied',
-      denial: 'Your account is not allowed to view this page.',
+      denial: appText.webAdminRouteDataYourAccountIsNotAllowedToViewThisPage,
     };
   switch (path) {
     case '/admin/access-control':

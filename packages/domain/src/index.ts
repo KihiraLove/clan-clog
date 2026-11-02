@@ -1,4 +1,6 @@
+import * as appText from './text.js';
 /** Pure collection-log rules shared by the browser and future service handlers. */
+export * from './text.js';
 export * from './competitions.js';
 export * from './skills.js';
 export * from './collection-types.js';
@@ -64,38 +66,39 @@ export function validateCatalog(
       itemIds.has(item.id) ||
       !item.name.trim()
     ) {
-      throw new Error('Invalid or duplicate canonical item');
+      throw new Error(appText.domainIndexInvalidOrDuplicateCanonicalItem);
     }
     itemIds.add(item.id);
     for (const gameId of item.gameItemIds) {
       if (!Number.isSafeInteger(gameId) || gameId <= 0 || gameIds.has(gameId))
-        throw new Error('Invalid or ambiguous game item mapping');
+        throw new Error(appText.domainIndexInvalidOrAmbiguousGameItemMapping);
       gameIds.add(gameId);
     }
   }
   const pageIds = new Set<string>();
   for (const page of pages) {
     if (!page.id.trim() || pageIds.has(page.id))
-      throw new Error('Invalid or duplicate page');
+      throw new Error(appText.domainIndexInvalidOrDuplicatePage);
     pageIds.add(page.id);
     if (
       new Set(page.itemIds).size !== page.itemIds.length ||
       page.itemIds.some((id) => !itemIds.has(id))
     ) {
-      throw new Error('Invalid page item reference');
+      throw new Error(appText.domainIndexInvalidPageItemReference);
     }
   }
 }
 
 /** Round-trip through UTC to reject normalized invalid dates such as February 30. */
 export function validateCollectionDate(input: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/u.test(input)) throw new Error('Use YYYY-MM-DD');
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(input))
+    throw new Error(appText.domainIndexUseYyyyMmDd);
   const parsed = new Date(`${input}T00:00:00Z`);
   if (
     !Number.isFinite(parsed.getTime()) ||
     parsed.toISOString().slice(0, 10) !== input
   )
-    throw new Error('Invalid calendar date');
+    throw new Error(appText.domainIndexInvalidCalendarDate);
   return input;
 }
 

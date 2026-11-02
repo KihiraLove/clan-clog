@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Per-adapter budgets cover the entire interaction, including identical HTTP retries. */
 import { WorkBudget } from '@clog/domain';
 export const searchRetryChoice = 'clog:retry-search';
@@ -6,7 +7,7 @@ export function readWorkloadLimits(env: NodeJS.ProcessEnv = process.env) {
     const text = env[name];
     if (text === undefined || text === '') return fallback;
     if (!/^[1-9]\d*$/u.test(text) || Number(text) > max)
-      throw new Error(name + ' exceeds its workload limit');
+      throw new Error(appText.botWorkloadsExceedsItsWorkloadLimit(name));
     return Number(text);
   };
   return {

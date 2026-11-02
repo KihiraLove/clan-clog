@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { memo, useCallback, useMemo } from 'react';
 import { competitionLifecycle, type WomCompetition } from '@clog/domain';
 import type { CompetitionClient } from './competition-api.ts';
@@ -24,14 +25,14 @@ const ActivityRow = memo(function ActivityRow({
   return (
     <li className={'activity-competition activity-competition--' + status}>
       <a href={c.sourceUrl} target="_blank" rel="noopener noreferrer">
-        {c.title} ↗
+        {appText.webActivityCompetitionsCompetitionLink(c.title)}
       </a>
       <small className="activity-range">
         <span>
           <time dateTime={c.startsAt} title={row.startUtc}>
             {row.start}
           </time>
-          {' -'}
+          {appText.webActivityCompetitionsDateSeparator}
         </span>{' '}
         <time dateTime={c.endsAt} title={row.endUtc}>
           {row.end}
@@ -51,7 +52,7 @@ export function ActivityCompetitions({
   );
   const { data, error, retry } = usePublicPolling(
     read,
-    'Competitions could not be refreshed.',
+    appText.webActivityCompetitionsCompetitionsCouldNotBeRefreshed,
   );
   const competitions = useMemo(
     () =>
@@ -79,15 +80,27 @@ export function ActivityCompetitions({
   );
   const now = useActivityClock(competitions, offset);
   return (
-    <aside className="activity-competitions" aria-label="Activity competitions">
-      <h2>Activity competitions</h2>
+    <aside
+      className="activity-competitions"
+      aria-label={appText.webActivityCompetitionsActivityCompetitions}
+    >
+      <h2>{appText.webActivityCompetitionsActivityCompetitions}</h2>
       {error && (
         <p role="alert">
-          {error} <button onClick={retry}>Retry competitions</button>
+          {error}{' '}
+          <button onClick={retry}>
+            {appText.webActivityCompetitionsRetryCompetitions}
+          </button>
         </p>
       )}
-      {!data && !error && <p role="status">Loading competitions…</p>}
-      {data?.competitions.length === 0 && <p>No activity competitions yet.</p>}
+      {!data && !error && (
+        <p role="status">
+          {appText.webActivityCompetitionsLoadingCompetitions}
+        </p>
+      )}
+      {data?.competitions.length === 0 && (
+        <p>{appText.webActivityCompetitionsNoActivityCompetitionsYet}</p>
+      )}
       <ol>
         {rows.map((row) => (
           <ActivityRow

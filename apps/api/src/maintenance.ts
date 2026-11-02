@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Local root-only CLI; the web server never exposes installation operations. */
 import { spawn } from 'node:child_process';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
@@ -18,7 +19,8 @@ import { safeFailure } from '@clog/domain';
 import { protectSecrets } from './installation.js';
 
 async function main() {
-  if (process.getuid?.() !== 0) throw new Error('Run clog maintenance as root');
+  if (process.getuid?.() !== 0)
+    throw new Error(appText.apiMaintenanceRunClogMaintenanceAsRoot);
   process.setgroups?.([]);
   for (const [kind, name] of Object.entries({
     postgres: 'POSTGRES_PASSWORD',
@@ -35,12 +37,12 @@ async function main() {
       break;
     case 'pause':
       await control('pause', randomUUID());
-      console.log('Application writers paused.');
+      console.log(appText.apiMaintenanceApplicationWritersPaused);
       break;
     case 'resume':
       await control('resume');
       await waitForWebsite();
-      console.log('Application readiness verified.');
+      console.log(appText.apiMaintenanceApplicationReadinessVerified);
       break;
     case 'stop-database':
     case 'start-database':
@@ -60,7 +62,7 @@ async function main() {
         for await (const chunk of process.stdin) {
           text += String(chunk);
           if (text.length > 4 * 1024 * 1024)
-            throw new Error('Schema manifest is too large');
+            throw new Error(appText.apiMaintenanceSchemaManifestIsTooLarge);
         }
         await writeFile(path, text, { mode: 0o600 });
       }
@@ -79,7 +81,8 @@ async function main() {
       await backupInstallation();
       break;
     case 'verify':
-      if (!args[0]) throw new Error('Supply a backup directory');
+      if (!args[0])
+        throw new Error(appText.apiMaintenanceSupplyABackupDirectory);
       await verifyBackup(args[0], args[1] !== '--capture');
       break;
     case 'verify-archive':
@@ -94,7 +97,9 @@ async function main() {
         !['postgres', 'app', 'session'].includes(kind ?? '') ||
         args.some((arg, index) => index > 0 && arg !== '--resume')
       )
-        throw new Error('Usage: clog rotate postgres|app|session [--resume]');
+        throw new Error(
+          appText.apiMaintenanceUsageClogRotatePostgresAppSessionResume,
+        );
       const status = await control(),
         token = randomUUID();
       if (status.phase === 'running') await control('pause', token);
@@ -106,12 +111,15 @@ async function main() {
       protectSecrets();
       await control('resume', status.phase === 'running' ? token : undefined);
       await waitForWebsite();
-      console.log('Secret rotated and application readiness verified.');
+      console.log(
+        appText.apiMaintenanceSecretRotatedAndApplicationReadinessVerified,
+      );
       break;
     }
     case 'owner':
     case 'runtime': {
-      if (!args.length) throw new Error('Supply a maintenance command');
+      if (!args.length)
+        throw new Error(appText.apiMaintenanceSupplyAMaintenanceCommand);
       const env = { ...process.env };
       if (command === 'runtime') env.DB_USER = 'clog_runtime';
       if (command === 'runtime')
@@ -134,14 +142,14 @@ async function main() {
         child.once('close', (code) =>
           code === 0
             ? resolve()
-            : reject(new Error('Maintenance command failed')),
+            : reject(new Error(appText.apiMaintenanceMaintenanceCommandFailed)),
         );
       });
       break;
     }
     default:
       throw new Error(
-        'Usage: clog status|backup|restore|pause|resume|rotate|schema|owner|runtime',
+        appText.apiMaintenanceUsageClogStatusBackupRestorePauseResumeRotateSchemaOwner,
       );
   }
 }

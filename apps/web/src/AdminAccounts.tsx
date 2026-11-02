@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Administrator-only moderator management; temporary passwords are never redisplayed. */
 import { useEffect, useState } from 'react';
 import { classifyAccessFailure } from './admin-session.ts';
@@ -38,7 +39,9 @@ export function AdminAccounts({
         if (controller.signal.aborted) return;
         if (classifyAccessFailure(failure) === 'expired') onAccessLost();
         else
-          setError('Accounts could not be loaded. Retry to refresh the list.');
+          setError(
+            appText.webAdminAccountsAccountsCouldNotBeLoadedRetryToRefreshTheList,
+          );
       })
       .finally(() => clearTimeout(timer));
     return () => {
@@ -67,7 +70,7 @@ export function AdminAccounts({
           );
           setDeleting(undefined);
           action.setMessage(
-            `Moderator ${account.username} ${change === 'enable' ? 'enabled' : change === 'disable' ? 'disabled' : 'deleted'}.`,
+            appText.webAdminAccountsModerator(account.username, change),
           );
         }
       },
@@ -82,7 +85,7 @@ export function AdminAccounts({
   };
   return (
     <section className="admin-panel">
-      <h2>Moderator accounts</h2>
+      <h2>{appText.webAdminAccountsModeratorAccounts}</h2>
       <form
         className="admin-credential-form"
         onSubmit={(event) => {
@@ -98,11 +101,15 @@ export function AdminAccounts({
             setAccounts((rows) => [...(rows ?? []), account]);
             setUsername('');
             setPassword('');
-            action.setMessage(`Moderator ${account.username} created.`);
+            action.setMessage(
+              appText.webAdminAccountsModeratorCreated(account.username),
+            );
           });
         }}
       >
-        <label htmlFor="moderator-username">Moderator username</label>
+        <label htmlFor="moderator-username">
+          {appText.webAdminAccountsModeratorUsername}
+        </label>
         <input
           id="moderator-username"
           autoComplete="off"
@@ -113,7 +120,9 @@ export function AdminAccounts({
           value={username}
           onChange={(event) => setUsername(event.target.value)}
         />
-        <label htmlFor="moderator-password">Temporary password</label>
+        <label htmlFor="moderator-password">
+          {appText.webAdminAccountsTemporaryPassword}
+        </label>
         <input
           id="moderator-password"
           type="password"
@@ -125,11 +134,14 @@ export function AdminAccounts({
           onChange={(event) => setPassword(event.target.value)}
         />
         <p className="admin-note">
-          Use at least 12 characters and share these credentials with the
-          moderator.
+          {
+            appText.webAdminAccountsUseAtLeast12CharactersAndShareTheseCredentialsWith
+          }
         </p>
         <button className="site-button" disabled={action.busy}>
-          {action.busy ? 'Creating…' : 'Create moderator'}
+          {action.busy
+            ? appText.webAdminAccountsCreating
+            : appText.webAdminAccountsCreateModerator}
         </button>
       </form>
       {action.error && (
@@ -145,42 +157,52 @@ export function AdminAccounts({
             className="site-button"
             onClick={() => setRefresh((value) => value + 1)}
           >
-            Retry accounts
+            {appText.webAdminAccountsRetryAccounts}
           </button>
         </p>
       ) : !accounts ? (
-        <p role="status">Loading accounts…</p>
+        <p role="status">{appText.webAdminAccountsLoadingAccounts}</p>
       ) : (
         <div className="admin-account-list">
-          <h3>Existing accounts</h3>
+          <h3>{appText.webAdminAccountsExistingAccounts}</h3>
           <ul>
             {accounts.map((account) => (
               <li key={account.id}>
-                <strong>{account.username}</strong> · {account.role} ·{' '}
+                <strong>{account.username}</strong>
+                {appText.webAdminAccountsSeparator}
+                {appText.domainDisplayStaffRole[account.role]}
+                {appText.webAdminAccountsSeparator2}{' '}
                 {account.disabled
-                  ? 'Disabled'
+                  ? appText.webAdminAccountsDisabled
                   : account.mustChangePassword
-                    ? 'Password change required'
-                    : 'Active'}
+                    ? appText.webAdminAccountsPasswordChangeRequired
+                    : appText.webAdminAccountsActive}
                 {account.role === 'moderator' && (
                   <div className="admin-actions">
                     <button
                       className="site-button"
-                      aria-label={`${account.disabled ? 'Enable' : 'Disable'} ${account.username}`}
+                      aria-label={appText.webAdminAccountsAccountAction(
+                        !!account.disabled,
+                        account.username,
+                      )}
                       disabled={action.busy}
                       onClick={() =>
                         manage(account, account.disabled ? 'enable' : 'disable')
                       }
                     >
-                      {account.disabled ? 'Enable' : 'Disable'}
+                      {account.disabled
+                        ? appText.webAdminAccountsEnable
+                        : appText.webAdminAccountsDisable}
                     </button>
                     <button
                       className="site-button"
-                      aria-label={`Delete ${account.username}`}
+                      aria-label={appText.webAdminAccountsDelete(
+                        account.username,
+                      )}
                       disabled={action.busy}
                       onClick={() => setDeleting(account)}
                     >
-                      Delete
+                      {appText.webAdminAccountsDelete2}
                     </button>
                   </div>
                 )}
@@ -191,30 +213,29 @@ export function AdminAccounts({
             <div
               className="admin-delete-confirm"
               role="group"
-              aria-label="Confirm moderator deletion"
+              aria-label={appText.webAdminAccountsConfirmModeratorDeletion}
             >
               <p>
-                Delete {deleting.username}? Their access ends immediately. Past
-                submissions and review history are preserved.
+                {appText.webAdminAccountsConfirmDeletion(deleting.username)}
               </p>
               <button
                 className="site-button"
                 disabled={action.busy}
                 onClick={() => manage(deleting, 'delete')}
               >
-                Confirm delete moderator
+                {appText.webAdminAccountsConfirmDeleteModerator}
               </button>
               <button
                 className="site-button"
                 disabled={action.busy}
                 onClick={() => setDeleting(undefined)}
               >
-                Cancel
+                {appText.webAdminAccountsCancel}
               </button>
             </div>
           )}
           {accounts.every((account) => account.role !== 'moderator') && (
-            <p>No moderator accounts have been created.</p>
+            <p>{appText.webAdminAccountsNoModeratorAccountsHaveBeenCreated}</p>
           )}
         </div>
       )}

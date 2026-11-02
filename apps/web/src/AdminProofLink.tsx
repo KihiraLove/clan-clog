@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Saved screenshots stay on the private backend; external proof URLs are historical data only. */
 import { safeScreenshotPath, type Submission } from './admin-model.ts';
 export function ProofLink({
@@ -18,18 +19,26 @@ export function ProofLink({
           rel="noopener noreferrer"
           referrerPolicy="no-referrer"
         >
-          <img src={screenshot} alt="Submission screenshot" loading="lazy" />
-          View screenshot
+          <img
+            src={screenshot}
+            alt={appText.webAdminProofLinkSubmissionScreenshot}
+            loading="lazy"
+          />
+          {appText.webAdminProofLinkViewScreenshot}
         </a>
       </div>
     );
   if (source === 'runelite' && chatMessage?.trim())
-    return <span>Chat message proof</span>;
+    return <span>{appText.webAdminProofLinkChatMessageProof}</span>;
   if (source === 'manual')
-    return <span className="admin-note">No proof supplied (manual entry)</span>;
+    return (
+      <span className="admin-note">
+        {appText.webAdminProofLinkNoProofSuppliedManualEntry}
+      </span>
+    );
   return (
     <span className="admin-error">
-      No screenshot supplied — cannot approve this claim.
+      {appText.webAdminProofLinkNoScreenshotSuppliedCannotApproveThisClaim}
     </span>
   );
 }

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { databaseUrl as readDatabaseUrl } from './secrets.js';
 /** One-time, forward-only correction of Temple clue grouping using pinned OSRS Wiki tabs. */
 import assert from 'node:assert/strict';
@@ -82,7 +83,10 @@ export async function applyClueTaxonomy(
   );
   const canonical = (gameId: number): number => {
     const id = aliasToId.get(gameId);
-    if (!id) throw new Error('Unknown clue catalog game ID: ' + gameId);
+    if (!id)
+      throw new Error(
+        appText.databaseClueTaxonomyUnknownClueCatalogGameId(gameId),
+      );
     return id;
   };
   const involved = new Set<number>();
@@ -114,7 +118,7 @@ export async function applyClueTaxonomy(
       imported.rows[0]!.id !== snapshotId(snapshot)
     )
       throw new Error(
-        'Clue correction requires the original pinned catalog import.',
+        appText.databaseClueTaxonomyClueCorrectionRequiresTheOriginalPinnedCatalogImport,
       );
 
     // Verify that no legacy page has been manually edited or contains manual items.
@@ -147,7 +151,7 @@ export async function applyClueTaxonomy(
       ).rowCount
     )
       throw new Error(
-        'Clue pages already differ; inspect the existing catalog before applying correction.',
+        appText.databaseClueTaxonomyCluePagesAlreadyDifferInspectTheExistingCatalogBeforeApplying,
       );
     for (const pageId of legacyIds) {
       const saved = pages.rows.find((row) => row.id === pageId);
@@ -158,7 +162,9 @@ export async function applyClueTaxonomy(
         saved.name !== baseline.name ||
         saved.order_origin !== 'source'
       )
-        throw new Error('Legacy clue page was modified: ' + pageId);
+        throw new Error(
+          appText.databaseClueTaxonomyLegacyCluePageWasModified(pageId),
+        );
       const slots = await client.query<{ item_id: number; origin: string }>(
         'SELECT item_id,origin FROM page_items WHERE page_id=$1 ORDER BY slot',
         [pageId],
@@ -169,9 +175,9 @@ export async function applyClueTaxonomy(
           JSON.stringify(baseline.itemIds)
       )
         throw new Error(
-          'Manual item/order on legacy clue page ' +
-            pageId +
-            '; migrate it manually before retiring the page.',
+          appText.databaseClueTaxonomyManualItemOrderOnLegacyCluePageMigrateItManually(
+            pageId,
+          ),
         );
     }
     if (
@@ -183,7 +189,7 @@ export async function applyClueTaxonomy(
       ).rowCount
     )
       throw new Error(
-        'Legacy clue pages have audit history; review before replacing them.',
+        appText.databaseClueTaxonomyLegacyCluePagesHaveAuditHistoryReviewBeforeReplacingThem,
       );
 
     // Ensure the saved external aliases still point to the canonical identities.
@@ -199,7 +205,7 @@ export async function applyClueTaxonomy(
       mapped.rows.some((row) => canonical(row.game_item_id) !== row.item_id)
     )
       throw new Error(
-        'Clue item alias mappings changed; no taxonomy changes applied.',
+        appText.databaseClueTaxonomyClueItemAliasMappingsChangedNoTaxonomyChangesApplied,
       );
 
     // Remove four misplaced regular rewards, retaining relative order and all
@@ -215,7 +221,11 @@ export async function applyClueTaxonomy(
         removed.some((id) => !rows.rows.some((row) => row.item_id === id)) ||
         added.some((id) => rows.rows.some((row) => row.item_id === id))
       )
-        throw new Error('Regular clue page differs from the source: ' + pageId);
+        throw new Error(
+          appText.databaseClueTaxonomyRegularCluePageDiffersFromTheSource(
+            pageId,
+          ),
+        );
       const updated = [
         ...rows.rows.filter((row) => !removed.includes(row.item_id)),
         ...added.map((item_id) => ({ item_id, origin: 'source' })),
@@ -311,8 +321,11 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  if (!readDatabaseUrl()) throw new Error('DATABASE_URL is required');
+  if (!readDatabaseUrl())
+    throw new Error(appText.databaseClueTaxonomyDatabaseUrlIsRequired);
   console.log(
-    'Clue taxonomy ' + (await applyBundledClueTaxonomy(readDatabaseUrl())),
+    appText.databaseClueTaxonomyClueTaxonomy(
+      await applyBundledClueTaxonomy(readDatabaseUrl()),
+    ),
   );
 }

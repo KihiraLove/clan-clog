@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Encrypted integration credentials; audit records and admin responses exclude secrets. */
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import type pg from 'pg';
@@ -29,7 +30,9 @@ export class PgDiscordSettingsStore implements DiscordSettingsStore {
     private readonly root: Buffer,
   ) {
     if (root.length !== 32)
-      throw new Error('Invalid integration encryption root');
+      throw new Error(
+        appText.databaseDiscordSettingsInvalidIntegrationEncryptionRoot,
+      );
   }
   private encrypt(value: PrivateSettings) {
     const iv = randomBytes(12),
@@ -73,7 +76,7 @@ export class PgDiscordSettingsStore implements DiscordSettingsStore {
     } catch {
       throw new DiscordSettingsError(
         503,
-        'Discord credential storage is unavailable.',
+        appText.databaseDiscordSettingsDiscordCredentialStorageIsUnavailable,
       );
     }
   }
@@ -107,7 +110,10 @@ export class PgDiscordSettingsStore implements DiscordSettingsStore {
       )
     ).rows[0];
     if (!row)
-      throw new DiscordSettingsError(503, 'Discord settings are unavailable.');
+      throw new DiscordSettingsError(
+        503,
+        appText.databaseDiscordSettingsDiscordSettingsAreUnavailable,
+      );
     return row;
   }
   async settings() {
@@ -127,7 +133,9 @@ export class PgDiscordSettingsStore implements DiscordSettingsStore {
           (input.token !== '' &&
             !/^[A-Za-z0-9._-]{20,256}$/u.test(input.token)))
       )
-        throw new Error('Discord bot token is invalid.');
+        throw new Error(
+          appText.databaseDiscordSettingsDiscordBotTokenIsInvalid,
+        );
     } catch (error) {
       throw new DiscordSettingsError(422, (error as Error).message);
     }
@@ -142,19 +150,19 @@ export class PgDiscordSettingsStore implements DiscordSettingsStore {
       if (!old)
         throw new DiscordSettingsError(
           503,
-          'Discord settings are unavailable.',
+          appText.databaseDiscordSettingsDiscordSettingsAreUnavailable,
         );
       if (input.expectedRevision !== 'discord-' + old.version)
         throw new DiscordSettingsError(
           409,
-          'Discord settings changed. Reload before saving again.',
+          appText.databaseDiscordSettingsDiscordSettingsChangedReloadBeforeSavingAgain,
         );
       const previous = this.decrypt(old.credentials),
         token = input.token ?? previous.token;
       if (fields.enabled && !token)
         throw new DiscordSettingsError(
           422,
-          'Save a bot token before enabling Discord.',
+          appText.databaseDiscordSettingsSaveABotTokenBeforeEnablingDiscord,
         );
       const changed = token !== previous.token;
       const row: Row = {

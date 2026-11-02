@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { useEffect, useState } from 'react';
 import {
   defaultRuneLiteRules,
@@ -18,10 +19,14 @@ const matchingMode = (matchName: boolean, requireKey: boolean) =>
   matchName ? (requireKey ? 'both' : 'name') : 'key';
 
 const worldOptions = [
-  ['f2p', 'Free to play worlds submissions', true],
-  ['pvp', 'PVP worlds submissions', true],
-  ['members', 'Members worlds submissions', false],
-  ['hardcore', 'Hardcore worlds submissions', false],
+  ['f2p', appText.webRuneLiteReviewSettingsFreeToPlayWorldsSubmissions, true],
+  ['pvp', appText.webRuneLiteReviewSettingsPvpWorldsSubmissions, true],
+  ['members', appText.webRuneLiteReviewSettingsMembersWorldsSubmissions, false],
+  [
+    'hardcore',
+    appText.webRuneLiteReviewSettingsHardcoreWorldsSubmissions,
+    false,
+  ],
 ] as const;
 export function RuneLiteReviewSettings({
   client,
@@ -89,7 +94,10 @@ export function RuneLiteReviewSettings({
       .catch((failure: unknown) => {
         if (!active) return;
         if (classifyAccessFailure(failure) === 'expired') onAccessLost();
-        else setError('RuneLite review settings are unavailable.');
+        else
+          setError(
+            appText.webRuneLiteReviewSettingsRuneLiteReviewSettingsAreUnavailable,
+          );
       })
       .finally(() => clearTimeout(timeout));
     return () => {
@@ -120,12 +128,12 @@ export function RuneLiteReviewSettings({
         busy={action.busy}
       />
       <div className="clan-api-key-settings runelite-review-settings">
-        <h3>Automatic review</h3>
+        <h3>{appText.webRuneLiteReviewSettingsAutomaticReview}</h3>
         {error && (
           <p role="alert">
             {error}{' '}
             <button type="button" onClick={() => setRefresh((n) => n + 1)}>
-              Retry review settings
+              {appText.webRuneLiteReviewSettingsRetryReviewSettings}
             </button>
           </p>
         )}
@@ -156,12 +164,16 @@ export function RuneLiteReviewSettings({
                 );
                 if (!signal.aborted) {
                   if (!value.clanKeyRequirement)
-                    throw new Error('Missing clan matching receipt.');
+                    throw new Error(
+                      appText.webRuneLiteReviewSettingsMissingClanMatchingReceipt,
+                    );
                   accept(value, {
                     ...keySettings,
                     ...value.clanKeyRequirement,
                   });
-                  action.setMessage('RuneLite review settings saved.');
+                  action.setMessage(
+                    appText.webRuneLiteReviewSettingsRuneLiteReviewSettingsSaved,
+                  );
                 }
               },
               async (signal) => {
@@ -174,7 +186,9 @@ export function RuneLiteReviewSettings({
             );
           }}
         >
-          <label htmlFor="runelite-clan-matching">Match Clan name or API</label>
+          <label htmlFor="runelite-clan-matching">
+            {appText.webRuneLiteReviewSettingsMatchClanNameOrApi}
+          </label>
           <select
             id="runelite-clan-matching"
             value={mode}
@@ -189,12 +203,18 @@ export function RuneLiteReviewSettings({
               action.setMessage(undefined);
             }}
           >
-            <option value="name">Clan name</option>
-            <option value="key">API key</option>
-            <option value="both">Both</option>
+            <option value="name">
+              {appText.webRuneLiteReviewSettingsClanName}
+            </option>
+            <option value="key">
+              {appText.webRuneLiteReviewSettingsApiKey}
+            </option>
+            <option value="both">
+              {appText.webRuneLiteReviewSettingsBoth}
+            </option>
           </select>
           <label htmlFor="runelite-clan-name">
-            In-game clan name for matching
+            {appText.webRuneLiteReviewSettingsInGameClanNameForMatching}
           </label>
           <input
             id="runelite-clan-name"
@@ -225,13 +245,23 @@ export function RuneLiteReviewSettings({
                   action.setMessage(undefined);
                 }}
               >
-                {canReject && <option value="reject">Reject</option>}
-                <option value="review">Send to review</option>
-                <option value="allow">Auto allow</option>
+                {canReject && (
+                  <option value="reject">
+                    {appText.webRuneLiteReviewSettingsReject}
+                  </option>
+                )}
+                <option value="review">
+                  {appText.webRuneLiteReviewSettingsSendToReview}
+                </option>
+                <option value="allow">
+                  {appText.webRuneLiteReviewSettingsAutoAllow}
+                </option>
               </select>
             </div>
           ))}
-          <label htmlFor="runelite-player-whitelist">Player whitelist</label>
+          <label htmlFor="runelite-player-whitelist">
+            {appText.webRuneLiteReviewSettingsPlayerWhitelist}
+          </label>
           <textarea
             id="runelite-player-whitelist"
             rows={6}
@@ -244,15 +274,16 @@ export function RuneLiteReviewSettings({
             }}
           />
           <p className="admin-note">
-            Players submissions who are the whitelist get auto accepted after
-            world filtering
+            {
+              appText.webRuneLiteReviewSettingsPlayersSubmissionsWhoAreTheWhitelistGetAutoAcceptedAfter
+            }
           </p>
           <div className="admin-actions">
             <button
               className="site-button"
               disabled={disabled || !changed || !rules.clanName.trim()}
             >
-              Save review settings
+              {appText.webRuneLiteReviewSettingsSaveReviewSettings}
             </button>
           </div>
         </form>

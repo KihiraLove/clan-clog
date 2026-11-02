@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Installation upgrade review is administrator-only, including discovery and retries. */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import {
@@ -20,12 +21,16 @@ export function catalogUpdateRoutes(
   authorize?: Authorize,
 ) {
   const admin = async (r: FastifyRequest, write = false) => {
-    if (!authorize) throw new ApiError(503, 'Admin sign-in is not configured.');
+    if (!authorize)
+      throw new ApiError(
+        503,
+        appText.apiCatalogUpdateRoutesAdminSignInIsNotConfigured,
+      );
     const actor = await authorize(r, write);
     if (actor.role !== 'admin')
       throw new ApiError(
         403,
-        'Only the administrator can review catalog updates.',
+        appText.apiCatalogUpdateRoutesOnlyTheAdministratorCanReviewCatalogUpdates,
       );
     return actor;
   };
@@ -46,7 +51,10 @@ export function catalogUpdateRoutes(
         value,
       )
     )
-      throw new ApiError(400, 'A UUID Idempotency-Key is required.');
+      throw new ApiError(
+        400,
+        appText.apiCatalogUpdateRoutesAUuidIdempotencyKeyIsRequired,
+      );
     return value;
   };
   app.get('/api/v1/admin/catalog-updates', async (r, reply) => {

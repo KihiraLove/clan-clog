@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import {
   highlightCss,
   parseHighlightColour,
@@ -54,7 +55,7 @@ export function HighlightPicker({
       <legend>{title}</legend>
       <div className="highlight-picker__controls">
         <label>
-          Colour
+          {appText.webHighlightPickerColour}
           <span className="highlight-picker__preview">
             <span
               style={{
@@ -63,7 +64,7 @@ export function HighlightPicker({
             />
             <input
               type="color"
-              aria-label="Choose highlight colour"
+              aria-label={appText.webHighlightPickerChooseHighlightColour}
               value={hex}
               onChange={(event) =>
                 onChange({ ...value, hex: event.target.value })
@@ -72,12 +73,12 @@ export function HighlightPicker({
           </span>
         </label>
         <label>
-          HEX
+          {appText.webHighlightPickerHex}
           <input
             required
             type="text"
             className="highlight-picker__hex"
-            placeholder="#RRGGBB"
+            placeholder={appText.webHighlightPickerRrggbb}
             maxLength={7}
             pattern="#?[a-fA-F0-9]{6}"
             spellCheck={false}
@@ -90,7 +91,7 @@ export function HighlightPicker({
           />
         </label>
         <label>
-          Alpha (%)
+          {appText.webHighlightPickerAlpha}
           <input
             required
             type="number"
@@ -105,7 +106,9 @@ export function HighlightPicker({
         </label>
       </div>
       {!colour && (
-        <p role="alert">Use a six-digit HEX colour and Alpha from 0 to 100%.</p>
+        <p role="alert">
+          {appText.webHighlightPickerUseASixDigitHexColourAndAlphaFrom0}
+        </p>
       )}
     </fieldset>
   );

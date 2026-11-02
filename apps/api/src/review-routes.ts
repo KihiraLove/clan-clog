@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Allowlisted, CSRF-protected review API with versioned queue and private audit. */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { ApiError } from './types.js';
@@ -40,7 +41,7 @@ export function reviewRoutes(
     if (actor.role !== 'admin')
       throw new ApiError(
         403,
-        'Only the administrator can change submission filters.',
+        appText.apiReviewRoutesOnlyTheAdministratorCanChangeSubmissionFilters,
       );
     return actor;
   };
@@ -49,7 +50,10 @@ export function reviewRoutes(
     { onRequest: guard() },
     async () => {
       if (!store.submissionFilters)
-        throw new ApiError(503, 'Submission filters are unavailable.');
+        throw new ApiError(
+          503,
+          appText.apiReviewRoutesSubmissionFiltersAreUnavailable,
+        );
       return store.submissionFilters();
     },
   );
@@ -78,7 +82,10 @@ export function reviewRoutes(
     async (req) => {
       const actor = await filterOwner(req);
       if (!store.saveSubmissionFilters)
-        throw new ApiError(503, 'Submission filters are unavailable.');
+        throw new ApiError(
+          503,
+          appText.apiReviewRoutesSubmissionFiltersAreUnavailable,
+        );
       return store.saveSubmissionFilters(
         req.body.filterCollected,
         req.body.expectedRevision,
@@ -121,7 +128,10 @@ export function reviewRoutes(
       const actor = await authorize(req, true);
       const key = req.headers['idempotency-key'];
       if (typeof key !== 'string')
-        throw new ApiError(400, 'A UUID Idempotency-Key is required.');
+        throw new ApiError(
+          400,
+          appText.apiReviewRoutesAUuidIdempotencyKeyIsRequired,
+        );
       return reply
         .code(201)
         .send(
@@ -158,7 +168,7 @@ export function reviewRoutes(
       if (status === 'reviewed' && req.query.unmatched !== undefined)
         throw new ApiError(
           400,
-          'Unmatched filter only applies to pending claims.',
+          appText.apiReviewRoutesUnmatchedFilterOnlyAppliesToPendingClaims,
         );
       return store.queue(
         status,
@@ -192,7 +202,8 @@ export function reviewRoutes(
         req.query.cursor,
         Number(req.query.limit ?? '20'),
       );
-      if (!result) throw new ApiError(404, 'Submission not found.');
+      if (!result)
+        throw new ApiError(404, appText.apiReviewRoutesSubmissionNotFound);
       return result;
     },
   );

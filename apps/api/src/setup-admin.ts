@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Local one-shot provisioning; credentials are displayed only by an explicit operator command. */
 import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -20,7 +21,7 @@ export async function setupAdministrator(pool: pg.Pool, password: string) {
         .rowCount
     )
       throw new Error(
-        'An administrator already exists; this command never resets accounts',
+        appText.apiSetupAdminAnAdministratorAlreadyExistsThisCommandNeverResetsAccounts,
       );
     await ensureDefaultAdministrator(client, await hasher.hash(password));
     await client.query('COMMIT');
@@ -42,30 +43,36 @@ if (
   try {
     if (args.length !== 1 || !['--generate', '--from-env'].includes(args[0]!))
       throw new Error(
-        'Usage: setup-admin --generate (or --from-env for automated provisioning)',
+        appText.apiSetupAdminUsageSetupAdminGenerateOrFromEnvForAutomatedProvisioning,
       );
     const password =
       args[0] === '--generate'
         ? randomBytes(32).toString('hex')
         : readSecret('ADMIN_BOOTSTRAP_PASSWORD');
     if (!password || !/^[a-f\d]{64,256}$/iu.test(password))
-      throw new Error('Provide a 32–128 byte hex bootstrap credential');
+      throw new Error(
+        appText.apiSetupAdminProvideA32128ByteHexBootstrapCredential,
+      );
     pool = new pg.Pool({
       connectionString: databaseUrl(process.env, 'runtime'),
       connectionTimeoutMillis: 5000,
     });
     await setupAdministrator(pool, password);
     console.log(
-      'Administrator created. First login requires a different password.',
+      appText.apiSetupAdminAdministratorCreatedFirstLoginRequiresADifferentPassword,
     );
     if (args[0] === '--generate')
-      console.log('Username: admin\nTemporary password: ' + password);
+      console.log(
+        appText.apiSetupAdminUsernameAdminTemporaryPassword(password),
+      );
   } catch (error) {
     console.error(
       error instanceof Error &&
-        error.message.startsWith('An administrator already exists')
+        error.message.startsWith(
+          appText.apiSetupAdminAnAdministratorAlreadyExists,
+        )
         ? error.message
-        : 'Administrator setup failed; check the command, secret inputs and initialized database.',
+        : appText.apiSetupAdminAdministratorSetupFailedCheckTheCommandSecretInputsAndInitialized,
     );
     process.exitCode = 1;
   } finally {

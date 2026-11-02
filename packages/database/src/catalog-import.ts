@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 import { databaseUrl as readDatabaseUrl } from './secrets.js';
 /** Atomic, insert-only bootstrap. Refreshes and admin overrides are separate workflows. */
 import { readFile } from 'node:fs/promises';
@@ -30,7 +31,9 @@ export async function readBundledSnapshot(): Promise<CatalogSnapshot> {
     )
   ).trim();
   if (snapshotId(value) !== expected)
-    throw new Error('Bundled catalog checksum mismatch');
+    throw new Error(
+      appText.databaseCatalogImportBundledCatalogChecksumMismatch,
+    );
   return value;
 }
 
@@ -51,7 +54,7 @@ export async function importCatalog(
     if (prior.rows.length) {
       if (!prior.rows.some((row) => row.id === id))
         throw new Error(
-          'A different catalog is already imported; use a reviewed refresh workflow',
+          appText.databaseCatalogImportADifferentCatalogIsAlreadyImportedUseAReviewedRefresh,
         );
       // A rerun never resets later admin edits, manual items, page placement or credits.
       await client.query('COMMIT');
@@ -185,6 +188,11 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  if (!readDatabaseUrl()) throw new Error('DATABASE_URL is required');
-  console.log('Catalog ' + (await importBundledCatalog(readDatabaseUrl())));
+  if (!readDatabaseUrl())
+    throw new Error(appText.databaseCatalogImportDatabaseUrlIsRequired);
+  console.log(
+    appText.databaseCatalogImportCatalogResult(
+      await importBundledCatalog(readDatabaseUrl()),
+    ),
+  );
 }

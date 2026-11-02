@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Bound aggregate readiness even when a dependency never settles. */
 import type { DiscordConnectionState } from '@clog/domain';
 export async function checkReadiness(
@@ -11,7 +12,7 @@ export async function checkReadiness(
       Promise.all([database(), bot?.()]),
       new Promise<never>((_resolve, reject) => {
         timer = setTimeout(
-          () => reject(new Error('Readiness timed out')),
+          () => reject(new Error(appText.apiReadinessReadinessTimedOut)),
           timeoutMs,
         );
       }),
@@ -30,10 +31,10 @@ export async function readBotConnectionState(): Promise<
     cache: 'no-store',
   });
   if (response.status !== 200 && response.status !== 503)
-    throw new Error('Bot status unavailable');
+    throw new Error(appText.apiReadinessBotStatusUnavailable);
   const value: unknown = await response.json();
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid bot status');
+    throw new Error(appText.apiReadinessInvalidBotStatus);
   const body = value as Record<string, unknown>;
   if (
     response.ok &&

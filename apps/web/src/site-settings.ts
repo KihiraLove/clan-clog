@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Versioned release visibility; missing public settings must fail closed. */
 export interface SiteSettings {
   eventHighlight?: HighlightColour;
@@ -11,7 +12,7 @@ export interface SiteSettings {
 }
 export function parseSettings(value: unknown): SiteSettings {
   if (!value || typeof value !== 'object')
-    throw new Error('Invalid site settings.');
+    throw new Error(appText.webSiteSettingsInvalidSiteSettings);
   const data = value as Record<string, unknown>;
   if (
     typeof data.revision !== 'string' ||
@@ -21,7 +22,7 @@ export function parseSettings(value: unknown): SiteSettings {
     !data.clanName.trim() ||
     data.clanName.length > 80
   )
-    throw new Error('Invalid site settings.');
+    throw new Error(appText.webSiteSettingsInvalidSiteSettings);
   return {
     ...(data.eventHighlight === undefined
       ? {}

@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Validate account-session configuration. Credentials live only in PostgreSQL. */
 import { isIP } from 'node:net';
 import { isAbsolute } from 'node:path';
@@ -16,12 +17,12 @@ export interface BotConfig {
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   const proofDirectory = env.PROOF_STORAGE_PATH?.trim() || undefined;
   if (proofDirectory && !isAbsolute(proofDirectory))
-    throw new Error('PROOF_STORAGE_PATH must be absolute');
+    throw new Error(appText.apiConfigProofStoragePathMustBeAbsolute);
   const iconDirectory = env.ICON_STORAGE_PATH?.trim() || undefined;
   if (iconDirectory && !isAbsolute(iconDirectory))
-    throw new Error('ICON_STORAGE_PATH must be absolute');
+    throw new Error(appText.apiConfigIconStoragePathMustBeAbsolute);
   if (!['true', 'false', undefined, ''].includes(env.AUTH_ENABLED))
-    throw new Error('AUTH_ENABLED must be true or false');
+    throw new Error(appText.apiConfigAuthEnabledMustBeTrueOrFalse);
   const trusted = (env.TRUSTED_PROXY_CIDRS ?? '')
     .split(',')
     .map((s) => s.trim())
@@ -35,7 +36,9 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
       (prefix !== undefined &&
         (!/^\d+$/u.test(prefix) || Number(prefix) > (family === 4 ? 32 : 128)))
     )
-      throw new Error('TRUSTED_PROXY_CIDRS must contain IP addresses or CIDRs');
+      throw new Error(
+        appText.apiConfigTrustedProxyCidrsMustContainIpAddressesOrCidrs,
+      );
   }
   if (
     !['database', 'environment', 'disabled', undefined, ''].includes(
@@ -43,7 +46,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     )
   )
     throw new Error(
-      'BOT_SETTINGS_MODE must be database, environment or disabled',
+      appText.apiConfigBotSettingsModeMustBeDatabaseEnvironmentOrDisabled,
     );
   const legacyBot =
     !env.BOT_SETTINGS_MODE || env.BOT_SETTINGS_MODE === 'environment';
@@ -52,14 +55,12 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     : '';
   const botGuildId = legacyBot ? (env.DISCORD_GUILD_ID?.trim() ?? '') : '';
   if (!!botToken !== !!botGuildId)
-    throw new Error('BOT_API_TOKEN and DISCORD_GUILD_ID must be set together');
+    throw new Error(appText.apiConfigBotApiTokenAndDiscordGuildIdMustBeSet);
   if (
     botToken &&
     (!/^[a-fA-F0-9]{64,}$/u.test(botToken) || !/^\d{17,20}$/u.test(botGuildId))
   )
-    throw new Error(
-      'Bot token must be 32+ random bytes as hex and guild ID must be a Discord snowflake',
-    );
+    throw new Error(appText.apiConfigBotTokenMustBe32RandomBytesAsHexAnd);
   const bot: BotConfig | undefined = botToken
     ? { token: botToken, guildId: botGuildId }
     : undefined;
@@ -75,7 +76,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   try {
     origin = new URL(env.PUBLIC_ORIGIN ?? '');
   } catch {
-    throw new Error('Admin auth requires a valid PUBLIC_ORIGIN');
+    throw new Error(appText.apiConfigAdminAuthRequiresAValidPublicOrigin);
   }
   const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(
     origin.hostname,
@@ -94,12 +95,12 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
       ))
   )
     throw new Error(
-      'PUBLIC_ORIGIN must use HTTPS (HTTP loopback only in development)',
+      appText.apiConfigPublicOriginMustUseHttpsHttpLoopbackOnlyInDevelopment,
     );
   const secret = readSecret('SESSION_SECRET', env)?.trim() ?? '';
   if (!/^[a-f\d]{64,}$/iu.test(secret))
     throw new Error(
-      'SESSION_SECRET must contain at least 32 random bytes encoded as hex',
+      appText.apiConfigSessionSecretMustContainAtLeast32RandomBytesEncoded,
     );
   const bootstrapPassword = readSecret('ADMIN_BOOTSTRAP_PASSWORD', env);
   if (
@@ -107,7 +108,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     !/^[a-f\d]{64,256}$/iu.test(bootstrapPassword)
   )
     throw new Error(
-      'ADMIN_BOOTSTRAP_PASSWORD must contain 32–128 random bytes encoded as hex',
+      appText.apiConfigAdminBootstrapPasswordMustContain32128RandomBytesEncoded,
     );
   return {
     iconDirectory,

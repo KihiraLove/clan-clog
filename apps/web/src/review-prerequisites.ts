@@ -1,6 +1,7 @@
+import * as appText from '@clog/domain';
 /** Pure explanations for every review action; UI and tests share one policy. */
 export const unsavedClaimHint =
-  'Save or discard corrections before deciding on this claim.';
+  appText.webReviewPrerequisitesSaveOrDiscardCorrectionsBeforeDecidingOnThisClaim;
 
 export interface ReviewRequirements {
   status: 'pending' | 'approved' | 'rejected' | 'revoked';
@@ -30,63 +31,80 @@ export function reviewBlockers(
   x: ReviewRequirements,
 ): Record<ReviewActionHint, string | null> {
   const common = x.requestBusy
-    ? 'A review request is in progress. The result must be checked before another action.'
+    ? appText.webReviewPrerequisitesAReviewRequestIsInProgressTheResultMustBe
     : x.readError
-      ? 'The saved submission version or audit could not be loaded. Reload the submission before continuing.'
+      ? appText.webReviewPrerequisitesTheSavedSubmissionVersionOrAuditCouldNotBeLoaded
       : x.queueUnavailable
-        ? 'The submissions list is refreshing or unavailable. Reload before making changes.'
+        ? appText.webReviewPrerequisitesTheSubmissionsListIsRefreshingOrUnavailableReloadBeforeMaking
         : null;
   const editable = ['pending', 'approved'].includes(x.status);
   const write =
     common ??
-    (!editable ? 'Only pending or approved claims can be edited.' : null);
+    (!editable
+      ? appText.webReviewPrerequisitesOnlyPendingOrApprovedClaimsCanBeEdited
+      : null);
   const claim =
     write ??
-    (!x.claimDirty ? 'No claim corrections to save.' : null) ??
+    (!x.claimDirty
+      ? appText.webReviewPrerequisitesNoClaimCorrectionsToSave
+      : null) ??
     (!x.draftItemActive
-      ? 'Select an active canonical item before saving corrections.'
+      ? appText.webReviewPrerequisitesSelectAnActiveCanonicalItemBeforeSavingCorrections
       : null) ??
     (x.status === 'approved' && !x.reasonProvided
-      ? 'Enter an audit reason before changing an approved credit.'
+      ? appText.webReviewPrerequisitesEnterAnAuditReasonBeforeChangingAnApprovedCredit
       : null);
   const note =
-    write ?? (!x.noteDirty ? 'No review note changes to save.' : null);
+    write ??
+    (!x.noteDirty
+      ? appText.webReviewPrerequisitesNoReviewNoteChangesToSave
+      : null);
   const decision = common ?? (x.claimDirty ? unsavedClaimHint : null);
   const proof =
     decision ??
-    (x.status !== 'pending' ? 'Only pending claims may be approved.' : null) ??
+    (x.status !== 'pending'
+      ? appText.webReviewPrerequisitesOnlyPendingClaimsMayBeApproved
+      : null) ??
     (!x.activeItem
-      ? 'Select and save an active canonical item before approving.'
+      ? appText.webReviewPrerequisitesSelectAndSaveAnActiveCanonicalItemBeforeApproving
       : null) ??
     (!x.validProof
-      ? 'A saved screenshot or RuneLite chat message is required for approval.'
+      ? appText.webReviewPrerequisitesASavedScreenshotOrRuneLiteChatMessageIsRequiredFor
       : null);
   const approve =
     proof ??
     (!x.acknowledged
-      ? 'Check the saved item, collector, date, world mode and proof, then tick the proof acknowledgement.'
+      ? appText.webReviewPrerequisitesCheckTheSavedItemCollectorDateWorldModeAndProof
       : null);
   const reject =
     decision ??
-    (x.status !== 'pending' ? 'Only pending claims may be rejected.' : null) ??
+    (x.status !== 'pending'
+      ? appText.webReviewPrerequisitesOnlyPendingClaimsMayBeRejected
+      : null) ??
     (!x.reasonProvided
-      ? 'Enter a reason before rejecting a submission.'
+      ? appText.webReviewPrerequisitesEnterAReasonBeforeRejectingASubmission
       : null);
   const revoke =
     decision ??
     (x.status !== 'approved'
-      ? 'Only approved credits may be revoked.'
+      ? appText.webReviewPrerequisitesOnlyApprovedCreditsMayBeRevoked
       : null) ??
-    (!x.reasonProvided ? 'Enter a reason before revoking a credit.' : null);
+    (!x.reasonProvided
+      ? appText.webReviewPrerequisitesEnterAReasonBeforeRevokingACredit
+      : null);
   return {
     claim,
     discardClaim:
       write ??
-      (!x.claimDirty ? 'There are no claim corrections to discard.' : null),
+      (!x.claimDirty
+        ? appText.webReviewPrerequisitesThereAreNoClaimCorrectionsToDiscard
+        : null),
     note,
     discardNote:
       write ??
-      (!x.noteDirty ? 'There are no review note changes to discard.' : null),
+      (!x.noteDirty
+        ? appText.webReviewPrerequisitesThereAreNoReviewNoteChangesToDiscard
+        : null),
     acknowledge: proof,
     approve,
     reject,

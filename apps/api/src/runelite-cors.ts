@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** The public browser tester can upload drops without gaining staff access. */
 import type { FastifyInstance } from 'fastify';
 import { ApiError } from './types.js';
@@ -40,7 +41,7 @@ export function runeLiteCors(app: FastifyInstance) {
     )
       throw new ApiError(
         403,
-        'Browser upload origin, method or headers are not allowed.',
+        appText.apiRuneliteCorsBrowserUploadOriginMethodOrHeadersAreNotAllowed,
       );
     return reply
       .header('Access-Control-Allow-Methods', 'POST')

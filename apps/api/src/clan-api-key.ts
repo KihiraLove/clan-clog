@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Recoverable clan keys are encrypted; request checks need only the SHA-256 digest. */
 import {
   createCipheriv,
@@ -46,10 +47,10 @@ export function suppliedClanKey(
       typeof encoded !== 'string' ||
       !/^[A-Za-z0-9_-]+$/u.test(encoded)
     )
-      throw new Error('Invalid key header');
+      throw new Error(appText.apiClanApiKeyInvalidKeyHeader);
     const bytes = Buffer.from(encoded, 'base64url');
     if (bytes.toString('base64url') !== encoded)
-      throw new Error('Invalid key encoding');
+      throw new Error(appText.apiClanApiKeyInvalidKeyEncoding);
     return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
       bytes,
     );
@@ -60,7 +61,7 @@ export function suppliedClanKey(
 /** Atomically publish the encryption root in the private, backed-up screenshot volume. */
 export async function loadClanKeyRoot(directory: string): Promise<Buffer> {
   if (!isAbsolute(directory))
-    throw new Error('Key storage directory must be absolute');
+    throw new Error(appText.apiClanApiKeyKeyStorageDirectoryMustBeAbsolute);
   const path = join(directory, '.clan-api-key.secret');
   try {
     return await readRoot(path);
@@ -109,7 +110,7 @@ export async function loadClanKeyRoot(directory: string): Promise<Buffer> {
 async function readRoot(path: string) {
   const key = await readFile(path);
   if (key.length !== 32)
-    throw new Error('Clan key encryption storage is invalid');
+    throw new Error(appText.apiClanApiKeyClanKeyEncryptionStorageIsInvalid);
   return key;
 }
 function encrypt(value: string, root: Buffer) {
@@ -128,7 +129,7 @@ function decrypt(value: string, root: Buffer) {
   try {
     const [version, iv, tag, data, ...extra] = value.split(':');
     if (version !== 'v1' || !iv || !tag || !data || extra.length)
-      throw new Error('Invalid encrypted key');
+      throw new Error(appText.apiClanApiKeyInvalidEncryptedKey);
     const cipher = createDecipheriv(
       'aes-256-gcm',
       root,
@@ -140,10 +141,13 @@ function decrypt(value: string, root: Buffer) {
       cipher.update(Buffer.from(data, 'base64url')),
       cipher.final(),
     ]).toString('utf8');
-    if (!key.length) throw new Error('Invalid key');
+    if (!key.length) throw new Error(appText.apiClanApiKeyInvalidKey);
     return key;
   } catch {
-    throw new ApiError(503, 'Clan API key storage is unavailable.');
+    throw new ApiError(
+      503,
+      appText.apiClanApiKeyClanApiKeyStorageIsUnavailable,
+    );
   }
 }
 type KeyRow = {
@@ -157,7 +161,8 @@ export class PgClanKeyStore implements ClanKeyStore {
     private readonly pool: pg.Pool,
     private readonly root: Buffer,
   ) {
-    if (root.length !== 32) throw new Error('Invalid clan key encryption root');
+    if (root.length !== 32)
+      throw new Error(appText.apiClanApiKeyInvalidClanKeyEncryptionRoot);
   }
   async ensureDefault() {
     const key = generateClanKey();
@@ -171,7 +176,7 @@ export class PgClanKeyStore implements ClanKeyStore {
   private view(row: KeyRow): ClanKeySettings {
     const key = decrypt(row.encrypted_key, this.root);
     if (!validClanApiKey(key))
-      throw new ApiError(503, 'Clan API key storage is invalid.');
+      throw new ApiError(503, appText.apiClanApiKeyClanApiKeyStorageIsInvalid);
     return {
       revision: 'clan-key-' + row.version,
       enabled: row.enabled,
@@ -184,7 +189,11 @@ export class PgClanKeyStore implements ClanKeyStore {
         'SELECT enabled,version,encrypted_key,key_hash FROM clan_api_keys WHERE singleton=true',
       )
     ).rows[0];
-    if (!row) throw new ApiError(503, 'Clan API key storage is unavailable.');
+    if (!row)
+      throw new ApiError(
+        503,
+        appText.apiClanApiKeyClanApiKeyStorageIsUnavailable,
+      );
     return this.view(row);
   }
   async update(fields: ClanKeyUpdate, actorId: string) {
@@ -197,7 +206,7 @@ export class PgClanKeyStore implements ClanKeyStore {
     )
       throw new ApiError(
         422,
-        'Supply an enabled setting, a key of at least 8 characters, or generate a new key.',
+        appText.apiClanApiKeySupplyAnEnabledSettingAKeyOfAtLeast8,
       );
     const client = await this.pool.connect();
     try {
@@ -207,11 +216,15 @@ export class PgClanKeyStore implements ClanKeyStore {
           'SELECT enabled,version,encrypted_key,key_hash FROM clan_api_keys WHERE singleton=true FOR UPDATE',
         )
       ).rows[0];
-      if (!old) throw new ApiError(503, 'Clan API key storage is unavailable.');
+      if (!old)
+        throw new ApiError(
+          503,
+          appText.apiClanApiKeyClanApiKeyStorageIsUnavailable,
+        );
       if (fields.expectedRevision !== 'clan-key-' + old.version)
         throw new ApiError(
           409,
-          'API key settings changed. Reload before saving again.',
+          appText.apiClanApiKeyApiKeySettingsChangedReloadBeforeSavingAgain,
         );
       const key = fields.generate ? generateClanKey() : fields.key;
       const enabled = fields.enabled ?? old.enabled;
@@ -257,7 +270,11 @@ export async function requireClanKey(
         (lock ? ' FOR SHARE' : ''),
     )
   ).rows[0];
-  if (!row) throw new ApiError(503, 'Clan API key storage is unavailable.');
+  if (!row)
+    throw new ApiError(
+      503,
+      appText.apiClanApiKeyClanApiKeyStorageIsUnavailable,
+    );
   if (!row.enabled && !required) return;
   if (
     !validClanApiKey(supplied) ||
@@ -266,5 +283,5 @@ export async function requireClanKey(
       Buffer.from(digest(supplied), 'hex'),
     )
   )
-    throw new ApiError(401, 'A valid clan API key is required.');
+    throw new ApiError(401, appText.apiClanApiKeyAValidClanApiKeyIsRequired);
 }

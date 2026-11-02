@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Fetch authorized entry data alongside code, without keeping a private route cache. */
 import { classifyAccessFailure } from './admin-session.ts';
 import { isAdminPath, loadAdminRoute } from './admin-route-data.ts';
@@ -41,7 +42,7 @@ async function prepareEntry(
       return { access: { phase: 'expired' } };
     return {
       access: { phase: 'checking' },
-      error: 'Could not check admin access. Reload to try again.',
+      error: appText.webPrepareAppRouteCouldNotCheckAdminAccessReloadToTryAgain,
     };
   }
 }

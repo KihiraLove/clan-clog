@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** XP wire types, exact arithmetic and parsers; also supplies shared private-response guards. */
 import {
   skills,
@@ -33,7 +34,7 @@ export function parseAdminSession(input: unknown): AdminSession | null {
     !['admin', 'moderator'].includes(String(value.role)) ||
     typeof value.mustChangePassword !== 'boolean'
   )
-    throw new Error('Invalid admin session.');
+    throw new Error(appText.webXpModelInvalidAdminSession);
   return {
     csrfToken: text(value.csrfToken),
     displayName: text(value.displayName),
@@ -72,7 +73,7 @@ export function competitionUrl(input: string): { id: number; url: string } {
   try {
     url = new URL(input.trim());
   } catch {
-    throw new Error('Enter a Wise Old Man competition link.');
+    throw new Error(appText.webXpModelEnterAWiseOldManCompetitionLink);
   }
   const match = /^\/competitions\/([1-9]\d*)\/?$/u.exec(url.pathname);
   if (
@@ -84,7 +85,7 @@ export function competitionUrl(input: string): { id: number; url: string } {
     !match ||
     !Number.isSafeInteger(Number(match[1]))
   )
-    throw new Error('Use https://wiseoldman.net/competitions/<id>.');
+    throw new Error(appText.webXpModelUseHttpsWiseoldmanNetCompetitionsId);
   return {
     id: Number(match[1]),
     url: 'https://wiseoldman.net/competitions/' + match[1],
@@ -92,21 +93,21 @@ export function competitionUrl(input: string): { id: number; url: string } {
 }
 export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Invalid XP snapshot.');
+    throw new Error(appText.webXpModelInvalidXpSnapshot);
   return value as Record<string, unknown>;
 }
 export function list(value: unknown): unknown[] {
-  if (!Array.isArray(value)) throw new Error('Missing XP rows.');
+  if (!Array.isArray(value)) throw new Error(appText.webXpModelMissingXpRows);
   return value;
 }
 export function text(value: unknown): string {
   if (typeof value !== 'string' || !value.trim())
-    throw new Error('Missing XP text.');
+    throw new Error(appText.webXpModelMissingXpText);
   return value;
 }
 export function identity(value: unknown): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0)
-    throw new Error('Invalid XP identity.');
+    throw new Error(appText.webXpModelInvalidXpIdentity);
   return value;
 }
 /** Accept canonical integer strings; only change deltas may be negative. */
@@ -116,7 +117,7 @@ export function amount(value: unknown, signed = false): string {
     value.length > 100 ||
     !(signed ? /^(0|-?[1-9]\d*)$/u : /^(0|[1-9]\d*)$/u).test(value)
   )
-    throw new Error('XP must be an exact decimal integer string.');
+    throw new Error(appText.webXpModelXpMustBeAnExactDecimalIntegerString);
   return value;
 }
 export function timestamp(value: unknown): string {
@@ -127,16 +128,16 @@ export function timestamp(value: unknown): string {
       result.slice(0, 10) ||
     !Number.isFinite(Date.parse(result))
   )
-    throw new Error('Invalid XP date.');
+    throw new Error(appText.webXpModelInvalidXpDate);
   return result;
 }
 export function skill(value: unknown): SkillId {
-  if (!isSkill(value)) throw new Error('Unknown XP skill.');
+  if (!isSkill(value)) throw new Error(appText.webXpModelUnknownXpSkill);
   return value as SkillId;
 }
 export function unique(values: readonly unknown[]): void {
   if (new Set(values).size !== values.length)
-    throw new Error('Duplicate XP identity.');
+    throw new Error(appText.webXpModelDuplicateXpIdentity);
 }
 export function parseChanges(value: unknown): ImportChange[] {
   const changes = list(value).map((entry) => {
@@ -145,7 +146,7 @@ export function parseChanges(value: unknown): ImportChange[] {
       after = amount(c.after),
       change = amount(c.change, true);
     if (BigInt(after) - BigInt(before) !== BigInt(change))
-      throw new Error('Inconsistent XP change.');
+      throw new Error(appText.webXpModelInconsistentXpChange);
     return { skill: skill(c.skill), before, after, change };
   });
   unique(changes.map((c) => c.skill));

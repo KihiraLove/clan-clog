@@ -1,3 +1,4 @@
+import * as appText from '@clog/domain';
 /** Serialize form operations, bound their duration and centralize access/conflict errors. */
 import { withAbort } from './with-abort.ts';
 import { useEffect, useRef, useState } from 'react';
@@ -28,7 +29,7 @@ export function useAdminAction(onAccessLost: () => void) {
     controller.current = current;
     const timer = window.setTimeout(() => current.abort(), 15000);
     setBusy(true);
-    setOperation(label ?? 'Saving changes');
+    setOperation(label ?? appText.webUseAdminActionSavingChanges);
     setError(undefined);
     setMessage(undefined);
     try {
@@ -39,12 +40,12 @@ export function useAdminAction(onAccessLost: () => void) {
       else {
         setError(
           current.signal.aborted
-            ? 'The request timed out. Reload or retry to check the result.'
+            ? appText.webUseAdminActionTheRequestTimedOutReloadOrRetryToCheckThe
             : failure instanceof AdminRequestError
               ? failure.message
               : failure instanceof Error
                 ? failure.message
-                : 'The admin request could not be completed.',
+                : appText.webUseAdminActionTheAdminRequestCouldNotBeCompleted,
         );
         // A conflict may reload current state, but never silently replays the write.
         if (
@@ -57,16 +58,17 @@ export function useAdminAction(onAccessLost: () => void) {
             if (controller.current === current && !current.signal.aborted)
               setError(
                 failure.message ===
-                  'Another change was saved. Load the latest data before trying again.'
-                  ? 'Another change was saved. The latest data is loaded; review it before trying again.'
-                  : failure.message +
-                      ' The latest data is loaded; review the changes before trying again.',
+                  appText.webUseAdminActionAnotherChangeWasSavedLoadTheLatestDataBeforeTrying
+                  ? appText.webUseAdminActionAnotherChangeWasSavedTheLatestDataIsLoadedReview
+                  : appText.webUseAdminActionTheLatestDataIsLoadedReviewTheChangesBeforeTrying(
+                      failure.message,
+                    ),
               );
           } catch (failure) {
             if (classifyAccessFailure(failure) === 'expired') onAccessLost();
             else
               setError(
-                'The data changed, but the latest version could not be loaded. Reload before continuing.',
+                appText.webUseAdminActionTheDataChangedButTheLatestVersionCouldNotBe,
               );
           }
         }

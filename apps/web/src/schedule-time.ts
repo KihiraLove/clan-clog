@@ -1,9 +1,10 @@
+import * as appText from '@clog/domain';
 const pad = (value: number) => String(value).padStart(2, '0');
 /** Use local components rather than slicing an ISO UTC timestamp for datetime-local. */
 export function localScheduleInput(utc: string): string {
   const date = new Date(utc);
   if (!Number.isFinite(date.getTime()))
-    throw new Error('Invalid schedule time.');
+    throw new Error(appText.webScheduleTimeInvalidScheduleTime);
   return `${String(date.getFullYear()).padStart(4, '0')}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 export function localScheduleToUtc(value: string): string {
@@ -11,14 +12,14 @@ export function localScheduleToUtc(value: string): string {
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/u.test(value) ||
     value.startsWith('0000-')
   )
-    throw new Error('Choose a valid local date and time.');
+    throw new Error(appText.webScheduleTimeChooseAValidLocalDateAndTime);
   const date = new Date(value);
   if (
     !Number.isFinite(date.getTime()) ||
     localScheduleInput(date.toISOString()).slice(0, value.length) !== value
   )
     throw new Error(
-      'This local time does not exist. Check the date or daylight saving change.',
+      appText.webScheduleTimeThisLocalTimeDoesNotExistCheckTheDateOr,
     );
   return date.toISOString();
 }
