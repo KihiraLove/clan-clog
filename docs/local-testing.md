@@ -10,6 +10,12 @@ npm run dev:web
 npm run dev:api
 ```
 
+Install dependencies in the same operating-system environment that runs Node.
+For a checkout shared between Windows and WSL, run `npm ci --include=optional`
+inside the active environment after switching. Native packages such as Rollup
+and esbuild are platform-specific; reuse the committed lockfile rather than
+regenerating it to repair a missing native package.
+
 Vite proxies `/api` to `127.0.0.1:3000`. The frontend always uses the API;
 there is no demo fallback. Browser fixtures live under `apps/web/tests/support`
 and cannot enter production bundles. See [configuration](environment.md).
