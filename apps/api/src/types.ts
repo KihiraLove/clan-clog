@@ -132,7 +132,9 @@ export interface BackendStore {
   ): Promise<void>;
   session(hash: string): Promise<StoredSession | null>;
   deleteSession(hash: string): Promise<void>;
-  allowLogin(keyHash: string): Promise<boolean>;
+  allowLogin(
+    attempt: import('./auth-admission.js').AuthAttempt,
+  ): Promise<import('./auth-admission.js').AuthAdmission>;
 }
 export const adminBootstrapRequiredMessage =
   appText.apiTypesNoAdministratorExistsRunDockerComposeRunRmSetupAdmin;

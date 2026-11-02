@@ -77,3 +77,26 @@ include it in `COMPOSE_FILE` (after your own files), or copy the recorded image
 into your service definition. The optional GitHub deployment workflow requires
 your own protected runner and a reviewed launcher checksum; install the complete
 `infra/` helper directory beside the launcher.
+
+## Sign-in throttling and proxy identity
+
+Credential limits use Fastify's validated client address. Bundled Nginx appends
+its actual peer to `X-Forwarded-For`; configure `TRUSTED_PROXY_CIDRS` only for the
+external reverse proxies you control. Do not trust every address or a hop count
+when paths can vary. An untrusted direct peer cannot choose its source bucket
+with a forwarded header; the closest untrusted address ends a trusted chain.
+Equivalent IPv6 forms and IPv4-mapped IPv6 addresses share the same source key.
+
+A shared NAT has one 20-attempt source budget per minute, with separate
+5-attempt username budgets within it. A targeted username also has one budget
+across source addresses. On 429, wait the returned positive `Retry-After` seconds;
+retries do not prolong the window. Existing staff sessions, public pages, static
+assets and logout remain available. A 503 from credential admission can indicate
+shared storage contention, capacity or database failure; inspect readiness and
+fixed `AUTH_LIMIT_STORAGE` diagnostics, then allow automatic recovery. Do not
+reset credentials or delete session/limiter tables as a troubleshooting shortcut.
+
+For a focused disposable proxy/storage check, build an isolated image and run
+`CHECK_APP_IMAGE=clan-clog:checks node scripts/auth-throttling-smoke.mjs`. It creates
+uniquely named containers, a network and fresh data, then removes only those
+resources. Never run brute-force checks against an existing installation.

@@ -3,6 +3,7 @@ import * as appText from '@clog/domain';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PreparedAdminEntry } from './app-runtime.ts';
 import { AdminRequestError } from './admin-api.ts';
+import { useLoginCooldown } from './use-login-cooldown.ts';
 import {
   classifyAccessFailure,
   visibleAdminSession,
@@ -154,10 +155,12 @@ export function AdminPage({
     };
   }, [client, session, accessLost]);
   const loginAction = useAdminAction(accessLost);
+  const cooldown = useLoginCooldown();
   const loggingIn = loginAction.busy,
     loginError = loginAction.error;
   const logIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (loggingIn || cooldown.seconds > 0) return;
     await loginAction.execute(async (signal) => {
       try {
         await client.login(username, password, signal);
@@ -169,6 +172,8 @@ export function AdminPage({
         setError(undefined);
         setPassword('');
       } catch (failure) {
+        if (failure instanceof AdminRequestError && failure.status === 429)
+          cooldown.start(failure.retryAfterSeconds ?? 60);
         if (signal.aborted) throw failure;
         throw new Error(
           failure instanceof AdminRequestError && failure.status === 401
@@ -180,6 +185,7 @@ export function AdminPage({
         );
       }
     });
+    setPassword('');
   };
   useEffect(() => {
     if (preparedAccess.current) {
@@ -375,6 +381,9 @@ export function AdminPage({
                 id="admin-password"
                 type="password"
                 autoComplete="current-password"
+                aria-describedby={
+                  cooldown.seconds > 0 ? 'admin-login-cooldown' : undefined
+                }
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -382,13 +391,18 @@ export function AdminPage({
               <button
                 className="site-button"
                 type="submit"
-                disabled={loggingIn}
+                disabled={loggingIn || cooldown.seconds > 0}
               >
                 {loggingIn
                   ? appText.webAdminPageSigningIn
                   : appText.webAdminPageSignIn}
               </button>
             </form>
+            {cooldown.seconds > 0 && (
+              <p id="admin-login-cooldown" role="status" aria-live="polite">
+                {appText.webAdminPageLoginCooldown(cooldown.seconds)}
+              </p>
+            )}
             {loginError && (
               <p role="alert" className="admin-error">
                 {loginError}
