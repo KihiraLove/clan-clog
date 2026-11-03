@@ -74,6 +74,9 @@ rollback: preserve the retry key and reconcile the original operation.
 Pending `POST /admin/submissions/:id/approve` and `/reject` optionally accept
 `flags` alongside `expectedVersion` (and the rejection `reason`). Flags contain
 `hardcore` and either `collectionType` (`regular`/`event`) or `useIntakeTiming: true`.
+Event flags can include `eventPageId`. Intake timing validates this choice against
+the frozen eligible page IDs; an explicit staff Event override validates current
+item/page membership instead. Multiple candidates require a page before approval.
 Omitting flags preserves the saved classification. Both flags and the decision
 save in one transaction/revision/audit. Hardcore permits Regular only; manual
 claims cannot use intake timing. Approved credits use the separate
@@ -84,8 +87,8 @@ flags; save/discard their draft first. All credit moves enforce duplicate rules.
 `POST /bot/submissions` requires the bot credential and multipart fields
 `submission` (JSON) and `screenshot` (one PNG, up to 10 MiB). JSON contains
 `interactionId`, `guildId`, `actorDiscordId`, `rawItemText`, `collectorName`,
-optional canonical `itemId` and optional `hardcore` (default false). Caller dates,
-decision fields and external proof URLs are rejected. The image is fully decoded,
+optional canonical `itemId`, optional `eventPageId` and optional `hardcore` (default
+false). Caller dates, decision fields and external proof URLs are rejected. The image is fully decoded,
 bounded to 8192 pixels per side/32 megapixels, and saved only as private lossless
 WebP. The Discord interaction ID binds metadata and image content: exact replay
 returns the original receipt with 200; new intake returns 201; changed data conflicts.
@@ -133,9 +136,19 @@ resolve from frozen intake evidence; `useIntakeTiming: true` restores this after
 a staff override. Omitted fields preserve an existing explicit override. Hardcore rejects Event.
 Approved public credits include a nonnullable type. Public history contains every
 approved credit; progress counts distinct items. One normal-world Event credit is
-allowed per item. The regular duplicate switch governs Regular credits in each
-world mode. Existing receipts/audits keep their original JSON; older omitted
+allowed per canonical item/page pair. Submissions, new receipts and public credits
+include nullable `eventPageId`; public credits also expose
+`eventPageAssignmentPending` for retained legacy Event credits awaiting assignment.
+Regular and Hardcore credits have no Event page. Public history contains all page
+credits, but page-specific Event display filters by page ID; completion, Regular
+history and obtain totals retain their canonical meaning. The regular duplicate
+switch governs Regular credits in each world mode. Existing receipts/audits keep their original JSON; older omitted
 types display as Regular. See [staff rules](staff-guide.md).
+
+Private review details include `eligibleEventPageIds` from the original evidence,
+`occupiedEventPageIds` excluding the current submission, and `eventPageBlocked`
+when another unresolved legacy credit prevents Event approval. Manual creation and
+Event corrections can include `eventPageId`; Regular/Hardcore inputs cannot.
 
 XP gains are nonnegative integer strings, never floating-point numbers. WOM metric
 weights and combined/computed scores use canonical decimal strings. Competition
@@ -144,6 +157,36 @@ with per-metric `deltas`. Public XP events include a `competition` summary with 
 most three standings; public activity reads expose metadata only. Imports
 are previewed and applied transactionally; refreshing replaces a prior event's
 contribution. [Competition rules](wom-competitions.md) define lifecycle and corrections.
+
+## Legacy Event page assignments
+
+Administrator-only `GET /admin/event-page-assignments` returns `revision`, `total`
+and up to 50 unresolved `credits`. Each credit contains the original submission
+ID/version, item, collector/date, current page names and availability, frozen
+eligible page IDs and receipt time. A missing or retired destination stays
+unresolved and requires catalog repair. Historical evidence never chooses a shared
+item's page automatically. Empty reviews do not prompt on fresh installations.
+
+`POST /admin/event-page-assignments` accepts `{ expectedRevision, assignments }`;
+each assignment contains `submissionId`, `expectedVersion` and `eventPageId`.
+Select 1–50 distinct credits and send a UUID `Idempotency-Key` with the normal
+Origin/CSRF protections. The entire selected batch validates current membership,
+credit versions and the catalog/review revision before committing. The response is
+`{ assignedIds }`. Actor-attributed before/after audit records and durable receipts
+are atomic with the assignments. Exact retries return the original response even
+after a restart; changed payloads under the same key conflict. Cancellation has no
+write. Unrelated Regular submissions do not invalidate the review revision.
+
+Migration assigns approved single-page legacy Event credits only when their sole
+page is active; shared/missing/retired cases retain their original record with the
+pending marker. That marker blocks new Event approvals for the affected canonical
+item until assignment or explicit revocation. It does not block Regular history or
+unrelated items. Page retirement or membership removal after assignment retains the
+historical page ID; unchanged history can still receive collector/date corrections.
+New or moved Event targets must be active current memberships. Omitted input page
+fields retain old intake fingerprints and opaque receipt JSON; explicit targets
+are included in new request fingerprints. Event-to-Regular fallback checks only a
+selected page's occupied slot when Regular duplicate filtering is disabled.
 
 ## Credential throttling
 

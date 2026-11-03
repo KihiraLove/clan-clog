@@ -110,6 +110,12 @@ export async function mockApi(
       if (asset) return await route.fulfill(asset);
       let result: unknown;
       if (path === '/api/v1/auth/session') result = await session();
+      else if (path === '/api/v1/admin/event-page-assignments')
+        result = {
+          revision: 'event-pages-1-' + '0'.repeat(64),
+          total: 0,
+          credits: [],
+        };
       else if (path === '/api/v1/admin/catalog-updates')
         result = {
           revision: '0'.repeat(64),

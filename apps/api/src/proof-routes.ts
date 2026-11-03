@@ -44,6 +44,7 @@ function manualFields(json: string): ManualSubmissionInput {
         ![
           'itemId',
           'collectionType',
+          'eventPageId',
           'collectorName',
           'collectedOn',
           'hardcore',
@@ -66,6 +67,10 @@ function manualFields(json: string): ManualSubmissionInput {
       row.collectionType !== 'regular' &&
       row.collectionType !== 'event') ||
     (row.proofUrl !== undefined && row.proofUrl !== '') ||
+    (row.eventPageId !== undefined &&
+      (typeof row.eventPageId !== 'string' ||
+        !row.eventPageId.trim() ||
+        row.eventPageId.length > 200)) ||
     (row.reason !== undefined &&
       (typeof row.reason !== 'string' || row.reason.length > 1000))
   )
@@ -129,7 +134,7 @@ export function proofRoutes(
         const { fields, file } = await parts(
           req,
           ['username', 'clanName', 'itemId', 'worldType'],
-          ['chatMessage', 'itemName'],
+          ['chatMessage', 'itemName', 'eventPageId'],
           false,
         );
         if (
@@ -149,6 +154,9 @@ export function proofRoutes(
           username: fields.username!,
           clanName: fields.clanName!,
           itemId: Number(fields.itemId),
+          ...(fields.eventPageId === undefined
+            ? {}
+            : { eventPageId: fields.eventPageId }),
           ...(fields.itemName === undefined
             ? {}
             : { itemName: fields.itemName }),

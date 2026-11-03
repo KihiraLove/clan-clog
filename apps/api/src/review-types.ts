@@ -1,5 +1,10 @@
 /** REVIEW-01 private response types. Public credits never expose these fields. */
 export interface ReviewSubmission {
+  eventPageId?: string | null;
+  eventPageAssignmentPending?: boolean;
+  eligibleEventPageIds?: string[];
+  occupiedEventPageIds?: string[];
+  eventPageBlocked?: boolean;
   id: string;
   version: number;
   source: 'discord' | 'manual' | 'runelite';
@@ -24,6 +29,7 @@ export interface ReviewSubmission {
   reviewReason: string | null;
 }
 export interface ManualSubmissionInput {
+  eventPageId?: string;
   collectionType?: import('@clog/domain').CollectionType;
   itemId: number;
   collectorName: string;
@@ -35,6 +41,7 @@ export interface ManualSubmissionInput {
   reason?: string;
 }
 export interface ReviewCorrection {
+  eventPageId?: string;
   useIntakeTiming?: boolean;
   collectionType?: import('@clog/domain').CollectionType;
   itemId: number;
@@ -53,6 +60,7 @@ export interface ReviewAction {
   flags?: ReviewCollectionFlags;
 }
 export interface ReviewCollectionFlags {
+  eventPageId?: string;
   hardcore: boolean;
   collectionType?: import('@clog/domain').CollectionType;
   useIntakeTiming?: true;
@@ -71,6 +79,15 @@ export interface ReviewAudit {
   after: ReviewSubmission;
 }
 export interface ReviewStore {
+  eventPageAssignments?(): Promise<
+    import('@clog/domain').EventPageAssignmentReview
+  >;
+  assignEventPages?(
+    selection: import('@clog/domain').EventPageAssignmentSelection,
+    key: string,
+    actorId: string,
+    actorName: string,
+  ): Promise<import('@clog/domain').EventPageAssignmentResult>;
   submissionFilters?(): Promise<import('@clog/domain').SubmissionFilters>;
   saveSubmissionFilters?(
     filterCollected: boolean,

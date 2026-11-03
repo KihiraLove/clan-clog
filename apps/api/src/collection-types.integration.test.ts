@@ -55,7 +55,8 @@ test(
     INSERT INTO game_item_ids(game_item_id,item_id) SELECT 900000+id,id FROM items;
     INSERT INTO game_item_ids(game_item_id,item_id) VALUES(990001,1);
     INSERT INTO pages(id,name,category,sort_order) VALUES('timed','Timed','bosses',0),('permanent','Permanent','bosses',1),('closed','Closed','bosses',2);
-    INSERT INTO page_items(page_id,item_id,slot) VALUES('timed',1,0),('timed',4,1),('timed',6,2),('permanent',2,0),('permanent',4,1),('closed',3,0);
+    INSERT INTO page_items(page_id,item_id,slot) VALUES('timed',1,0),('timed',4,1),('timed',6,2),('permanent',2,0),('permanent',4,1),('closed',3,0),('closed',6,6);
+    INSERT INTO page_items(page_id,item_id,slot) SELECT 'closed',id,id FROM items WHERE id>=7;
     INSERT INTO collection_permanent_pages(page_id) VALUES('permanent');
     UPDATE collection_scheduling SET enabled=true,version=7;
     INSERT INTO collection_log_schedules(id,title,starts_at,ends_at) VALUES('00000000-0000-4000-8000-000000000001','Current event',now()-interval '1 hour',now()+interval '1 hour');
@@ -235,7 +236,7 @@ test(
         );
         assert.equal(original.receipt.collectionType, null);
         await pool.query(
-          "UPDATE collection_log_schedules SET ends_at=now() WHERE title='Current event'; DELETE FROM page_items WHERE page_id='timed' AND item_id=6",
+          "UPDATE collection_log_schedules SET ends_at=now() WHERE title='Current event'; DELETE FROM page_items WHERE page_id='closed' AND item_id=6",
         );
         const resolved = await correction(original.receipt.submissionId, 6, 1);
         assert.equal(resolved.collectionType, 'event');
@@ -461,6 +462,9 @@ test(
     await t.test(
       'legacy approved Regular credit never silently reclassifies during ordinary corrections',
       async () => {
+        await pool.query(
+          "INSERT INTO pages(id,name,category,sort_order) VALUES('old','Original page','bosses',3); INSERT INTO page_items(page_id,item_id,slot) VALUES('old',12,0)",
+        );
         const id = randomUUID();
         const evidence = {
           receivedAt: '2026-10-18T12:00:00Z',

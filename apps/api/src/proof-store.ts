@@ -8,7 +8,6 @@ import {
   parseRuneLiteWorldTypes,
   runeLiteDecision,
   normalizePlayerName,
-  classifyCollection,
   type RuneLiteRules,
 } from '@clog/domain';
 import { readRuneLiteSettings } from './runelite-settings.js';
@@ -26,6 +25,7 @@ import {
   runeLiteItemName,
 } from './runelite-item-name.js';
 import { intakeScheduling } from './intake-scheduling.js';
+import { classifyIntake } from './event-pages.js';
 export const screenshotPath = (id: string) =>
   `/api/v1/admin/submission-images/${id}.webp`;
 export const uuidPattern =
@@ -86,6 +86,7 @@ export async function insertImage(
   );
 }
 export interface RuneLiteFields {
+  eventPageId?: string;
   username: string;
   clanName: string;
   itemId: number;
@@ -95,6 +96,7 @@ export interface RuneLiteFields {
   chatMessage?: string;
 }
 export interface RuneLiteReceipt {
+  eventPageId?: string | null;
   submissionId: string;
   status: 'pending' | 'approved' | 'rejected';
   itemId: number | null;
@@ -176,6 +178,9 @@ export class PgProofStore implements ProofStore {
           ...(fields.itemName === undefined
             ? []
             : [{ itemName: fields.itemName }]),
+          ...(fields.eventPageId === undefined
+            ? []
+            : [{ eventPageId: fields.eventPageId }]),
         ]),
       )
       .digest('hex');
@@ -274,10 +279,11 @@ export class PgProofStore implements ProofStore {
         client,
         item?.id ?? null,
         world.hardcore,
-        classifyCollection(
+        classifyIntake(
           schedulingEvidence,
           item?.id ?? null,
           world.hardcore,
+          fields.eventPageId,
         ),
       );
       const collectedDuplicate =
@@ -299,7 +305,7 @@ export class PgProofStore implements ProofStore {
       const id = randomUUID();
       const row = (
         await client.query<{ submitted_at: Date; collected_on: string }>(
-          "INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,collected_on,date_source,proof_url,proof_image_id,submitted_clan_name,game_item_id,hardcore,submitted_world_types,chat_message,submitted_at,intake_scheduling,collection_type,collection_reason) VALUES($1,'runelite',$2,$3,$4,($11::timestamptz AT TIME ZONE 'UTC')::date,'submission_default','',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING submitted_at,to_char(collected_on,'YYYY-MM-DD') AS collected_on",
+          "INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,collected_on,date_source,proof_url,proof_image_id,submitted_clan_name,game_item_id,hardcore,submitted_world_types,chat_message,submitted_at,intake_scheduling,collection_type,collection_reason,event_page_id) VALUES($1,'runelite',$2,$3,$4,($11::timestamptz AT TIME ZONE 'UTC')::date,'submission_default','',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING submitted_at,to_char(collected_on,'YYYY-MM-DD') AS collected_on",
           [
             id,
             rawItemText,
@@ -315,6 +321,7 @@ export class PgProofStore implements ProofStore {
             JSON.stringify(schedulingEvidence),
             classification.collectionType,
             classification.collectionReason,
+            classification.eventPageId,
           ],
         )
       ).rows[0]!;
@@ -326,7 +333,11 @@ export class PgProofStore implements ProofStore {
             [id, rejection],
           );
           status = 'rejected';
-        } else {
+        } else if (
+          classification.collectionType !== 'event' ||
+          (classification.eventPageId &&
+            classification.collectionReason !== 'legacy_event_page_unresolved')
+        ) {
           // The unique credit index arbitrates concurrent auto/manual approvals.
           await client.query('SAVEPOINT automatic_approval');
           try {
@@ -381,7 +392,12 @@ export class PgProofStore implements ProofStore {
             rejection ??
               (status === 'approved'
                 ? decision.reason
-                : appText.apiProofStoreAutomaticApprovalDeferredAnApprovedEventCollectionAlreadyExistsFor),
+                : classification.collectionReason ===
+                    'legacy_event_page_unresolved'
+                  ? appText.eventPageLegacyBlocked
+                  : !classification.eventPageId
+                    ? appText.eventPageRequired
+                    : appText.apiProofStoreAutomaticApprovalDeferredAnApprovedEventCollectionAlreadyExistsFor),
             JSON.stringify(before),
             JSON.stringify({
               ...before,
@@ -397,6 +413,7 @@ export class PgProofStore implements ProofStore {
         itemId: item?.id ?? null,
         gameItemId: fields.itemId,
         collectionType: classification.collectionType,
+        eventPageId: classification.eventPageId,
         submittedAt: row.submitted_at.toISOString(),
         collectedOn: row.collected_on,
         hardcore: world.hardcore,

@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { creditLine, type Credit, type Item } from './model.ts';
 
 export interface OpenItem {
+  pageId?: string;
   item: Item;
   anchor: HTMLElement;
   collectors: Credit[];
@@ -27,7 +28,10 @@ export function ItemMenu({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const eventCredits = open.collectors.filter(
-    (c) => !open.hardcore && c.collectionType === 'event',
+    (c) =>
+      !open.hardcore &&
+      c.collectionType === 'event' &&
+      !c.eventPageAssignmentPending,
   );
   const regularCredits = open.collectors.filter(
     (c) => c.collectionType !== 'event',
@@ -143,9 +147,21 @@ export function ItemMenu({
               ))}
             </div>
           )}
+          {open.collectors
+            .filter((c) => c.eventPageAssignmentPending)
+            .map((credit) => (
+              <div key={credit.submissionId}>
+                <strong>{appText.eventPageLegacyLabel}</strong>
+                <p>{creditLine(credit)}</p>
+              </div>
+            ))}
         </>
       ) : (
-        <p className="item-menu__empty">{appText.webItemMenuNotCollected}</p>
+        <p className="item-menu__empty">
+          {open.pageId
+            ? appText.eventPageNoPageCredit
+            : appText.webItemMenuNotCollected}
+        </p>
       )}
     </div>,
     document.body,

@@ -61,15 +61,19 @@ function collectionTypeMatches(
   result: Submission,
   requested: CollectionType | undefined,
   allowFallback = true,
+  pageId?: string,
 ) {
   return (
-    requested === undefined ||
-    result.collectionType === requested ||
-    (allowFallback &&
-      requested === 'event' &&
-      result.collectionType === 'regular' &&
-      !result.hardcore &&
-      result.collectionReason === 'event_credit_already_obtained')
+    (pageId === undefined ||
+      result.collectionType !== 'event' ||
+      result.eventPageId === pageId) &&
+    (requested === undefined ||
+      result.collectionType === requested ||
+      (allowFallback &&
+        requested === 'event' &&
+        result.collectionType === 'regular' &&
+        !result.hardcore &&
+        result.collectionReason === 'event_credit_already_obtained'))
   );
 }
 
@@ -124,6 +128,9 @@ export class AdminRequestError extends Error {
   }
 }
 export class LiveAdminClient implements AdminClient {
+  async eventPageClient() {
+    return import('./event-page-api.ts');
+  }
   async catalogUpdateClient() {
     return import('./catalog-update-api.ts');
   }
@@ -679,7 +686,12 @@ export class LiveAdminClient implements AdminClient {
       (screenshot && !safeScreenshotPath(result.screenshotPath)) ||
       result.itemId !== fields.itemId ||
       result.hardcore !== fields.hardcore ||
-      !collectionTypeMatches(result, fields.collectionType) ||
+      !collectionTypeMatches(
+        result,
+        fields.collectionType,
+        true,
+        fields.eventPageId,
+      ) ||
       result.status !== (fields.approve ? 'approved' : 'pending')
     )
       throw new Error(appText.webAdminApiUnexpectedManualSubmissionReceipt);
@@ -998,7 +1010,12 @@ export class LiveAdminClient implements AdminClient {
     if (
       result.id !== id ||
       result.version <= version ||
-      !collectionTypeMatches(result, fields.collectionType)
+      !collectionTypeMatches(
+        result,
+        fields.collectionType,
+        true,
+        fields.eventPageId,
+      )
     )
       throw new Error(appText.webAdminApiUnexpectedCorrectionReceipt);
     return result;
@@ -1054,6 +1071,7 @@ export class LiveAdminClient implements AdminClient {
             result,
             flags.collectionType,
             action === 'approve',
+            flags.eventPageId,
           ))) ||
       result.status !==
         (
@@ -1087,7 +1105,12 @@ export class LiveAdminClient implements AdminClient {
       result.version <= version ||
       result.status !== 'approved' ||
       result.hardcore !== flags.hardcore ||
-      !collectionTypeMatches(result, flags.collectionType)
+      !collectionTypeMatches(
+        result,
+        flags.collectionType,
+        true,
+        flags.eventPageId,
+      )
     )
       throw new Error(appText.webAdminApiUnexpectedCollectionFlagsReceipt);
     return result;

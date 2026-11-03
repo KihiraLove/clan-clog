@@ -20,7 +20,7 @@ import {
   type LogData,
   type Item,
 } from './model.ts';
-import { ItemMenu, type OpenItem } from './ItemMenu.tsx';
+import { ItemMenu, type OpenItem } from './ItemHistory.tsx';
 import { defaultSiteCopy, type SiteCopy } from '@clog/domain';
 import {
   defaultEventHighlight,
@@ -59,6 +59,7 @@ function ItemIcon({ path }: { path: string }) {
 
 /** Hover/focus opens transient history; clicking or tapping pins it until dismissal. */
 function ItemSlot({
+  pageId,
   item,
   credits,
   open,
@@ -66,6 +67,7 @@ function ItemSlot({
   leave,
   close,
 }: {
+  pageId: string;
   item: Item;
   credits: Credit[];
   open: OpenItem | undefined;
@@ -73,12 +75,13 @@ function ItemSlot({
   leave: () => void;
   close: () => void;
 }) {
-  const state = itemState(item.id, credits);
-  const active = open?.item.id === item.id;
+  const state = itemState(item.id, credits, pageId);
+  const active = open?.item.id === item.id && open.pageId === pageId;
   const reveal = (anchor: HTMLElement, pinned: boolean) =>
     state.collected &&
     show({
       item,
+      pageId,
       anchor,
       collectors: state.collectors,
       hardcore: state.hardcoreCollected,
@@ -217,7 +220,7 @@ export function CollectionLog({
   useEffect(() => () => window.clearTimeout(hideTimer.current), []);
   useEffect(() => {
     close();
-  }, [hardcore, close]);
+  }, [hardcore, page?.id, close]);
   useEffect(() => {
     if (searching) searchRef.current?.focus();
   }, [searching]);
@@ -437,6 +440,7 @@ export function CollectionLog({
                       >
                         {page.itemIds.map((itemId) => (
                           <ItemSlot
+                            pageId={page.id}
                             key={itemId}
                             item={items.get(itemId)!}
                             credits={credits}
@@ -495,9 +499,9 @@ export function CollectionLog({
         </p>
       )}
       {open &&
-        itemState(open.item.id, credits).collected &&
+        itemState(open.item.id, credits, open.pageId).collected &&
         (() => {
-          const current = itemState(open.item.id, credits);
+          const current = itemState(open.item.id, credits, open.pageId);
           return (
             <ItemMenu
               highlights={highlights}

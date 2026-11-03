@@ -38,6 +38,8 @@ export interface Catalog {
   pages: Page[];
 }
 export interface Credit {
+  eventPageId?: string | null;
+  eventPageAssignmentPending?: boolean;
   collectionType?: import('@clog/domain').CollectionType;
   submissionId: string;
   itemId: number;
@@ -159,6 +161,24 @@ export function parseCollections(value: unknown): Collections {
       throw new Error(appText.webModelInvalidCollectionType);
     if (credit.hardcore && credit.collectionType === 'event')
       throw new Error(appText.webModelHardcoreCannotHaveEventCollections);
+    if (
+      credit.collectionType === 'event' &&
+      credit.eventPageId == null &&
+      credit.eventPageAssignmentPending === false
+    )
+      throw new Error(appText.webModelInvalidCollectionType);
+    if (
+      (credit.eventPageId != null &&
+        (typeof credit.eventPageId !== 'string' ||
+          !credit.eventPageId.trim() ||
+          credit.eventPageId.length > 200 ||
+          credit.collectionType !== 'event')) ||
+      (credit.eventPageAssignmentPending !== undefined &&
+        typeof credit.eventPageAssignmentPending !== 'boolean') ||
+      (credit.eventPageAssignmentPending === true &&
+        (credit.collectionType !== 'event' || credit.eventPageId != null))
+    )
+      throw new Error(appText.webModelInvalidCollectionType);
     credits.push({
       submissionId: text(credit.submissionId),
       itemId: id(credit.itemId),
@@ -166,6 +186,12 @@ export function parseCollections(value: unknown): Collections {
       collectedOn,
       hardcore: credit.hardcore === true,
       status: 'approved',
+      ...(credit.collectionType === 'event'
+        ? {
+            eventPageId: (credit.eventPageId as string) ?? null,
+            eventPageAssignmentPending: credit.eventPageId == null,
+          }
+        : {}),
       ...(credit.collectionType === undefined
         ? {}
         : { collectionType: credit.collectionType as 'regular' | 'event' }),
@@ -173,7 +199,9 @@ export function parseCollections(value: unknown): Collections {
   }
   unique(credits.map((credit) => credit.submissionId));
   unique(
-    credits.filter((c) => c.collectionType === 'event').map((c) => c.itemId),
+    credits
+      .filter((c) => c.collectionType === 'event')
+      .map((c) => JSON.stringify([c.itemId, c.eventPageId])),
   );
   return { revision: text(data.revision), credits };
 }
@@ -195,16 +223,24 @@ export function modeCredits(
     (credit) => credit.status === 'approved' && credit.hardcore === hardcore,
   );
 }
-export function itemState(itemId: number, credits: readonly Credit[]) {
-  const state = collectionState(itemId, credits);
+export function itemState(
+  itemId: number,
+  credits: readonly Credit[],
+  pageId?: string,
+) {
+  const state = collectionState(itemId, credits, undefined, pageId);
   const collectors = state.collectors as Credit[];
   return {
     collected: state.collected,
     collectors,
-    obtainCount: collectors.length,
+    obtainCount: state.obtainCount,
     hardcoreCollected: collectors.some((credit) => credit.hardcore),
     eventCollected: collectors.some(
-      (credit) => !credit.hardcore && credit.collectionType === 'event',
+      (credit) =>
+        !credit.hardcore &&
+        credit.collectionType === 'event' &&
+        !credit.eventPageAssignmentPending &&
+        (pageId === undefined || credit.eventPageId === pageId),
     ),
   };
 }

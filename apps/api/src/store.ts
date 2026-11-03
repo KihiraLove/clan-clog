@@ -1,4 +1,5 @@
 import * as appText from '@clog/domain';
+import { classifyIntake } from './event-pages.js';
 import { insertImage } from './proof-store.js';
 /** Parameterized PostgreSQL persistence; public projections explicitly select safe fields. */
 import { randomUUID } from 'node:crypto';
@@ -12,7 +13,6 @@ import {
   parseSiteCopy,
   parseHardcoreAppearance,
   parseSubmissionHelp,
-  classifyCollection,
   type SiteCopy,
   type HardcoreAppearance,
 } from '@clog/domain';
@@ -392,7 +392,7 @@ export class PgStore implements BackendStore {
         client,
         itemId,
         input.hardcore,
-        classifyCollection(evidence, itemId, input.hardcore),
+        classifyIntake(evidence, itemId, input.hardcore, input.eventPageId),
       );
       const filters = await readSubmissionFilters(client, true);
       await requireUncollected(
@@ -408,8 +408,13 @@ export class PgStore implements BackendStore {
         itemId !== null &&
         (
           await client.query(
-            "SELECT 1 FROM submissions WHERE item_id=$1 AND hardcore=$2 AND collection_type=$3 AND status='approved' LIMIT 1",
-            [itemId, input.hardcore, classification.collectionType],
+            "SELECT 1 FROM submissions WHERE item_id=$1 AND hardcore=$2 AND collection_type=$3 AND status='approved' AND ($3<>'event' OR event_page_id=$4 OR event_page_assignment_pending) LIMIT 1",
+            [
+              itemId,
+              input.hardcore,
+              classification.collectionType,
+              classification.eventPageId,
+            ],
           )
         ).rowCount === 1;
       const receipt: BotReceipt = {
@@ -425,6 +430,7 @@ export class PgStore implements BackendStore {
         candidates: matched.candidates,
         creditOccupied,
         collectionType: classification.collectionType,
+        eventPageId: classification.eventPageId,
       };
       // Unique interaction IDs serialize concurrent retries in PostgreSQL. ON CONFLICT
       // waits for the winner, after which readReceipt observes the committed receipt.
@@ -434,8 +440,8 @@ export class PgStore implements BackendStore {
         `INSERT INTO submissions (
           id, discord_interaction_id, discord_user_id, discord_guild_id,
           raw_item_text, item_id, collector_name, collected_on, date_source,
-          proof_url, hardcore, intake_payload_hash, intake_receipt, submitted_at, intake_scheduling, collection_type, collection_reason, proof_image_id
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+          proof_url, hardcore, intake_payload_hash, intake_receipt, submitted_at, intake_scheduling, collection_type, collection_reason, proof_image_id,event_page_id
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
         ON CONFLICT (discord_interaction_id) DO NOTHING RETURNING id`,
         [
           receipt.submissionId,
@@ -456,6 +462,7 @@ export class PgStore implements BackendStore {
           classification.collectionType,
           classification.collectionReason,
           input.image.id,
+          classification.eventPageId,
         ],
       );
       if (inserted.rowCount !== 1) {
@@ -585,7 +592,7 @@ export class PgStore implements BackendStore {
   ): Promise<PublicCredit[]> {
     const rows = (
       await client.query<PublicCredit>(
-        `SELECT c.submission_id AS "submissionId", c.item_id AS "itemId", c.collector_name AS "collectorName", to_char(c.collected_on, 'YYYY-MM-DD') AS "collectedOn", c.hardcore,c.collection_type AS "collectionType" FROM collection_credits c JOIN items i ON i.id=c.item_id WHERE i.active ORDER BY c.item_id,c.hardcore,c.collected_on,c.submission_id`,
+        `SELECT c.submission_id AS "submissionId", c.item_id AS "itemId", c.collector_name AS "collectorName", to_char(c.collected_on, 'YYYY-MM-DD') AS "collectedOn", c.hardcore,c.collection_type AS "collectionType",c.event_page_id AS "eventPageId",c.event_page_assignment_pending AS "eventPageAssignmentPending" FROM collection_credits c JOIN items i ON i.id=c.item_id WHERE i.active ORDER BY c.item_id,c.hardcore,c.collected_on,c.submission_id`,
       )
     ).rows;
     return rows;

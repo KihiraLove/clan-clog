@@ -14,12 +14,30 @@ export const collectionTypeLabel = (type: CollectionType | null | undefined) =>
       ? appText.domainCollectionTypesEventCollection
       : appText.domainCollectionTypesRegularCollection;
 
+export const eligibleEventPageIds = (
+  evidence: IntakeSchedulingEvidence | null,
+  itemId: number | null,
+) =>
+  [
+    ...new Set(
+      evidence?.enabled && itemId !== null
+        ? evidence.eventPages
+            .filter((p) => p.itemIds.includes(itemId))
+            .map((p) => p.pageId)
+        : [],
+    ),
+  ].sort();
+
 /** Only the catalog membership and windows frozen at receipt can establish an event. */
 export function classifyCollection(
   evidence: IntakeSchedulingEvidence | null,
   itemId: number | null,
   hardcore: boolean,
-) {
+): {
+  collectionType: CollectionType | null;
+  collectionReason: string;
+  eventPageId?: string | null;
+} {
   if (hardcore)
     return { collectionType: 'regular' as const, collectionReason: 'hardcore' };
   if (!evidence)
@@ -31,9 +49,11 @@ export function classifyCollection(
     };
   if (itemId === null)
     return { collectionType: null, collectionReason: 'unmatched' };
-  const event = evidence.eventPages.some((p) => p.itemIds.includes(itemId));
+  const pages = eligibleEventPageIds(evidence, itemId);
+  const event = pages.length > 0;
   return {
     collectionType: event ? ('event' as const) : ('regular' as const),
     collectionReason: event ? 'timed_event' : 'unscheduled',
+    ...(event ? { eventPageId: pages.length === 1 ? pages[0]! : null } : {}),
   };
 }

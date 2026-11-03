@@ -23,6 +23,11 @@ export function dateSourceLabel(source: Submission['dateSource']): string {
       : appText.webAdminModelAdminCorrection;
 }
 export interface Submission {
+  eventPageId?: string | null;
+  eventPageAssignmentPending?: boolean;
+  eligibleEventPageIds?: string[];
+  occupiedEventPageIds?: string[];
+  eventPageBlocked?: boolean;
   collectionType?: import('@clog/domain').CollectionType | null;
   collectionReason?: string;
   id: string;
@@ -44,6 +49,7 @@ export interface Submission {
   reviewReason: string | null;
 }
 export interface ManualSubmissionInput {
+  eventPageId?: string;
   collectionType?: import('@clog/domain').CollectionType;
   itemId: number;
   collectorName: string;
@@ -55,6 +61,7 @@ export interface ManualSubmissionInput {
   reason?: string;
 }
 export interface Correction {
+  eventPageId?: string | undefined;
   useIntakeTiming?: boolean;
   collectionType?: import('@clog/domain').CollectionType | undefined;
   itemId: number;
@@ -64,6 +71,7 @@ export interface Correction {
   reason: string;
 }
 export interface CollectionFlags {
+  eventPageId?: string;
   hardcore: boolean;
   collectionType?: import('@clog/domain').CollectionType;
   useIntakeTiming?: true;
@@ -159,6 +167,7 @@ export function parseStaffAccount(input: unknown): StaffAccount {
   };
 }
 export interface AdminClient {
+  eventPageClient?(): Promise<typeof import('./event-page-api.ts')>;
   catalogUpdateClient?(): Promise<typeof import('./catalog-update-api.ts')>;
   accessControl(
     signal: AbortSignal,
@@ -442,6 +451,15 @@ export function parseSubmission(value: unknown): Submission {
     typeof row.hardcore !== 'boolean' ||
     typeof row.rawItemText !== 'string' ||
     typeof row.proofUrl !== 'string' ||
+    (row.eventPageBlocked !== undefined &&
+      typeof row.eventPageBlocked !== 'boolean') ||
+    (row.eventPageId != null &&
+      (typeof row.eventPageId !== 'string' ||
+        !row.eventPageId.trim() ||
+        row.eventPageId.length > 200 ||
+        row.collectionType !== 'event')) ||
+    (row.eventPageAssignmentPending !== undefined &&
+      typeof row.eventPageAssignmentPending !== 'boolean') ||
     (row.collectionType === 'event' && row.hardcore === true) ||
     (row.collectionType === null &&
       (row.itemId !== null || row.hardcore === true)) ||
@@ -466,6 +484,25 @@ export function parseSubmission(value: unknown): Submission {
         : choice(row.source, ['discord', 'manual', 'runelite']),
     itemId: row.itemId === null ? null : identity(row.itemId),
     rawItemText: row.rawItemText,
+    ...(row.eventPageBlocked === undefined
+      ? {}
+      : { eventPageBlocked: row.eventPageBlocked as boolean }),
+    ...(row.eventPageId === undefined
+      ? {}
+      : {
+          eventPageId: row.eventPageId === null ? null : text(row.eventPageId),
+        }),
+    ...(row.eventPageAssignmentPending === undefined
+      ? {}
+      : {
+          eventPageAssignmentPending: row.eventPageAssignmentPending as boolean,
+        }),
+    ...(row.eligibleEventPageIds === undefined
+      ? {}
+      : { eligibleEventPageIds: list(row.eligibleEventPageIds).map(text) }),
+    ...(row.occupiedEventPageIds === undefined
+      ? {}
+      : { occupiedEventPageIds: list(row.occupiedEventPageIds).map(text) }),
     ...(row.collectionType === undefined
       ? {}
       : {

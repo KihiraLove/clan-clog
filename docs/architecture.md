@@ -25,8 +25,8 @@ flowchart LR
 
 PostgreSQL is authoritative. An item has one canonical ID across every page.
 Approval grants Regular or Event credit. Normal-world items can have one Event
-credit and independent Regular credits; the regular duplicate filter controls
-Regular repeats in each world mode. Hardcore supports Regular only. Rejection
+credit per canonical item/page pair and independent Regular credits; the regular
+duplicate filter controls Regular repeats in each world mode. Hardcore supports Regular only. Rejection
 and revocation grant no credit. Claims, receipts and audits remain private.
 Revisions prevent one staff edit from overwriting another. Request keys let
 clients retry uncertain writes without creating a second submission or import.
