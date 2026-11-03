@@ -504,6 +504,7 @@ export function CollectionLog({
           const current = itemState(open.item.id, credits, open.pageId);
           return (
             <ItemMenu
+              repeatCollectorPolicy={data?.collections.repeatCollectorPolicy}
               highlights={highlights}
               open={{
                 ...open,

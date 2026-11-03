@@ -63,11 +63,13 @@ export interface BotSubmissionInput {
   hardcore: boolean;
 }
 export interface BotReceipt {
+  rejectionReason?: string;
+  admissionPolicy?: import('@clog/domain').SubmissionFilters;
   eventPageId?: string | null;
   collectionType?: import('@clog/domain').CollectionType | null;
   submissionId: string;
   interactionId: string;
-  status: 'pending';
+  status: 'pending' | 'rejected';
   submittedAt: string;
   collectedOn: string;
   dateSource: 'collector' | 'submission_default';

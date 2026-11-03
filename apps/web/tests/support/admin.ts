@@ -12,6 +12,8 @@ const generateFixtureKey = () =>
 import { AdminRequestError } from '../../src/admin-api.ts';
 import {
   defaultSiteCopy,
+  normalizePlayerName,
+  repeatCollectorRejected,
   defaultEventHighlight,
   defaultHardcoreHighlight,
   parseHighlightColour,
@@ -144,12 +146,15 @@ export class MemoryAdminClient implements AdminClient {
   private submissionFilterState = {
     revision: 'submission-filters-1',
     filterCollected: false,
+    repeatCollectorPolicy:
+      'separate' as import('@clog/domain').RepeatCollectorPolicy,
   };
   async saveSubmissionFilters(
     filterCollected: boolean,
     revision: string,
     _csrf: string,
     signal: AbortSignal,
+    repeatCollectorPolicy?: import('@clog/domain').RepeatCollectorPolicy,
   ) {
     this.access(signal);
     if (revision !== this.submissionFilterState.revision)
@@ -158,6 +163,9 @@ export class MemoryAdminClient implements AdminClient {
       revision:
         'submission-filters-' + (Number(revision.split('-').at(-1)) + 1),
       filterCollected,
+      repeatCollectorPolicy:
+        repeatCollectorPolicy ??
+        this.submissionFilterState.repeatCollectorPolicy,
     };
     return { ...this.submissionFilterState };
   }
@@ -501,7 +509,12 @@ export class MemoryAdminClient implements AdminClient {
     const collectionType = selected.collectionType;
     if (fields.hardcore && collectionType === 'event')
       throw new AdminRequestError(422);
-    if (fields.approve)
+    const repeated = this.repeatCollector(
+      item.id,
+      fields.hardcore,
+      fields.collectorName,
+    );
+    if (fields.approve && !repeated)
       this.ensureUnique(
         '',
         item.id,
@@ -528,9 +541,16 @@ export class MemoryAdminClient implements AdminClient {
       submittedAt: new Date().toISOString(),
       proofUrl: fields.proofUrl ?? '',
       hardcore: fields.hardcore,
-      status: fields.approve ? 'approved' : 'pending',
+      status: repeated ? 'rejected' : fields.approve ? 'approved' : 'pending',
+      ...(repeated
+        ? { admissionPolicy: { ...this.submissionFilterState } }
+        : {}),
       reviewNote: '',
-      reviewReason: fields.approve ? fields.reason?.trim() || null : null,
+      reviewReason: repeated
+        ? repeatCollectorRejected
+        : fields.approve
+          ? fields.reason?.trim() || null
+          : null,
     };
     this.rows.unshift(row);
     this.record(row, row, 'create', fields.reason ?? '');
@@ -881,6 +901,24 @@ export class MemoryAdminClient implements AdminClient {
           : 'Filter out regular duplicates is on and this item already has a Regular collection in this world mode.',
       );
   }
+  private repeatCollector(
+    itemId: number,
+    hardcore: boolean,
+    name: string,
+    id?: string,
+  ) {
+    return (
+      this.submissionFilterState.repeatCollectorPolicy === 'reject' &&
+      this.rows.some(
+        (row) =>
+          row.id !== id &&
+          row.itemId === itemId &&
+          row.hardcore === hardcore &&
+          row.status === 'approved' &&
+          normalizePlayerName(row.collectorName) === normalizePlayerName(name),
+      )
+    );
+  }
   async logout(_csrf: string, signal: AbortSignal) {
     this.access(signal);
     this.signedIn = false;
@@ -1083,7 +1121,13 @@ export class MemoryAdminClient implements AdminClient {
       collections:
         scenario === 'reviewed'
           ? {
-              revision: 'test-credits-' + this.revision,
+              revision:
+                'test-credits-' +
+                this.revision +
+                '-' +
+                this.submissionFilterState.revision,
+              repeatCollectorPolicy:
+                this.submissionFilterState.repeatCollectorPolicy,
               credits: this.rows
                 .filter(
                   (row) =>

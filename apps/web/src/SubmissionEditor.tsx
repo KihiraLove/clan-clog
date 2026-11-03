@@ -533,6 +533,27 @@ export function SubmissionEditor({
           <div className="submission-review-evidence">
             <h3>{appText.webSubmissionEditorSubmissionDetails}</h3>
             <dl className="submission-facts">
+              {row.reviewReason && (
+                <div>
+                  <dt>{appText.repeatCollectorDecisionReason}</dt>
+                  <dd>{row.reviewReason}</dd>
+                </div>
+              )}
+              {row.admissionPolicy && (
+                <div>
+                  <dt>{appText.repeatCollectorAdmissionPolicy}</dt>
+                  <dd>
+                    {appText.repeatCollectorPolicySnapshot(
+                      row.admissionPolicy.repeatCollectorPolicy === 'reject'
+                        ? appText.repeatCollectorReject
+                        : row.admissionPolicy.repeatCollectorPolicy === 'merge'
+                          ? appText.repeatCollectorMerge
+                          : appText.repeatCollectorSeparate,
+                      row.admissionPolicy.revision,
+                    )}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt>{appText.webSubmissionEditorCollectionType}</dt>
                 <dd>{collectionTypeLabel(row.collectionType)}</dd>

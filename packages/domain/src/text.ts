@@ -4964,3 +4964,42 @@ export const eventPageUnavailable = 'Unavailable historical page';
 export const eventHistoryLoading = 'Loading collection history…';
 export const eventHistoryUnavailable =
   'Collection history could not be loaded. Reload the page to try again.';
+export const repeatCollectorInvalidPolicy =
+  'Choose a supported repeat collection policy.';
+export const repeatCollectorTitle = 'Repeat collections by username';
+export const repeatCollectorReject = 'Automatically reject repeat collections';
+export const repeatCollectorSeparate = 'Show each obtain separately';
+export const repeatCollectorMerge = 'Merge obtains by username';
+export const repeatCollectorRejectHelp =
+  'Reject new obtains when this username already has an approved collection of the item in the same world mode. Existing history is retained.';
+export const repeatCollectorSeparateHelp =
+  'Use the normal review rules and show each approved obtain separately.';
+export const repeatCollectorMergeHelp =
+  'Use the normal review rules and group approved obtains by username. The count and first collection date appear together; expand the history for every date and collection type.';
+export const repeatCollectorPrecedence =
+  'Filter out regular duplicates takes precedence: when enabled, additional Regular credit is blocked for every collector. This policy never automatically approves a submission.';
+export const repeatCollectorReadOnly =
+  'Only the administrator can change this policy.';
+export const repeatCollectorSave = 'Save repeat collection policy';
+export const repeatCollectorReload = 'Reload repeat collection policy';
+export const repeatCollectorSaved = 'Repeat collection policy saved.';
+export const repeatCollectorChanged =
+  'Submission filter settings changed. Your choice is retained; reload the policy before saving again.';
+export const repeatCollectorRejected =
+  'Repeat-collector policy: this username already has approved credit for this item.';
+export const repeatCollectorHistory = 'Collection history';
+export const repeatCollectorSummary = (
+  count: number,
+  name: string,
+  date: string,
+) => `Collected ${count}x by ${name} first on ${date}`;
+export const repeatCollectorHistoryDate = (type: string, date: string) =>
+  `${type} — ${date}`;
+export const repeatCollectorBotRejected = (id: string, reason: string) =>
+  `Submission ${id} rejected. ${reason}`;
+export const repeatCollectorDecisionReason = 'Decision reason';
+export const repeatCollectorAdmissionPolicy = 'Admission policy';
+export const repeatCollectorPolicySnapshot = (
+  policy: string,
+  revision: string,
+) => `${policy} (${revision})`;

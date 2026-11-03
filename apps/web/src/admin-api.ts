@@ -20,7 +20,6 @@ import {
 import {
   parseRuneLiteSettings,
   parseRuneLiteRules,
-  parseSubmissionFilters,
   type RuneLiteSettingsUpdate,
 } from '@clog/domain';
 import { parseSettings } from './site-settings.ts';
@@ -42,7 +41,6 @@ import {
   parseQueue,
   parseSubmission,
   parseStaffAccount,
-  safeScreenshotPath,
   validateIconFile,
   type AdminCatalog,
   type AdminClient,
@@ -57,7 +55,7 @@ import {
   type Submission,
 } from './admin-model.ts';
 
-function collectionTypeMatches(
+export function collectionTypeMatches(
   result: Submission,
   requested: CollectionType | undefined,
   allowFallback = true,
@@ -89,6 +87,7 @@ export class AdminRequestError extends Error {
       [400, 409].includes(status) &&
         serverConflict &&
         [
+          appText.repeatCollectorRejected,
           appText.webAdminApiAnApprovedEventCollectionAlreadyExistsForThisItemRevoke,
           appText.webAdminApiFilterOutRegularDuplicatesIsOnAndThisItemAlready,
           appText.webAdminApiThatUsernameIsAlreadyInUse,
@@ -253,24 +252,16 @@ export class LiveAdminClient implements AdminClient {
     revision: string,
     csrf: string,
     signal: AbortSignal,
+    repeatCollectorPolicy?: import('@clog/domain').RepeatCollectorPolicy,
   ) {
-    const value = parseSubmissionFilters(
-      await this.json(
-        '/api/v1/admin/submission-filters',
-        signal,
-        this.write(
-          csrf,
-          { filterCollected, expectedRevision: revision },
-          'PUT',
-        ),
-      ),
+    return (await import('./submission-write-api.ts')).saveSubmissionFilters(
+      this.json.bind(this),
+      filterCollected,
+      revision,
+      csrf,
+      signal,
+      repeatCollectorPolicy,
     );
-    if (
-      value.filterCollected !== filterCollected ||
-      value.revision === revision
-    )
-      throw new Error(appText.webAdminApiUnexpectedSubmissionFilterReceipt);
-    return value;
   }
   async scheduling(signal: AbortSignal) {
     return parseSchedulingState(
@@ -662,6 +653,8 @@ export class LiveAdminClient implements AdminClient {
     signal: AbortSignal,
     screenshot?: File,
   ) {
+    const { manualSubmissionReceipt } =
+      await import('./submission-write-api.ts');
     const upload = screenshot ? new FormData() : undefined;
     if (upload && screenshot) {
       upload.append('submission', JSON.stringify(fields));
@@ -680,22 +673,7 @@ export class LiveAdminClient implements AdminClient {
     );
     if (response.status !== 201)
       throw new Error(appText.webAdminApiUnexpectedManualSubmissionStatus);
-    const result = parseSubmission(await response.json());
-    if (
-      result.source !== 'manual' ||
-      (screenshot && !safeScreenshotPath(result.screenshotPath)) ||
-      result.itemId !== fields.itemId ||
-      result.hardcore !== fields.hardcore ||
-      !collectionTypeMatches(
-        result,
-        fields.collectionType,
-        true,
-        fields.eventPageId,
-      ) ||
-      result.status !== (fields.approve ? 'approved' : 'pending')
-    )
-      throw new Error(appText.webAdminApiUnexpectedManualSubmissionReceipt);
-    return result;
+    return manualSubmissionReceipt(await response.json(), fields, !!screenshot);
   }
   async clanApiKey(signal: AbortSignal) {
     return parseClanKey(await this.json('/api/v1/admin/clan-api-key', signal));

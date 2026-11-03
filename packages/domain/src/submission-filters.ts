@@ -1,7 +1,17 @@
 import * as appText from './text.js';
+export const repeatCollectorPolicies = ['reject', 'separate', 'merge'] as const;
+export type RepeatCollectorPolicy = (typeof repeatCollectorPolicies)[number];
+export function parseRepeatCollectorPolicy(
+  value: unknown = 'separate',
+): RepeatCollectorPolicy {
+  if (!repeatCollectorPolicies.includes(value as RepeatCollectorPolicy))
+    throw new Error(appText.domainSubmissionFiltersInvalidSubmissionFilters);
+  return value as RepeatCollectorPolicy;
+}
 export interface SubmissionFilters {
   revision: string;
   filterCollected: boolean;
+  repeatCollectorPolicy: RepeatCollectorPolicy;
 }
 
 export function parseSubmissionFilters(value: unknown): SubmissionFilters {
@@ -14,5 +24,11 @@ export function parseSubmissionFilters(value: unknown): SubmissionFilters {
     typeof data.filterCollected !== 'boolean'
   )
     throw new Error(appText.domainSubmissionFiltersInvalidSubmissionFilters);
-  return { revision: data.revision, filterCollected: data.filterCollected };
+  return {
+    revision: data.revision,
+    filterCollected: data.filterCollected,
+    repeatCollectorPolicy: parseRepeatCollectorPolicy(
+      data.repeatCollectorPolicy,
+    ),
+  };
 }

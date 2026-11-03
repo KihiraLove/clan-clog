@@ -1,4 +1,5 @@
 import * as appText from '@clog/domain';
+import { normalizePlayerName } from '@clog/domain';
 import type pg from 'pg';
 import type { SubmissionFilters, CollectionType } from '@clog/domain';
 import { ApiError } from './types.js';
@@ -9,8 +10,12 @@ export async function readSubmissionFilters(
   lock = false,
 ): Promise<SubmissionFilters> {
   const row = (
-    await database.query<{ version: number; filter_collected: boolean }>(
-      'SELECT version,filter_collected FROM submission_filter_settings WHERE singleton' +
+    await database.query<{
+      version: number;
+      filter_collected: boolean;
+      repeat_collector_policy: SubmissionFilters['repeatCollectorPolicy'];
+    }>(
+      'SELECT version,filter_collected,repeat_collector_policy FROM submission_filter_settings WHERE singleton' +
         (lock ? ' FOR SHARE' : ''),
     )
   ).rows[0];
@@ -22,7 +27,49 @@ export async function readSubmissionFilters(
   return {
     revision: 'submission-filters-' + row.version,
     filterCollected: row.filter_collected,
+    repeatCollectorPolicy: row.repeat_collector_policy,
   };
+}
+
+/** The item lock is held by every caller. Normalize the indexed candidate set in
+ * JavaScript so SQL collation/Unicode case folding cannot disagree with intake. */
+export async function isRepeatCollector(
+  client: pg.PoolClient,
+  filters: SubmissionFilters,
+  itemId: number | null,
+  hardcore: boolean,
+  collectorName: string,
+  excludeId?: string,
+) {
+  if (filters.repeatCollectorPolicy !== 'reject' || itemId === null)
+    return false;
+  const key = normalizePlayerName(collectorName);
+  const rows = await client.query<{ name: string }>(
+    "SELECT collector_name AS name FROM submissions WHERE item_id=$1 AND hardcore=$2 AND status='approved' AND ($3::uuid IS NULL OR id<>$3)",
+    [itemId, hardcore, excludeId ?? null],
+  );
+  return rows.rows.some((row) => normalizePlayerName(row.name) === key);
+}
+export async function requireCollectorAvailable(
+  client: pg.PoolClient,
+  itemId: number,
+  hardcore: boolean,
+  collectorName: string,
+  excludeId?: string,
+) {
+  await client.query('SELECT id FROM items WHERE id=$1 FOR UPDATE', [itemId]);
+  const filters = await readSubmissionFilters(client, true);
+  if (
+    await isRepeatCollector(
+      client,
+      filters,
+      itemId,
+      hardcore,
+      collectorName,
+      excludeId,
+    )
+  )
+    throw new ApiError(409, appText.repeatCollectorRejected);
 }
 
 export async function isCollectedDuplicate(

@@ -57,7 +57,7 @@ test(
       'CREATE TABLE schema_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',
     );
     for (const file of (await readdir(migrations))
-      .filter((f) => f.endsWith('.sql') && !f.startsWith('005_'))
+      .filter((f) => f.endsWith('.sql') && Number(f.slice(0, 3)) < 5)
       .sort()) {
       const sql = await readFile(new URL(file, migrations), 'utf8');
       await owner.query(sql);

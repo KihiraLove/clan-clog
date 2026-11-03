@@ -127,7 +127,13 @@ export function reviewRoutes(
       return store.submissionFilters();
     },
   );
-  app.put<{ Body: { filterCollected: boolean; expectedRevision: string } }>(
+  app.put<{
+    Body: {
+      filterCollected: boolean;
+      expectedRevision: string;
+      repeatCollectorPolicy?: import('@clog/domain').RepeatCollectorPolicy;
+    };
+  }>(
     '/api/v1/admin/submission-filters',
     {
       onRequest: async (request) => {
@@ -140,6 +146,10 @@ export function reviewRoutes(
           required: ['filterCollected', 'expectedRevision'],
           properties: {
             filterCollected: { type: 'boolean' },
+            repeatCollectorPolicy: {
+              type: 'string',
+              enum: ['reject', 'separate', 'merge'],
+            },
             expectedRevision: {
               type: 'string',
               pattern: '^submission-filters-[1-9][0-9]*$',
@@ -160,6 +170,7 @@ export function reviewRoutes(
         req.body.filterCollected,
         req.body.expectedRevision,
         actor.id,
+        req.body.repeatCollectorPolicy,
       );
     },
   );

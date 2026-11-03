@@ -144,7 +144,9 @@ export function ManualSubmissionForm({
       setApprove(true);
       setReason('');
       action.setMessage(
-        appText.webManualSubmissionFormManualSubmissionCreatedSuccessfully,
+        result.status === 'rejected'
+          ? (result.reviewReason ?? appText.repeatCollectorRejected)
+          : appText.webManualSubmissionFormManualSubmissionCreatedSuccessfully,
       );
       onCreated(result);
     });

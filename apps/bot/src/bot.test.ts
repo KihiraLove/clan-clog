@@ -44,7 +44,10 @@ async function bodyClaim(options: RequestInit | undefined) {
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { test } from 'node:test';
-import { closedCollectionPageMessage } from '@clog/domain';
+import {
+  closedCollectionPageMessage,
+  repeatCollectorRejected,
+} from '@clog/domain';
 import { Events, MessageFlags, type Client } from 'discord.js';
 import {
   HttpBotApi,
@@ -81,7 +84,7 @@ const receipt: Receipt = {
   candidates: [{ id: 42, name: 'Dragon axe' }],
   creditOccupied: false,
 };
-test('confirmed Discord submissions use the same concise reply for every saved receipt', async () => {
+test('confirmed pending Discord submissions use the same concise reply', async () => {
   for (const saved of [
     receipt,
     { ...receipt, collectionType: 'event' },
@@ -104,6 +107,50 @@ test('confirmed Discord submissions use the same concise reply for every saved r
     }
   }
 });
+test('rejected Discord obtains return the saved rejection instead of claiming review, including replay', async () => {
+  const saved: Receipt = {
+    ...receipt,
+    status: 'rejected',
+    rejectionReason: repeatCollectorRejected,
+    admissionPolicy: {
+      revision: 'submission-filters-9',
+      filterCollected: false,
+      repeatCollectorPolicy: 'reject',
+    },
+  };
+  for (const status of [200, 201]) {
+    const api = new TestBotApi('https://clog.example', token, async () =>
+      Response.json(saved, { status }),
+    );
+    const input = fakeCommand();
+    await handleSubmission(input.command, api, guildId);
+    assert.deepEqual(input.messages, [
+      `Submission ${saved.submissionId} rejected. ${repeatCollectorRejected}`,
+    ]);
+  }
+  for (const bad of [
+    { ...saved, rejectionReason: '' },
+    { ...saved, admissionPolicy: undefined },
+    {
+      ...saved,
+      admissionPolicy: {
+        ...saved.admissionPolicy,
+        repeatCollectorPolicy: 'merge',
+      },
+    },
+  ]) {
+    const api = new TestBotApi('https://clog.example', token, async () =>
+      Response.json(bad, { status: 201 }),
+    );
+    const input = fakeCommand();
+    await handleSubmission(input.command, api, guildId);
+    assert.equal(
+      input.messages.some((message) => message === 'Item submitted to review'),
+      false,
+    );
+  }
+});
+
 test('receipt collection types are validated without requiring them on legacy replies', async () => {
   const claim: Claim = {
     interactionId: receipt.interactionId,
