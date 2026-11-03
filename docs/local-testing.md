@@ -40,6 +40,13 @@ not refresh a development database.
 
 ## Application version
 
+Pull requests into `minor/**` or `patch/**` can close their task issue at merge:
+put `Closes #123.` (or `Fixes`/`Resolves`) on its own line outside a code block.
+The merge handler reads only same-repository merged PR event data and closes the
+declared issues; it does not run pull request code. Unmerged/closed PRs leave issues
+open. Fork PRs need maintainer issue closure. GitHub handles default-branch closure
+itself. Link implementation plans from the issue while work is in progress.
+
 The root `package.json` version is the only maintained release version. From the
 repository root, run `npm run version:bump -- 1.0.4` to update it and synchronize
 the workspace manifests and lockfile. This command does not create a Git tag or
@@ -106,6 +113,18 @@ CHECK_APP_IMAGE=clan-clog:checks node scripts/installation-smoke.mjs
 This creates and removes its own Compose project and volumes. It covers interrupted
 first setup, password changes, persistence, credentials, maintenance and multiple
 installations alongside an unrelated service.
+
+For optional item-icon changes, run:
+
+```bash
+CHECK_APP_IMAGE=clan-clog:checks node scripts/default-icon-smoke.mjs
+```
+
+This creates its own network-isolated installation and volume. It checks
+production WebP delivery, shared no-upload defaults, a custom
+WebP upload, exact creation replay, a logical database dump/restore and a container
+restart. It removes only its owned container/volume. This focused check does not
+replace the complete operational backup/recovery rehearsal.
 
 For UI behavior, run a selected Playwright spec from `apps/web`, for example
 `npx playwright test tests/admin.spec.ts --grep 'review'`. Its config starts

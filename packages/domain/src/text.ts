@@ -1757,7 +1757,11 @@ export const webItemCreatorTheFileCouldNotBeDecodedAsAPngWebP =
 
 export const webItemCreatorReplaceItemIcon = 'Replace item icon';
 
-export const webItemCreatorItemIconRequired = 'Item icon (required)';
+export const webItemCreatorItemIconOptional = 'Item icon (optional)';
+export const webItemCreatorDefaultIconPreview = 'Default item icon preview';
+export const webItemCreatorDefaultIconHelp =
+  'Leave the icon blank to use the default. You can replace it later.';
+export const webItemCreatorRemoveSelectedIcon = 'Remove selected icon';
 
 export const webItemCreatorPngOrWebP = 'PNG or WebP';
 

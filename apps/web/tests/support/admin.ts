@@ -1,4 +1,5 @@
 /** Test-only API state; never imported by application code. */
+import { DEFAULT_ITEM_ICON_PATH } from '@clog/domain/catalog-icons';
 import {
   validClanKey,
   type ClanKeySettings,
@@ -1312,23 +1313,33 @@ export class MemoryAdminClient implements AdminClient {
       if (receipt.fields !== serialized) throw new AdminRequestError(409);
       return structuredClone(receipt.result);
     }
-    const asset = this.assets.get(clean.iconAssetId);
+    const asset =
+      clean.iconAssetId === undefined
+        ? undefined
+        : this.assets.get(clean.iconAssetId);
     if (
       this.data.items.some((item) =>
         item.gameItemIds?.some((id) => clean.gameItemIds.includes(id)),
       )
     )
       throw new AdminRequestError(409);
-    if (!asset || Date.parse(asset.expiresAt) <= Date.now())
+    if (
+      clean.iconAssetId !== undefined &&
+      (!asset || Date.parse(asset.expiresAt) <= Date.now())
+    )
       throw new AdminRequestError(422);
     // This allocator is safe only in this single in-memory simulator, not a concurrent API.
     const item = {
       id: this.nextItemId++,
       name: clean.name,
       gameItemIds: [...clean.gameItemIds],
-      iconPath: asset.iconPath,
+      iconPath: asset?.iconPath ?? DEFAULT_ITEM_ICON_PATH,
       origin: 'manual' as const,
-      overrides: ['name', 'icon', 'pages'] as const,
+      overrides: [
+        'name',
+        ...(asset ? ['icon' as const] : []),
+        'pages',
+      ] as const,
     };
     const created = { ...item, overrides: [...item.overrides] };
     this.data.items.push(created);

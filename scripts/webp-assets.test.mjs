@@ -5,6 +5,34 @@ import { test } from 'node:test';
 import sharp from 'sharp';
 
 const root = new URL('../', import.meta.url);
+test('the shared default item icon preserves the exact supplied lossless transparent artwork', async () => {
+  const provenance = JSON.parse(
+    await readFile(new URL('catalog/default-icon.json', root), 'utf8'),
+  );
+  assert.equal(provenance.path, '/catalog/default.webp');
+  assert.equal(provenance.file, 'apps/web/public/catalog/default.webp');
+  const bytes = await readFile(new URL(provenance.file, root));
+  assert.equal(bytes.length, 642);
+  assert.equal(provenance.bytes, bytes.length);
+  const digest = createHash('sha256').update(bytes).digest('hex');
+  assert.equal(
+    digest,
+    '29100989e785983a128c97ddfa5b4dda68d52bb1c6d4c7f929bd746503d8fb53',
+  );
+  assert.equal(provenance.sha256, digest);
+  assert.equal(
+    provenance.source.pngSha256,
+    '087167b1fce4fc3e491718dc41bfaad8605df24add14aa0cea192abdf0c20bf0',
+  );
+  assert.equal(bytes.toString('ascii', 8, 16), 'WEBPVP8L');
+  const metadata = await sharp(bytes).metadata();
+  assert.equal(metadata.format, 'webp');
+  assert.equal(metadata.width, 26);
+  assert.equal(metadata.height, 26);
+  assert.equal(metadata.hasAlpha, true);
+  assert.equal(provenance.width, metadata.width);
+  assert.equal(provenance.height, metadata.height);
+});
 async function files(directory) {
   const entries = await readdir(new URL(directory, root), {
     withFileTypes: true,

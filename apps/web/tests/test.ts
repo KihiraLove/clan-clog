@@ -3,6 +3,7 @@ import { test as base, type Page } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { basename } from 'node:path';
+import { readFile } from 'node:fs/promises';
 export * from '@playwright/test';
 
 export async function itemAssets(page: Page) {
@@ -28,5 +29,14 @@ export async function pngFile(path: string) {
     name: basename(path).replace(/\.webp$/u, '.png'),
     mimeType: 'image/png',
     buffer: await sharp(path).png().toBuffer(),
+  };
+}
+
+/** Preserve original WebP bytes in intercepted multipart requests. */
+export async function webpFile(path: string) {
+  return {
+    name: basename(path),
+    mimeType: 'image/webp',
+    buffer: await readFile(path),
   };
 }
