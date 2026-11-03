@@ -256,15 +256,6 @@ export function ManualSubmissionForm({
               </div>
             </div>
             <div className="manual-submission-options">
-              {collectionType === 'event' && !hardcore && (
-                <EventPagePicker
-                  itemId={Number(itemId)}
-                  pages={eventPages}
-                  value={eventPage}
-                  onChange={setEventPageId}
-                  disabled={busy || !!pending}
-                />
-              )}
               <label className="admin-checkbox">
                 <input
                   type="checkbox"
@@ -298,6 +289,17 @@ export function ManualSubmissionForm({
                 {appText.webManualSubmissionFormApproveImmediately}
               </label>
             </div>
+            {collectionType === 'event' && !hardcore && (
+              <div className="admin-form-grid">
+                <EventPagePicker
+                  itemId={Number(itemId)}
+                  pages={eventPages}
+                  value={eventPage}
+                  onChange={setEventPageId}
+                  disabled={busy || !!pending}
+                />
+              </div>
+            )}
           </fieldset>
           {pending && (
             <p className="admin-note">
