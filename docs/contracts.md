@@ -1,9 +1,19 @@
 # API contracts
 
-All routes use same-origin `/api/v1` paths. Public catalog, collections,
+Application routes use same-origin `/api/v1` paths. Public catalog, collections,
 settings, branding, activity and XP reads use validated snapshots; projection
 routes return ETags for conditional requests. Private reads are `no-store`.
 See route modules under [apps/api/src](../apps/api/src) for complete wire schemas.
+
+Public icon discovery also exposes origin-root `GET`/`HEAD` `/favicon.webp`,
+`/favicon.ico`, `/apple-touch-icon.png` and `/apple-touch-icon-precomposed.png`.
+These resolve the current main branding anonymously, use the matching WebP,
+ICO (embedded PNG) or PNG MIME type, and return `public, max-age=0, must-revalidate`
+with a content ETag. An old validator after replacement/reset returns the new
+image; storage/settings errors return a recoverable error with `no-store`.
+`?hardcore=1` explicitly selects the independent Hardcore branding. Asset-ID
+`/branding/:id/favicon.webp`, `/favicon.ico` and `/apple-touch-icon.png` keep
+immutable caching. No icon route redirects to itself or returns the SPA document.
 
 `GET /discord/status` returns only `enabled`, `ready` and a `state` of `disabled`,
 `connecting`, `connected`, `disconnected` or `unavailable`. Connected requires

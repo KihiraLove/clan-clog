@@ -77,6 +77,8 @@ export async function packageRuntime(root, output) {
   }
   await copy('package.json');
   await copy('LICENSE');
+  // The public current-icon handler needs the exact bundled default without Nginx.
+  await copy('apps/web/public/favicon.webp');
   for (const workspace of workspaces) {
     const directory = path.join(root, workspace, 'dist');
     const info = await lstat(directory);

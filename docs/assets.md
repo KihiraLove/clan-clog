@@ -2,7 +2,8 @@
 
 The site serves its item icons, skill icons, fonts, frame, default logo and
 favicons locally. Uploaded icons/branding use durable server storage; screenshots
-are private. All bundled and stored images use WebP. PNG uploads are decoded and
+are private. Bundled and stored images use WebP; public bookmark compatibility
+responses are derived PNG/ICO images. PNG uploads are decoded and
 converted losslessly before storage; original PNGs are not saved. Icons retain
 their native dimensions and transparency, and screenshots retain readable text.
 Source/WOM links may point elsewhere, but rendering does not depend
@@ -22,6 +23,19 @@ are no longer accepted.
   to the local Octicons mark.
 - The default “Your Clan” logo is a neutral placeholder; replace it in Site
   settings. OSRS names and game artwork remain the property of their owners.
+
+Bookmark discovery works before JavaScript: the document declares a 180px PNG
+icon and mobile touch icon derived from the saved logo's stored first-frame
+favicon. `/favicon.webp`, `/favicon.ico` and `/apple-touch-icon.png` serve the
+current main Site settings logo, or the bundled fallback after **Restore default**.
+Explicit Hardcore icon links use its independent logo; other visitors cannot
+change the origin-wide fallback. Existing stored WebP bytes and audit history
+are retained. Compatibility encodings are bounded in-memory cache entries and
+are rebuilt after restart; no extra persistent files or migrations are needed.
+
+Browsers manage their own saved-bookmark icon caches. Revisit and reload the site
+after a logo change; if an existing bookmark stays stale, recreating it may help.
+Website JavaScript cannot force every existing bookmark to refresh immediately.
 
 Project code uses the [MIT license](../LICENSE); it does not relicense third-party
 assets or imply endorsement by Jagex. Preserve source/license files when replacing

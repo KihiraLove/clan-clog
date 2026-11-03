@@ -26,6 +26,10 @@ async function fixture(t) {
   };
   await put('package.json', '{}');
   await put('LICENSE', 'MIT License\n');
+  await put(
+    'apps/web/public/favicon.webp',
+    await readFile(new URL('../apps/web/public/favicon.webp', import.meta.url)),
+  );
   for (const workspace of workspaces)
     await put(workspace + '/package.json', '{}');
   for (const entry of runtimeEntries)
@@ -41,6 +45,10 @@ test('runtime package retains operator/server entries while omitting declaration
     manifest = await packageRuntime(root, output);
   assert.ok(manifest.files['apps/api/dist/server.js']);
   assert.ok(manifest.files['packages/database/dist/bootstrap.js']);
+  assert.deepEqual(
+    await readFile(path.join(output, 'apps/web/public/favicon.webp')),
+    await readFile(path.join(root, 'apps/web/public/favicon.webp')),
+  );
   assert.equal(
     await readFile(path.join(output, 'LICENSE'), 'utf8'),
     'MIT License\n',

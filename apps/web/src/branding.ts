@@ -28,7 +28,8 @@ export function parseBranding(value: unknown): Branding {
     data.revision.length > 40 ||
     !(
       (data.logoPath === defaultBranding.logoPath &&
-        data.faviconPath === defaultBranding.faviconPath) ||
+        (data.faviconPath === defaultBranding.faviconPath ||
+          data.faviconPath === '/favicon.webp?hardcore=1')) ||
       (match &&
         data.faviconPath === `/api/v1/branding/${match[1]}/favicon.webp`)
     )

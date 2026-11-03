@@ -1,12 +1,14 @@
 import * as appText from '@clog/domain';
 import multipart from '@fastify/multipart';
 import type { BrandingFiles } from './route-services.js';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { MAX_LOGO_BYTES } from './branding-storage.js';
 import { defaultBranding, type BrandingStore } from './branding-store.js';
 import { assetIdPattern } from './icon-storage.js';
 import { ApiError } from './types.js';
 import { matchesEtag } from './projection-cache.js';
+import { createHash } from 'node:crypto';
+import { BrandingIcons, type BrandingIconFormat } from './branding-icons.js';
 export function brandingRoutes(
   app: FastifyInstance,
   store?: BrandingStore,
@@ -16,6 +18,108 @@ export function brandingRoutes(
     write?: boolean,
   ) => Promise<{ id: string; role: 'admin' | 'moderator' }>,
 ) {
+  const icons = new BrandingIcons();
+  const formats = {
+    webp: 'image/webp',
+    ico: 'image/vnd.microsoft.icon',
+    png: 'image/png',
+  };
+  for (const [path, format] of [
+    ['/favicon.webp', 'webp'],
+    ['/favicon.ico', 'ico'],
+    ['/apple-touch-icon.png', 'png'],
+    ['/apple-touch-icon-precomposed.png', 'png'],
+  ] as const)
+    app.get<{ Querystring: { hardcore?: string } }>(
+      path,
+      async (request, reply) => {
+        // Never cache an outage as a deliberate reset, including conditional reads.
+        reply.header('Cache-Control', 'no-store');
+        const branding = store
+          ? await store.settings(request.query.hardcore === '1')
+          : defaultBranding;
+        const id = /^\/api\/v1\/branding\/([^/]+)\/favicon\.webp$/u.exec(
+          branding.faviconPath,
+        )?.[1];
+        let source: Buffer;
+        if (id) {
+          if (!storage || !store)
+            throw new ApiError(
+              503,
+              appText.apiBrandingRoutesLogoStorageUnavailable,
+            );
+          const record = await store.asset(id);
+          if (!record)
+            throw new ApiError(
+              503,
+              appText.apiBrandingRoutesLogoStorageUnavailable,
+            );
+          source = await storage.favicons.read(record.favicon);
+        } else {
+          if (
+            branding.logoPath !== defaultBranding.logoPath ||
+            !['/favicon.webp', '/favicon.webp?hardcore=1'].includes(
+              branding.faviconPath,
+            )
+          )
+            throw new ApiError(
+              503,
+              appText.apiBrandingRoutesLogoStorageUnavailable,
+            );
+          source = await icons.fallback();
+        }
+        return sendIcon(source, format, request, reply, false);
+      },
+    );
+  async function sendIcon(
+    source: Buffer,
+    format: BrandingIconFormat,
+    request: FastifyRequest,
+    reply: FastifyReply,
+    immutable: boolean,
+  ) {
+    const bytes = await icons.image(source, format);
+    const etag = '"' + createHash('sha256').update(bytes).digest('hex') + '"';
+    reply
+      .type(formats[format])
+      .header('ETag', etag)
+      .header(
+        'Cache-Control',
+        immutable
+          ? 'public, max-age=31536000, immutable'
+          : 'public, max-age=0, must-revalidate',
+      );
+    if (matchesEtag(request.headers['if-none-match'], etag))
+      return reply.code(304).send();
+    return reply.send(bytes);
+  }
+  for (const [suffix, format] of [
+    ['favicon.ico', 'ico'],
+    ['apple-touch-icon.png', 'png'],
+  ] as const)
+    app.get<{ Params: { id: string } }>(
+      '/api/v1/branding/:id/' + suffix,
+      async (request, reply) => {
+        reply.header('Cache-Control', 'no-store');
+        if (!assetIdPattern.test(request.params.id))
+          throw new ApiError(404, appText.apiBrandingRoutesLogoNotFound);
+        if (!store || !storage)
+          throw new ApiError(
+            503,
+            appText.apiBrandingRoutesLogoStorageUnavailable,
+          );
+        const record = await store.asset(request.params.id);
+        if (!record)
+          throw new ApiError(404, appText.apiBrandingRoutesLogoNotFound);
+        return sendIcon(
+          await storage.favicons.read(record.favicon),
+          format,
+          request,
+          reply,
+          true,
+        );
+      },
+    );
   for (const hardcore of [false, true])
     app.get(
       '/api/v1/branding' + (hardcore ? '/hardcore' : ''),

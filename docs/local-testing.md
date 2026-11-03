@@ -16,7 +16,8 @@ inside the active environment after switching. Native packages such as Rollup
 and esbuild are platform-specific; reuse the committed lockfile rather than
 regenerating it to repair a missing native package.
 
-Vite proxies `/api` to `127.0.0.1:3000`. The frontend always uses the API;
+Vite proxies `/api`, `/favicon.webp`, `/favicon.ico` and `/apple-touch-icon*`
+to `127.0.0.1:3000`, matching production's current-icon routing. The frontend always uses the API;
 there is no demo fallback. Browser fixtures live under `apps/web/tests/support`
 and cannot enter production bundles. See [configuration](environment.md).
 
