@@ -14,6 +14,7 @@ import type { AdminSession } from './xp-model.ts';
 import { formatUtcTime } from './format-time.ts';
 import { SubmissionEditor } from './SubmissionEditor.tsx';
 import { ManualSubmissionForm } from './ManualSubmissionForm.tsx';
+import { RepeatCollectorControl } from './RepeatCollectorControl.tsx';
 import { usePreparedAdminData } from './admin-route-data.ts';
 import { useAdminAction } from './use-admin-action.ts';
 import type { SubmissionFilters } from '@clog/domain';
@@ -214,6 +215,13 @@ export function AdminQueue({
         )}
         {filterAction.error && <p role="alert">{filterAction.error}</p>}
       </section>
+      <RepeatCollectorControl
+        client={client}
+        session={session}
+        filters={filters}
+        onSaved={setFilters}
+        onAccessLost={onAccessLost}
+      />
       <section className="admin-panel">
         <div className="admin-section-heading">
           <div>

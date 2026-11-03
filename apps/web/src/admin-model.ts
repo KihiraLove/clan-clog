@@ -23,6 +23,7 @@ export function dateSourceLabel(source: Submission['dateSource']): string {
       : appText.webAdminModelAdminCorrection;
 }
 export interface Submission {
+  admissionPolicy?: import('@clog/domain').SubmissionFilters;
   eventPageId?: string | null;
   eventPageAssignmentPending?: boolean;
   eligibleEventPageIds?: string[];
@@ -230,6 +231,7 @@ export interface AdminClient {
     revision: string,
     csrf: string,
     signal: AbortSignal,
+    repeatCollectorPolicy?: import('@clog/domain').RepeatCollectorPolicy,
   ): Promise<import('@clog/domain').SubmissionFilters>;
   scheduling(
     signal: AbortSignal,
@@ -477,6 +479,9 @@ export function parseSubmission(value: unknown): Submission {
     throw new Error(appText.webAdminModelInvalidSubmissionData);
   return {
     id: text(row.id),
+    ...(row.admissionPolicy === undefined
+      ? {}
+      : { admissionPolicy: parseSubmissionFilters(row.admissionPolicy) }),
     version: identity(row.version),
     source:
       row.source === undefined

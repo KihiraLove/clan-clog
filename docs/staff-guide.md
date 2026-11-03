@@ -66,9 +66,40 @@ appears here as a Regular collection, retaining its original collector and date.
 Its Event assignment and single obtain count are preserved. Completion and obtain totals still count
 the original canonical items and obtains, without multiplying them by page membership.
 **Filter out regular duplicates** blocks another Regular credit in
-the same world mode when on. When off, Regular collections can repeat, including
-the same collector. Re-enabling it preserves existing history. Staff approval and
+the same world mode when on. When off, Regular collections follow the repeat
+collector policy below. Re-enabling it preserves existing history. Staff approval and
 corrections enforce the same rules. Revoke a credit to remove that entry only.
+
+**Repeat collections by username** is a separate section directly below that
+filter. The administrator chooses **Automatically reject repeat collections**,
+**Show each obtain separately** (the default), or **Merge obtains by username**,
+then saves the choice. Moderators can read the policy. Failed saves retain the
+draft; after a conflict, review the reloaded settings before saving again.
+
+Repeats match the canonical item, world mode and normalized collector name, using
+case-insensitive names with underscores, nonbreaking spaces and repeated whitespace
+treated as spaces. The collector identity is independent of the staff or Discord
+account submitting the claim. An approved Event or Regular credit qualifies;
+pending, rejected and revoked claims do not. Normal and Hardcore stay independent.
+The broader Regular duplicate filter takes precedence for additional Regular
+credit, including for different collectors. Separate/merged display uses the normal
+approval and proof rules and leaves that filter enabled when it was already on.
+
+Reject mode stores new repeat claims as rejected with a policy reason and settings
+revision. Pending approvals recheck the current policy; a conflicting approval or
+approved identity/item/world correction is refused atomically. Existing approved
+history remains intact when the policy changes, and old delivery retries keep their
+original receipt. A normal correction to an existing credit's date or equivalent
+name spelling preserves it.
+
+Merged hover history shows one group per normalized username. Multiple obtains use
+**Collected 3x by Alice first on 01/10/26**, using the earliest collection date and
+its display spelling; a single obtain keeps **Collected by Alice on 01/10/26**.
+Expand **Collection history** for every date and Event/Regular label, including
+repeated dates. Groups with the current page's Event credit appear first. An Event
+obtain from another page appears as Regular in the current page's history, while
+the obtain remains a single record. Revocation and corrections update group counts
+and dates; item completion and actual obtain totals retain their canonical meaning.
 
 With the regular duplicate filter off, a later Event-eligible obtain becomes
 Regular when the selected page already has an approved Event collection for that

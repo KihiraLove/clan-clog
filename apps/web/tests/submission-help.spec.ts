@@ -6,6 +6,28 @@ import { adminFixtures } from './admin-fixtures.ts';
 const guide =
   '## Clan instructions\n\n1. Collect an **item**.\n2. Keep *proof*.\n\n[Ask staff](https://example.com/help)\n\n```text\nKeep the original screenshot\n```';
 const signal = () => new AbortController().signal;
+test('failed deferred submission help stays local and leaves the public log usable', async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.route('**/src/HelpMarkdown.tsx*', (route) => route.abort());
+  await page.goto('/');
+  await page
+    .getByRole('button', { name: 'How to submit', exact: true })
+    .click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText(
+    'Instructions could not be displayed. Please ask your clan staff for submission help.',
+  );
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', {
+      name: 'Collected by clan members',
+      exact: true,
+    }),
+  ).toBeVisible();
+});
 async function helpSettings(page: Page, text = guide) {
   const { admin } = await mockApi(page, {
     scenario: 'hardcore',

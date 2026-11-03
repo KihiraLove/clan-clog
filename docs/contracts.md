@@ -160,6 +160,44 @@ most three standings; public activity reads expose metadata only. Imports
 are previewed and applied transactionally; refreshing replaces a prior event's
 contribution. [Competition rules](wom-competitions.md) define lifecycle and corrections.
 
+## Repeat collector policy
+
+`GET /admin/submission-filters` and queue metadata include `repeatCollectorPolicy`:
+`reject`, `separate` or `merge`, alongside `filterCollected` and the shared
+`submission-filters-N` revision. The default is `separate`, including during
+upgrade. Administrator-only `PUT /admin/submission-filters` accepts the optional
+policy with `filterCollected` and `expectedRevision`. Omission preserves the saved
+policy. Writes require Origin/CSRF, reject stale versions with 409, and audit the
+actor plus old/new filter and policy. Moderators may read the values.
+
+Matching uses canonical item ID, world mode and `normalizePlayerName()` applied to
+the submitted collector identity. An indexed approved item/world candidate query
+uses that same JavaScript normalizer so database collation and Unicode lowercasing
+cannot disagree. Pending/rejected/revoked credits never establish a repeat.
+Existing approved Event and Regular credits both qualify. Canonical-item locks and
+shared settings locks serialize intake and approval checks. The broader Regular
+duplicate filter retains precedence. Pending approval and identity/item/world
+changes to an approved credit can return 409 with the repeat-policy reason, leaving
+the prior record intact. Policy changes never rewrite existing approved history.
+
+Automatic repeat rejections are saved with `admissionPolicy` (the original filter
+snapshot), reason, proof and audit evidence. RuneLite and Discord return a durable
+rejected receipt with `rejectionReason` and `admissionPolicy`; new intake returns
+201 and exact replay returns the original JSON. Manual creation returns its saved
+rejected private submission with `reviewReason` and `admissionPolicy`. The Discord
+bot describes rejection truthfully. Existing request fingerprints and historical
+receipt JSON are retained, including the independent five-second observer window.
+
+Anonymous `GET /collections` also includes `repeatCollectorPolicy`. Missing legacy
+metadata defaults to separate; invalid values fail validation. Policy writes
+advance its public revision/ETag even when credits stay unchanged. An open menu
+refreshes the presentation using that metadata, without private requests. Merge
+mode groups normalized usernames per canonical item/world, keeps one original
+record per obtain, and prioritizes groups containing the current page's Event.
+The summary is `Collected <number>x by <collector name> first on <date>` for repeats;
+singletons retain their existing text. Expanded history retains every date and
+page-specific Event/Regular label. Equal dates still represent separate obtains.
+
 ## Legacy Event page assignments
 
 Administrator-only `GET /admin/event-page-assignments` returns `revision`, `total`

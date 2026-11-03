@@ -151,14 +151,35 @@ a reason explaining that the duplicate filter is on. Discord intake continues
 to reject these claims with **403**. The filter defaults to off and
 can be changed only by the administrator; moderators can view its current state.
 Staff approvals, approved manual entry and credit-moving corrections enforce
-the same policy. When off, repeated Regular credits are allowed, even for the
-same collector. Re-enabling preserves history. Event credits are independent:
+the same policy. When off, Regular repeats follow the username policy below.
+Re-enabling preserves history. Event credits are independent:
 one approved Event credit per normal-world canonical item/page pair. Replays and recognized five-second duplicates
 retain their successful receipt. CSRF-protected
 `PUT /api/v1/admin/submission-filters` accepts `{ filterCollected,
 expectedRevision }` using the `submission-filters-N` revision supplied by the
 queue or `GET` on that route. Changes are versioned and audited; stale writes
 return **409**.
+
+The separate **Repeat collections by username** policy can reject a genuine later
+obtain by the same normalized collector. Matching uses the canonical item/world
+mode and the shared case/space/underscore normalization; any approved Event or
+Regular credit qualifies. Normal and Hardcore are independent. Pending, rejected
+and revoked claims do not establish a prior collection. The broader Regular
+duplicate filter retains precedence.
+
+When this policy rejects an obtain, RuneLite returns **201** with a durable
+`status: "rejected"`, `rejectionReason` and `admissionPolicy` containing the filter
+revision and policy used. The original proof and reason remain available to staff.
+Discord also stores repeat-policy rejections and returns a rejected receipt; its
+bot reply reports the reason. Staff manual entry follows the same policy. Pending
+approval and approved identity/item/world moves recheck current settings.
+Transport replay and five-second duplicate suppression continue returning the
+original receipt, even after policy changes.
+
+Separate and merged presentation choices preserve normal review/automatic rules.
+The default remains separate. Merging changes only public hover grouping: repeated
+collectors use **Collected 3x by Alice first on 01/10/26**, with expandable dates and
+collection types. A single obtain keeps the existing wording.
 
 Browser uploads are allowed from **https://kihiralove.github.io** only on the
 public RuneLite submission endpoint. Its unauthenticated `OPTIONS` preflight

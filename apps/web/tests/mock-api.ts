@@ -254,6 +254,7 @@ export async function mockApi(
           b.expectedRevision,
           csrf,
           signal,
+          b.repeatCollectorPolicy,
         );
       else if (path === '/api/v1/admin/schedules')
         result =

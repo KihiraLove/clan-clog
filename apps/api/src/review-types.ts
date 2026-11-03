@@ -1,5 +1,6 @@
 /** REVIEW-01 private response types. Public credits never expose these fields. */
 export interface ReviewSubmission {
+  admissionPolicy?: import('@clog/domain').SubmissionFilters;
   eventPageId?: string | null;
   eventPageAssignmentPending?: boolean;
   eligibleEventPageIds?: string[];
@@ -93,6 +94,7 @@ export interface ReviewStore {
     filterCollected: boolean,
     revision: string,
     actorId: string,
+    repeatCollectorPolicy?: import('@clog/domain').RepeatCollectorPolicy,
   ): Promise<import('@clog/domain').SubmissionFilters>;
   adminCatalog(): Promise<unknown>;
   createManual(

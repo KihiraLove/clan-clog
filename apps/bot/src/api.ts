@@ -2,6 +2,7 @@ import * as appText from '@clog/domain';
 /** Restrict Discord data access to two bot-only API routes. No direct database access. */
 import {
   closedCollectionPageMessage,
+  parseSubmissionFilters,
   safeFailure,
   WorkloadError,
 } from '@clog/domain';
@@ -20,10 +21,12 @@ export interface Claim {
   hardcore: boolean;
 }
 export interface Receipt {
+  rejectionReason?: string;
+  admissionPolicy?: import('@clog/domain').SubmissionFilters;
   collectionType?: 'regular' | 'event' | null;
   submissionId: string;
   interactionId: string;
-  status: 'pending';
+  status: 'pending' | 'rejected';
   submittedAt: string;
   collectedOn: string;
   dateSource: 'collector' | 'submission_default';
@@ -93,7 +96,10 @@ const candidate = (value: unknown): value is Candidate =>
 function parseReceipt(value: unknown, interactionId: string): Receipt {
   if (
     !record(value) ||
-    value.status !== 'pending' ||
+    !['pending', 'rejected'].includes(String(value.status)) ||
+    (value.status === 'rejected' &&
+      (typeof value.rejectionReason !== 'string' ||
+        !value.rejectionReason.trim())) ||
     value.interactionId !== interactionId ||
     typeof value.submissionId !== 'string' ||
     !/^[\da-f-]{36}$/iu.test(value.submissionId) ||
@@ -123,6 +129,21 @@ function parseReceipt(value: unknown, interactionId: string): Receipt {
       502,
       appText.botApiInvalidDurableReceiptFromTheIntakeApi,
     );
+  if (value.status === 'rejected') {
+    try {
+      if (
+        parseSubmissionFilters(value.admissionPolicy).repeatCollectorPolicy !==
+          'reject' ||
+        value.rejectionReason !== appText.repeatCollectorRejected
+      )
+        throw Error(appText.repeatCollectorInvalidPolicy);
+    } catch {
+      throw new BotApiError(
+        502,
+        appText.botApiInvalidDurableReceiptFromTheIntakeApi,
+      );
+    }
+  }
   return value as unknown as Receipt;
 }
 export class HttpBotApi implements BotApi {

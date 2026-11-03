@@ -15,6 +15,7 @@ import { lockScheduling } from './scheduling-store.js';
 import { requireClanKey } from './clan-api-key.js';
 import {
   readSubmissionFilters,
+  isRepeatCollector,
   isCollectedDuplicate,
   resolveCollectionCredit,
 } from './submission-filters.js';
@@ -96,6 +97,8 @@ export interface RuneLiteFields {
   chatMessage?: string;
 }
 export interface RuneLiteReceipt {
+  rejectionReason?: string;
+  admissionPolicy?: import('@clog/domain').SubmissionFilters;
   eventPageId?: string | null;
   submissionId: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -295,11 +298,20 @@ export class PgProofStore implements ProofStore {
           world.hardcore,
           classification.collectionType,
         ));
+      const repeated = await isRepeatCollector(
+        client,
+        filters,
+        item?.id ?? null,
+        world.hardcore,
+        fields.username,
+      );
       const rejection = collectedDuplicate
         ? appText.apiProofStoreAutomaticallyRejectedFilterOutRegularDuplicatesIsOnAndThis
-        : decision.action === 'reject'
-          ? decision.reason
-          : undefined;
+        : repeated
+          ? appText.repeatCollectorRejected
+          : decision.action === 'reject'
+            ? decision.reason
+            : undefined;
       if (image) await insertImage(client, image);
       const rawItemText = runeLiteItemName(fields, item?.name);
       const id = randomUUID();
@@ -325,6 +337,11 @@ export class PgProofStore implements ProofStore {
           ],
         )
       ).rows[0]!;
+      if (rejection)
+        await client.query(
+          'UPDATE submissions SET admission_policy=$2 WHERE id=$1',
+          [id, JSON.stringify(filters)],
+        );
       let status: RuneLiteReceipt['status'] = 'pending';
       if (rejection || (item && decision.action === 'allow')) {
         if (rejection) {
@@ -368,6 +385,7 @@ export class PgProofStore implements ProofStore {
           gameItemId: fields.itemId,
           ...classification,
           rawItemText,
+          ...(rejection ? { admissionPolicy: filters } : {}),
           collectorName: fields.username.trim(),
           collectedOn: row.collected_on,
           dateSource: 'submission',
@@ -408,6 +426,9 @@ export class PgProofStore implements ProofStore {
         );
       }
       const receipt: RuneLiteReceipt = {
+        ...(rejection
+          ? { rejectionReason: rejection, admissionPolicy: filters }
+          : {}),
         submissionId: id,
         status,
         itemId: item?.id ?? null,

@@ -1,6 +1,6 @@
 import * as appText from '@clog/domain';
 import { classifyIntake } from './event-pages.js';
-import { insertImage } from './proof-store.js';
+import { insertImage, screenshotPath } from './proof-store.js';
 /** Parameterized PostgreSQL persistence; public projections explicitly select safe fields. */
 import { randomUUID } from 'node:crypto';
 import { admitAuthentication } from './auth-rate-store.js';
@@ -23,6 +23,7 @@ import { lockScheduling } from './scheduling-store.js';
 import { intakeScheduling } from './intake-scheduling.js';
 import {
   readSubmissionFilters,
+  isRepeatCollector,
   requireUncollected,
   resolveCollectionCredit,
 } from './submission-filters.js';
@@ -82,7 +83,10 @@ export async function ensureDefaultAdministrator(
 
 export class PgStore implements BackendStore {
   private readonly catalogCache = new ProjectionCache<CatalogData>();
-  private readonly collectionCache = new ProjectionCache<PublicCredit[]>();
+  private readonly collectionCache = new ProjectionCache<{
+    credits: PublicCredit[];
+    repeatCollectorPolicy: import('@clog/domain').RepeatCollectorPolicy;
+  }>();
   private readonly matchCache = new ProjectionCache<MatchItem[]>();
   constructor(private readonly pool: pg.Pool) {}
 
@@ -402,6 +406,13 @@ export class PgStore implements BackendStore {
         input.hardcore,
         classification.collectionType,
       );
+      const repeated = await isRepeatCollector(
+        client,
+        filters,
+        itemId,
+        input.hardcore,
+        input.collectorName,
+      );
       const creditOccupied =
         (classification.collectionType === 'event' ||
           filters.filterCollected) &&
@@ -420,7 +431,13 @@ export class PgStore implements BackendStore {
       const receipt: BotReceipt = {
         submissionId: randomUUID(),
         interactionId: input.interactionId,
-        status: 'pending',
+        status: repeated ? 'rejected' : 'pending',
+        ...(repeated
+          ? {
+              rejectionReason: appText.repeatCollectorRejected,
+              admissionPolicy: filters,
+            }
+          : {}),
         submittedAt: submittedAt.toISOString(),
         collectedOn: today,
         dateSource: 'submission_default',
@@ -476,6 +493,50 @@ export class PgStore implements BackendStore {
         const result = replay(winner);
         await client.query('COMMIT');
         return result;
+      }
+      if (repeated) {
+        const before = {
+          id: receipt.submissionId,
+          version: 1,
+          source: 'discord',
+          itemId,
+          rawItemText: input.rawItemText,
+          collectorName: input.collectorName,
+          collectedOn: today,
+          dateSource: 'submission',
+          submittedAt: submittedAt.toISOString(),
+          proofUrl: '',
+          screenshotPath: screenshotPath(input.image.id),
+          hardcore: input.hardcore,
+          status: 'pending',
+          ...classification,
+          reviewNote: '',
+          reviewReason: null,
+        };
+        await client.query(
+          "UPDATE submissions SET status='rejected',reviewed_at=now(),reviewed_by='system:repeat-collector',review_reason=$2,admission_policy=$3,version=version+1 WHERE id=$1",
+          [
+            receipt.submissionId,
+            appText.repeatCollectorRejected,
+            JSON.stringify(filters),
+          ],
+        );
+        await client.query(
+          "INSERT INTO audit_events(submission_id,actor_discord_id,actor_name,action,reason,old_values,new_values) VALUES($1,'system:repeat-collector',$2,'reject',$3,$4,$5)",
+          [
+            receipt.submissionId,
+            appText.repeatCollectorTitle,
+            appText.repeatCollectorRejected,
+            JSON.stringify(before),
+            JSON.stringify({
+              ...before,
+              status: 'rejected',
+              version: 2,
+              reviewReason: appText.repeatCollectorRejected,
+              admissionPolicy: filters,
+            }),
+          ],
+        );
       }
       await client.query('COMMIT');
       return { created: true, receipt, imageId: input.image.id };
@@ -576,12 +637,9 @@ export class PgStore implements BackendStore {
             this.pool,
             this.collectionCache,
             'collections',
-            (client) => this.loadCollections(client),
+            (client) => this.loadCollectionSnapshot(client),
           );
-    const payload =
-      resource === 'catalog'
-        ? value.json.slice(1)
-        : '"credits":' + value.json + '}';
+    const payload = value.json.slice(1);
     return {
       revision: value.key,
       body: '{"revision":' + JSON.stringify(value.key) + ',' + payload,
@@ -597,15 +655,22 @@ export class PgStore implements BackendStore {
     ).rows;
     return rows;
   }
+  private async loadCollectionSnapshot(client: pg.PoolClient) {
+    return {
+      credits: await this.loadCollections(client),
+      repeatCollectorPolicy: (await readSubmissionFilters(client))
+        .repeatCollectorPolicy,
+    };
+  }
   async collections(): Promise<PublicCredit[]> {
     return (
       await projection(
         this.pool,
         this.collectionCache,
         'collections',
-        (client) => this.loadCollections(client),
+        (client) => this.loadCollectionSnapshot(client),
       )
-    ).data;
+    ).data.credits;
   }
   async settings(): Promise<Settings> {
     const row = (

@@ -26,6 +26,7 @@ test(
           '003_catalog_updates.sql',
           '004_catalog_bootstrap_state.sql',
           '005_page_event_credits.sql',
+          '006_repeat_collector_policy.sql',
         ],
       );
       // Roll back fixtures; migrations persist in the disposable test database.
