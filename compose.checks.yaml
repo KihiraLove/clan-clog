@@ -3,6 +3,8 @@ services:
     image: ${CHECK_APP_IMAGE:?Run npm run test:all}
     pull_policy: never
     restart: 'no'
+    cpus: ${CHECK_APP_CPUS:-0}
+    mem_limit: ${CHECK_APP_MEMORY:-0}
     environment:
       BOT_SETTINGS_MODE: environment
       BOT_ENABLED: 'false'

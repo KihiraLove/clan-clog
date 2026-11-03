@@ -16,6 +16,7 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['json', { outputFile: '../../.data/local-checks/security-report.json' }],
+    ['../../scripts/check-browser-policy.mjs', { suite: 'security' }],
   ],
   use: {
     // Loopback supplies the browser's native secure-context APIs for demo writes.
@@ -26,6 +27,8 @@ export default defineConfig({
     viewport: { width: 1100, height: 850 },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    timezoneId: 'UTC',
+    locale: 'en-US',
   },
   webServer: {
     command: 'node tests-security/proxy.mjs',

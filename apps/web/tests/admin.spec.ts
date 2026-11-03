@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { adminFixtures } from './admin-fixtures.ts';
 import { defaultBranding } from '../src/branding.ts';
 import type { AdminCatalog, SubmissionDetail } from '../src/admin-model.ts';
+import { requestGate } from './request-gate.ts';
 
 const editor = (page: Page) => page.locator('.submission-editor');
 const proofCheck = (page: Page) =>
@@ -470,6 +471,12 @@ test('manual item creation shares one identity, keyboard and drag order affect o
   await page
     .getByRole('button', { name: 'Add New clan drop to page', exact: true })
     .click();
+  await expect(
+    page.getByRole('button', {
+      name: 'Reorder item New clan drop',
+      exact: true,
+    }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Vardorvis', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Vardorvis', exact: true }),
@@ -557,6 +564,63 @@ test('manual item creation shares one identity, keyboard and drag order affect o
   await expect(
     page.getByRole('button', { name: 'New clan drop: collected', exact: true }),
   ).toBeVisible();
+});
+
+test('acceptance scheduling: superseded catalog refreshes cannot replace the current snapshot', async ({
+  page,
+}, info) => {
+  const { admin } = await mockApi(page);
+  await page.goto('/admin/catalog');
+  await expect(
+    page.getByRole('heading', { name: 'Vardorvis', exact: true }),
+  ).toBeVisible();
+  const old = await admin.catalog(new AbortController().signal),
+    current = structuredClone(old);
+  current.revision = 'catalog-newer';
+  current.pages.find((entry) => entry.id === 'vardorvis')!.name =
+    'Current catalog';
+  const older = requestGate(),
+    newer = requestGate();
+  let reads = 0;
+  await page.route('**/api/v1/admin/catalog', async (route) => {
+    const first = reads++ === 0;
+    await (first ? older : newer).hold();
+    await route.fulfill({ json: first ? old : current }).catch(() => {});
+  });
+  const seed = Number(process.env.CHECK_SEED ?? '126');
+  const newerFirst = ((seed + info.repeatEachIndex) & 1) === 0;
+  info.annotations.push({
+    type: 'schedule',
+    description: `${seed}/${info.repeatEachIndex}: ${newerFirst ? 'newer-first' : 'older-first'}`,
+  });
+  try {
+    await page.evaluate(() =>
+      window.dispatchEvent(new Event('catalog-updated')),
+    );
+    await older.entered;
+    await page.evaluate(() =>
+      window.dispatchEvent(new Event('catalog-updated')),
+    );
+    await newer.entered;
+    if (newerFirst) newer.release();
+    else older.release();
+    if (newerFirst)
+      await expect(
+        page.getByRole('heading', { name: 'Current catalog', exact: true }),
+      ).toBeVisible();
+    older.release();
+    newer.release();
+    await expect(
+      page.getByRole('heading', { name: 'Current catalog', exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Loading catalog…', { exact: true }),
+    ).toHaveCount(0);
+    expect(reads).toBe(2);
+  } finally {
+    older.release();
+    newer.release();
+  }
 });
 
 test('320-pixel touch review and order controls fit without horizontal overflow', async ({

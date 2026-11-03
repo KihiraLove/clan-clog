@@ -81,7 +81,13 @@ function nodeResults(log, groups) {
   return counts.reduce((sum, count) => sum + count, 0);
 }
 
-export function releaseSummary(files, revision, lockfile, now = Date.now()) {
+export function releaseSummary(
+  files,
+  revision,
+  lockfile,
+  now = Date.now(),
+  context = {},
+) {
   if (!/^[a-f0-9]{40}$/u.test(revision ?? ''))
     throw new Error('Exact revision required');
   for (const name of evidenceFiles)
@@ -152,11 +158,13 @@ export function releaseSummary(files, revision, lockfile, now = Date.now()) {
   return {
     format: 1,
     revision,
+    runId: context.runId,
+    sourceFingerprint: context.sourceFingerprint,
     generatedAt: new Date(now).toISOString(),
     automatedStatus: 'passed',
     launchStatus: 'manual-checks-pending',
     scope:
-      'Working tree copied by the runner; release review must use a clean exact commit and outer result.json with successful cleanup.',
+      'Frozen effective Docker source context; release review must compare its fingerprint with clean-ref evidence and verify the outer manifest/result with successful cleanup.',
     tests: {
       workspace: workspaceTests,
       tooling: toolingTests,
@@ -177,6 +185,11 @@ export function releaseSummary(files, revision, lockfile, now = Date.now()) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  if (
+    !/^clog-checks-[a-z0-9-]+$/u.test(process.env.CHECK_RUN_ID ?? '') ||
+    !/^[a-f0-9]{64}$/u.test(process.env.CHECK_SOURCE_FINGERPRINT ?? '')
+  )
+    throw Error('Run ID and exact effective source fingerprint are required');
   const root = '.data/local-checks';
   const files = Object.fromEntries(
     await Promise.all(
@@ -190,6 +203,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     files,
     process.env.CHECK_REVISION,
     await readFile('package-lock.json'),
+    Date.now(),
+    {
+      runId: process.env.CHECK_RUN_ID,
+      sourceFingerprint: process.env.CHECK_SOURCE_FINGERPRINT,
+    },
   );
   await writeFile(
     path.join(root, 'acceptance.json'),
