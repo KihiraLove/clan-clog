@@ -2,6 +2,30 @@
 name: CI
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Acceptance or bounded catalog investigation
+        type: choice
+        options: [acceptance, catalog]
+        default: acceptance
+      profile:
+        description: Disposable container resource profile
+        type: choice
+        options: [normal, constrained]
+        default: normal
+      cache:
+        description: Reuse layers or rebuild this run without cache
+        type: choice
+        options: [normal, cold]
+        default: normal
+      repeat:
+        description: Catalog repetitions (1–10)
+        type: string
+        default: '3'
+      seed:
+        description: Catalog scheduling seed (0–2147483647)
+        type: string
+        default: '126'
   release:
     types: [published]
 permissions:
@@ -11,8 +35,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   acceptance:
-    name: Full acceptance
-    runs-on: ubuntu-latest
+    name: Acceptance / replay
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -30,15 +54,30 @@ jobs:
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version-file: .nvmrc }
-      - name: Run the same full test suite as local development
-        run: node scripts/check-local.mjs
+      - name: Run the common acceptance/replay runner
+        env:
+          REPLAY_SCOPE: ${{ inputs.scope || 'acceptance' }}
+          REPLAY_PROFILE: ${{ inputs.profile || 'normal' }}
+          REPLAY_CACHE: ${{ inputs.cache || 'normal' }}
+          REPLAY_REPEAT: ${{ inputs.repeat || '3' }}
+          REPLAY_SEED: ${{ inputs.seed || '126' }}
+        run: |
+          node scripts/check-local.mjs --ref HEAD --scope "$REPLAY_SCOPE" --profile "$REPLAY_PROFILE" --cache "$REPLAY_CACHE" --repeat "$REPLAY_REPEAT" --seed "$REPLAY_SEED"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: failure()
+        if: always()
         with:
-          name: acceptance-failure
-          path: .data/local-checks/
+          name: acceptance-evidence-${{ github.run_attempt }}
+          path: .data/local-checks/*/artifacts/compact/
           include-hidden-files: true
-          retention-days: 1
+          retention-days: 14
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: acceptance-traces-${{ github.run_attempt }}
+          path: .data/local-checks/*/artifacts/traces/
+          include-hidden-files: true
+          retention-days: 14
           if-no-files-found: ignore
   publish:
     needs: acceptance

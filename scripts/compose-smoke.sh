@@ -31,7 +31,7 @@ jq -e '
 ;;
 runtime-image)
 printf "\nInspect production runtime\n"
-docker run --rm -i --read-only --network none --label "clog.local-checks=$COMPOSE_PROJECT_NAME" --entrypoint node "$CHECK_APP_IMAGE" --input-type=module < scripts/inspect-runtime.mjs | tee .data/local-checks/runtime-image.json
+docker run --rm -i --read-only --network none --cpus "${CHECK_APP_CPUS:-0}" --memory "${CHECK_APP_MEMORY:-0}" --label "clog.local-checks=$COMPOSE_PROJECT_NAME" --entrypoint node "$CHECK_APP_IMAGE" --input-type=module < scripts/inspect-runtime.mjs | tee .data/local-checks/runtime-image.json
 ;;
 startup)
 printf "\nVerify installation startup and public endpoints\n"

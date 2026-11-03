@@ -30,7 +30,12 @@ test('failed stages and missing commands retain logs while independent checks ru
         group: 'validate',
       },
       { name: 'dependent', command: command('must not run'), needs: ['first'] },
-      { name: 'missing', command: ['clog-test-command-that-does-not-exist'] },
+      {
+        name: 'missing',
+        command: [
+          path.join(options.output, 'clog-test-command-that-does-not-exist'),
+        ],
+      },
       { name: 'last', command: command('last'), group: 'validate' },
     ],
     options,

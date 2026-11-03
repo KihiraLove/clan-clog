@@ -103,7 +103,9 @@ export async function writeRunReport(output, run) {
   }
   const failures = [],
     missingReports = [];
-  for (const suite of ['browser', 'loading', 'security', 'stack']) {
+  for (const suite of run.scope === 'catalog'
+    ? ['catalog']
+    : ['browser', 'loading', 'security', 'stack']) {
     try {
       const report = JSON.parse(
         await readFile(path.join(output, suite + '-report.json'), 'utf8'),
@@ -161,6 +163,12 @@ export async function writeRunReport(output, run) {
       (run.interrupted ? 'INTERRUPTED' : status.toUpperCase()),
     '',
     `Revision: \`${run.revision}\``,
+    '',
+    `Run: \`${run.project}\`; scope: \`${run.scope ?? 'acceptance'}\``,
+    '',
+    `Source fingerprint: \`${run.sourceFingerprint ?? 'unavailable'}\``,
+    '',
+    `Manifest: [manifest.json](manifest.json), SHA-256 \`${run.manifestSha256 ?? 'unavailable'}\``,
     '',
     ...(run.error ? ['Runner: ' + run.error, ''] : []),
     '| Stage | Result | Log |',

@@ -2,6 +2,7 @@ import { test, expect, type Page } from './test.ts';
 import { fileURLToPath } from 'node:url';
 import type { CatalogUpdateReview, CatalogUpdateSelection } from '@clog/domain';
 import { mockApi } from './mock-api.ts';
+import { requestGate } from './request-gate.ts';
 
 async function install(
   page: Page,
@@ -349,8 +350,18 @@ test('icons-only reviews omit all empty problem groups and disappear after Save'
       name: 'Use project supplied item icons (recommended)',
     })
     .check();
+  const refresh = requestGate();
+  await page.route('**/api/v1/admin/catalog-updates', async (route) => {
+    await refresh.hold();
+    await route.fallback();
+  });
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(dialog).toHaveCount(0);
+  try {
+    await refresh.entered;
+    await expect(dialog).toHaveCount(0);
+  } finally {
+    refresh.release();
+  }
   await expect(
     page.getByRole('button', { name: /Review catalog update/ }),
   ).toHaveCount(0);
@@ -449,6 +460,93 @@ test('a completed Save reports a failed refreshed read without replaying the wri
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('alert')).toContainText('Changes saved');
   expect(state.saves).toHaveLength(1);
+});
+
+test('acceptance scheduling: delayed Save and refreshed review retain the exact submitted choices', async ({
+  page,
+}) => {
+  const { dialog, state } = await install(page);
+  const save = requestGate(),
+    refresh = requestGate();
+  await page.route('**/api/v1/admin/catalog-updates**', async (route) => {
+    if (route.request().method() === 'GET') await refresh.hold();
+    else if (new URL(route.request().url()).pathname.endsWith('/apply'))
+      await save.hold();
+    await route.fallback();
+  });
+  try {
+    await dialog
+      .getByRole('checkbox', { name: 'Fix Incorrect item names', exact: true })
+      .check();
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+    await save.entered;
+    await expect(
+      dialog.getByRole('button', { name: 'Saving…', exact: true }),
+    ).toBeDisabled();
+    expect(state.saves).toHaveLength(0);
+    save.release();
+    await refresh.entered;
+    await expect(dialog).toHaveCount(0);
+    expect(state.saves).toHaveLength(1);
+    expect(state.saves[0]!.body.apply).toEqual(['1'.repeat(64)]);
+    refresh.release();
+    const reopen = page.getByRole('button', {
+      name: 'Review catalog update (5)',
+      exact: true,
+    });
+    await expect(reopen).toBeEnabled();
+    await reopen.click();
+    await expect(
+      dialog.getByRole('checkbox', {
+        name: 'Fix Incorrect item names',
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    expect(state.saves).toHaveLength(1);
+  } finally {
+    save.release();
+    refresh.release();
+  }
+});
+
+test('acceptance scheduling: a delayed stale-snapshot read must finish before new choices can be saved', async ({
+  page,
+}) => {
+  const { dialog, state } = await install(page);
+  state.staleSave = true;
+  const refresh = requestGate();
+  await page.route('**/api/v1/admin/catalog-updates', async (route) => {
+    if (route.request().method() === 'GET') await refresh.hold();
+    await route.fallback();
+  });
+  try {
+    const checkbox = dialog.getByRole('checkbox', {
+      name: 'Fix Incorrect item names',
+      exact: true,
+    });
+    const save = dialog.getByRole('button', { name: 'Save', exact: true });
+    await checkbox.check();
+    await save.click();
+    await refresh.entered;
+    await expect(
+      dialog.getByRole('button', { name: 'Saving…', exact: true }),
+    ).toBeDisabled();
+    expect(state.saves).toHaveLength(1);
+    refresh.release();
+    await expect(dialog.getByRole('alert')).toContainText(
+      'choose your fixes again',
+    );
+    await expect(checkbox).not.toBeChecked();
+    await checkbox.check();
+    await save.click();
+    await expect(dialog).toHaveCount(0);
+    expect(state.saves).toHaveLength(2);
+    expect(state.saves[0]!.body.catalogRevision).toBe('catalog-1');
+    expect(state.saves[1]!.body.catalogRevision).toBe('catalog-2');
+    expect(state.saves[1]!.key).not.toBe(state.saves[0]!.key);
+  } finally {
+    refresh.release();
+  }
 });
 
 test('moderators do not receive catalog update discovery or review', async ({

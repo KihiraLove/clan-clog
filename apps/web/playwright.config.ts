@@ -7,9 +7,12 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   failOnFlakyTests: Boolean(process.env.CI),
+  timeout: 30000,
+  expect: { timeout: 5000 },
   reporter: [
     ['list'],
     ['json', { outputFile: '../../.data/local-checks/browser-report.json' }],
+    ['../../scripts/check-browser-policy.mjs', { suite: 'browser' }],
   ],
   use: {
     baseURL: 'http://127.0.0.1:5187',
@@ -18,6 +21,8 @@ export default defineConfig({
     viewport: { width: 1100, height: 850 },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    timezoneId: 'UTC',
+    locale: 'en-US',
   },
   webServer: {
     command:
