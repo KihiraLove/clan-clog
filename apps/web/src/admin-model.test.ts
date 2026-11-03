@@ -252,7 +252,7 @@ test('corrections require a canonical item and valid collector/calendar date', a
   );
 });
 
-test('item creation requires name/icon/pages and in-game IDs', async () => {
+test('item creation requires name/pages/game IDs and accepts only an omitted or nonempty icon ID', async () => {
   const catalog = await new MemoryAdminClient().catalog(signal()),
     page = catalog.pages[0]!.id;
   const valid = {
@@ -262,9 +262,20 @@ test('item creation requires name/icon/pages and in-game IDs', async () => {
     pageIds: [page],
   };
   assert.equal(validateItem(valid, catalog).name, 'New drop');
+  const noIcon = {
+    name: valid.name,
+    pageIds: valid.pageIds,
+    gameItemIds: valid.gameItemIds,
+  };
+  assert.equal(
+    Object.hasOwn(validateItem(noIcon, catalog), 'iconAssetId'),
+    false,
+  );
   for (const fields of [
     { ...valid, name: ' ' },
     { ...valid, gameItemIds: [900001], iconAssetId: '' },
+    { ...valid, iconAssetId: null as unknown as string },
+    { ...valid, iconAssetId: '  ' },
     { ...valid, pageIds: [] },
     { ...valid, pageIds: [page, page] },
     { ...valid, pageIds: ['missing'] },

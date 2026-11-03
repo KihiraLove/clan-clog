@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./catalog-icons": {
+      "types": "./dist/catalog-icons.d.ts",
+      "default": "./dist/catalog-icons.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"

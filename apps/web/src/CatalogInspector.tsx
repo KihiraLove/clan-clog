@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { catalogSections } from './model.ts';
 import { parseGameItemIds, type AdminPage } from './admin-model.ts';
 import { AdminRequestError } from './admin-api.ts';
-import { ItemCreator, IconPicker } from './ItemCreator.tsx';
+import { ItemCreator, IconPicker, type IconSelection } from './ItemCreator.tsx';
 import type { CatalogEditorProps } from './CatalogLogEditor.tsx';
 import { useAdminAction } from './use-admin-action.ts';
 import { useAdminDraft } from './admin-route-data.ts';
@@ -104,10 +104,13 @@ function CatalogForm({
       revision: string;
     }>();
   const action = useAdminAction(onAccessLost),
+    [iconSelection, setIconSelection] = useState<IconSelection>('empty'),
+    [iconReset, setIconReset] = useState(0),
     locked = action.busy || !!pending;
   const dirty =
     !!pending ||
     !!file ||
+    iconSelection !== 'empty' ||
     name !== (section?.name ?? page?.name ?? item?.name ?? '') ||
     (!!item && gameIds !== (item.gameItemIds?.join(', ') ?? ''));
   useAdminDraft(dirty, action.busy);
@@ -136,6 +139,12 @@ function CatalogForm({
   };
   const submit = () => {
     void action.execute(async (signal) => {
+      if (
+        editor.kind === 'item-edit' &&
+        iconSelection !== 'empty' &&
+        iconSelection !== 'valid'
+      )
+        throw new Error(appText.webItemCreatorChooseAValidItemIconBeforeSaving);
       const clean = name.trim();
       if (!clean) throw new Error(appText.webCatalogInspectorEnterAName);
       if (editor.kind === 'section-add' || editor.kind === 'page-add') {
@@ -219,6 +228,8 @@ function CatalogForm({
               .join(', '),
           );
         setFile(undefined);
+        setIconSelection('empty');
+        setIconReset((n) => n + 1);
         action.setMessage(appText.webCatalogInspectorChangesSaved);
       }
     }, conflict);
@@ -372,9 +383,11 @@ function CatalogForm({
                     alt={item.name}
                   />
                   <IconPicker
+                    key={iconReset}
                     optional
                     disabled={locked}
                     onValid={iconChanged}
+                    onSelection={setIconSelection}
                   />
                 </>
               )}

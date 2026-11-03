@@ -234,7 +234,7 @@ test('staff chunks, local icon previews and same-origin private image rendering 
     .png()
     .toBuffer();
   await page
-    .getByLabel('Item icon (required)', { exact: true })
+    .getByLabel('Item icon (optional)', { exact: true })
     .setInputFiles({ name: 'icon.png', mimeType: 'image/png', buffer: png });
   const icon = page.getByAltText('New item icon preview');
   await expect(icon).toHaveAttribute('src', /^blob:/u);
@@ -258,7 +258,7 @@ test('staff chunks, local icon previews and same-origin private image rendering 
     route.fulfill({ contentType: 'image/webp', body: webp }),
   );
   await page
-    .getByLabel('Item icon (required)', { exact: true })
+    .getByLabel('Item icon (optional)', { exact: true })
     .setInputFiles([]);
   await page.goto('/admin');
   await page.getByRole('button', { name: /^Review /u }).click();

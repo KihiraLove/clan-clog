@@ -1,0 +1,45 @@
+name: Close merged release tasks
+on:
+  pull_request:
+    types: [closed]
+    branches: ['minor/**', 'patch/**']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Read event data only; no checkout or execution of pull request code.
+      - name: Close explicitly declared task issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          (async () => {
+          const event = JSON.parse(require('node:fs').readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const pr = event.pull_request, repository = process.env.GITHUB_REPOSITORY;
+          if (event.action !== 'closed' || pr?.merged !== true || pr.head?.repo?.full_name !== repository || pr.base?.repo?.full_name !== repository || !/^(minor|patch)\//u.test(pr.base.ref)) return;
+          const issues = new Set();
+          let fence;
+          for (const line of String(pr.body ?? '').split(/\r?\n/u)) {
+            const edge = /^\s*(`{3,}|~{3,})/u.exec(line)?.[1];
+            if (edge) { if (!fence) fence = edge; else if (edge[0] === fence[0] && edge.length >= fence.length) fence = undefined; continue; }
+            if (fence) continue;
+            const match = /^(?:Closes|Fixes|Resolves) #([1-9]\d*)\.?[ \t]*$/iu.exec(line);
+            if (match && Number.isSafeInteger(Number(match[1]))) issues.add(Number(match[1]));
+          }
+          for (const number of issues) {
+            const url = `https://api.github.com/repos/${repository}/issues/${number}`;
+            const headers = { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'clan-clog-merged-tasks', 'X-GitHub-Api-Version': '2022-11-28' };
+            const read = await fetch(url, { headers });
+            if (!read.ok) throw Error(`Issue lookup failed (${read.status})`);
+            const issue = await read.json();
+            if (issue.pull_request || issue.state !== 'open') continue;
+            const closed = await fetch(url, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ state: 'closed', state_reason: 'completed' }) });
+            if (!closed.ok) throw Error(`Issue closure failed (${closed.status})`);
+            console.log(`Closed #${number} after merged PR #${pr.number}`);
+          }
+          })().catch((error) => { console.error(error.message); process.exitCode = 1; });
+          NODE
