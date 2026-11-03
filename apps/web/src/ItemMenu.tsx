@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { highlightCss, type HighlightColour } from '@clog/domain';
 import { createPortal } from 'react-dom';
 import { creditLine, type Credit, type Item } from './model.ts';
+import { MergedHistory } from './MergedHistory.tsx';
 
 export interface OpenItem {
   pageId?: string;
@@ -19,12 +20,15 @@ export function ItemMenu({
   stay,
   leave,
   highlights,
+  repeatCollectorPolicy,
 }: {
   open: OpenItem;
   close: () => void;
   stay: () => void;
   leave: () => void;
   highlights: { event: HighlightColour; hardcore: HighlightColour };
+  repeatCollectorPolicy?:
+    import('@clog/domain').RepeatCollectorPolicy | undefined;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isPageEvent = (c: Credit) =>
@@ -129,7 +133,9 @@ export function ItemMenu({
         )}
         {open.item.name}
       </div>
-      {open.collectors.length ? (
+      {repeatCollectorPolicy === 'merge' ? (
+        <MergedHistory credits={open.collectors} pageId={open.pageId} />
+      ) : open.collectors.length ? (
         <>
           {!!eventCredits.length && (
             <div className="item-menu__event">

@@ -1,41 +1,22 @@
 import * as appText from '@clog/domain';
 /** Native top-layer dialog preserves the current route, selection and page scroll. */
-import {
-  Component,
-  lazy,
-  Suspense,
-  useEffect,
-  useRef,
-  type ReactNode,
-} from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { defaultSubmissionHelp } from '@clog/domain';
+import { RenderBoundary } from './RenderBoundary.tsx';
 
 const HelpMarkdown = lazy(() => import('./HelpMarkdown.tsx'));
 
-class HelpLoadBoundary extends Component<
-  { children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    return this.state.failed ? (
-      <p>
-        {
-          appText.webSubmissionHelpInstructionsCouldNotBeDisplayedPleaseAskYourClanStaff
-        }
-      </p>
-    ) : (
-      this.props.children
-    );
-  }
-}
-
 export function SubmissionHelpContent({ text }: { text: string }) {
   return (
-    <HelpLoadBoundary>
+    <RenderBoundary
+      fallback={
+        <p>
+          {
+            appText.webSubmissionHelpInstructionsCouldNotBeDisplayedPleaseAskYourClanStaff
+          }
+        </p>
+      }
+    >
       <Suspense
         fallback={
           <p role="status">{appText.webSubmissionHelpLoadingInstructions}</p>
@@ -43,7 +24,7 @@ export function SubmissionHelpContent({ text }: { text: string }) {
       >
         <HelpMarkdown text={text.trim() ? text : defaultSubmissionHelp} />
       </Suspense>
-    </HelpLoadBoundary>
+    </RenderBoundary>
   );
 }
 

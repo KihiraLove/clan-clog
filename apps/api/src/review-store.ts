@@ -4,6 +4,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import {
   eligibleEventPageIds,
+  parseRepeatCollectorPolicy,
+  normalizePlayerName,
   type CollectionType,
   type IntakeSchedulingEvidence,
   type EventPageAssignmentReview,
@@ -20,6 +22,8 @@ import {
   readSubmissionFilters,
   requireCreditAvailable,
   resolveCollectionCredit,
+  requireCollectorAvailable,
+  isRepeatCollector,
 } from './submission-filters.js';
 import type {
   ReviewAction,
@@ -56,6 +60,7 @@ type Row = {
   status: ReviewSubmission['status'];
   reviewNote: string;
   reviewReason: string | null;
+  admissionPolicy: import('@clog/domain').SubmissionFilters | null;
 };
 const selection =
   'id::text,version,source,item_id AS "itemId",raw_item_text AS "rawItemText",game_item_id AS "gameItemId",' +
@@ -64,7 +69,7 @@ const selection =
   'collector_name AS "collectorName",to_char(collected_on,\'YYYY-MM-DD\') AS "collectedOn",' +
   'date_source AS "dateSource",submitted_at AS "submittedAt",' +
   'proof_url AS "proofUrl",proof_image_id::text AS "proofImageId",chat_message AS "chatMessage",hardcore,status,' +
-  'review_note AS "reviewNote",review_reason AS "reviewReason"';
+  'review_note AS "reviewNote",review_reason AS "reviewReason",admission_policy AS "admissionPolicy"';
 const view = (row: Row): ReviewSubmission => ({
   id: row.id,
   version: row.version,
@@ -84,6 +89,7 @@ const view = (row: Row): ReviewSubmission => ({
   status: row.status,
   reviewNote: row.reviewNote,
   reviewReason: row.reviewReason,
+  ...(row.admissionPolicy ? { admissionPolicy: row.admissionPolicy } : {}),
   screenshotPath: row.proofImageId ? screenshotPath(row.proofImageId) : null,
   ...(row.chatMessage === null ? {} : { chatMessage: row.chatMessage }),
   dateSource:
@@ -524,7 +530,28 @@ export class PgReviewStore implements ReviewStore {
             eventPageId: fields.eventPageId ?? null,
           },
         );
-        if (fields.approve)
+        const filters = await readSubmissionFilters(client, true);
+        if (
+          fields.approve &&
+          classification.collectionType === 'regular' &&
+          filters.filterCollected
+        )
+          await requireCreditAvailable(
+            client,
+            fields.itemId,
+            fields.hardcore,
+            classification.collectionType,
+            undefined,
+            classification.eventPageId,
+          );
+        const repeated = await isRepeatCollector(
+          client,
+          filters,
+          fields.itemId,
+          fields.hardcore,
+          fields.collectorName,
+        );
+        if (fields.approve && !repeated)
           await requireCreditAvailable(
             client,
             fields.itemId,
@@ -540,8 +567,8 @@ export class PgReviewStore implements ReviewStore {
             'INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,' +
               'collected_on,date_source,proof_url,hardcore,status,reviewed_at,' +
               "reviewed_by,review_reason,proof_image_id,collection_type,collection_reason,event_page_id) VALUES($1,'manual',$2,$3,$4,$5,'admin'," +
-              "$6,$7,$8,CASE WHEN $8='approved' THEN now() ELSE NULL END," +
-              "CASE WHEN $8='approved' THEN $9 ELSE NULL END,$10,$11,$12,$13,$14) RETURNING " +
+              "$6,$7,$8,CASE WHEN $8<>'pending' THEN now() ELSE NULL END," +
+              "CASE WHEN $8<>'pending' THEN $9 ELSE NULL END,$10,$11,$12,$13,$14) RETURNING " +
               selection,
             [
               id,
@@ -551,9 +578,11 @@ export class PgReviewStore implements ReviewStore {
               fields.collectedOn,
               fields.proofUrl?.trim() ?? '',
               fields.hardcore,
-              fields.approve ? 'approved' : 'pending',
+              repeated ? 'rejected' : fields.approve ? 'approved' : 'pending',
               actorId,
-              fields.reason?.trim() || null,
+              repeated
+                ? appText.repeatCollectorRejected
+                : fields.reason?.trim() || null,
               image?.id ?? null,
               classification.collectionType,
               classification.collectionReason,
@@ -561,6 +590,13 @@ export class PgReviewStore implements ReviewStore {
             ],
           )
         ).rows[0]!;
+        if (repeated) {
+          await client.query(
+            'UPDATE submissions SET admission_policy=$2,reviewed_at=now(),reviewed_by=$3 WHERE id=$1',
+            [id, JSON.stringify(filters), actorId],
+          );
+          row.admissionPolicy = filters;
+        }
         const created = view(row);
         await client.query(
           'INSERT INTO audit_events(submission_id,actor_discord_id,actor_name,action,' +
@@ -569,7 +605,9 @@ export class PgReviewStore implements ReviewStore {
             id,
             actorId,
             actorName,
-            fields.reason?.trim() || null,
+            repeated
+              ? appText.repeatCollectorRejected
+              : fields.reason?.trim() || null,
             JSON.stringify(created),
             JSON.stringify(created),
           ],
@@ -601,11 +639,16 @@ export class PgReviewStore implements ReviewStore {
     filterCollected: boolean,
     revision: string,
     actorId: string,
+    repeatCollectorPolicy?: import('@clog/domain').RepeatCollectorPolicy,
   ) {
     return transaction(this.pool, 'write', async (client) => {
       const old = (
-        await client.query<{ version: number; filter_collected: boolean }>(
-          'SELECT version,filter_collected FROM submission_filter_settings WHERE singleton FOR UPDATE',
+        await client.query<{
+          version: number;
+          filter_collected: boolean;
+          repeat_collector_policy: import('@clog/domain').RepeatCollectorPolicy;
+        }>(
+          'SELECT version,filter_collected,repeat_collector_policy FROM submission_filter_settings WHERE singleton FOR UPDATE',
         )
       ).rows[0];
       if (!old)
@@ -618,23 +661,29 @@ export class PgReviewStore implements ReviewStore {
           409,
           appText.apiReviewStoreSubmissionFiltersChangedReloadBeforeSavingAgain,
         );
-      await client.query(
-        'UPDATE submission_filter_settings SET filter_collected=$1,version=version+1 WHERE singleton',
-        [filterCollected],
+      const policy = parseRepeatCollectorPolicy(
+        repeatCollectorPolicy ?? old.repeat_collector_policy,
       );
       await client.query(
-        'INSERT INTO submission_filter_audit(id,actor_id,version,old_filter_collected,new_filter_collected) VALUES($1,$2,$3,$4,$5)',
+        'UPDATE submission_filter_settings SET filter_collected=$1,repeat_collector_policy=$2,version=version+1 WHERE singleton',
+        [filterCollected, policy],
+      );
+      await client.query(
+        'INSERT INTO submission_filter_audit(id,actor_id,version,old_filter_collected,new_filter_collected,old_repeat_collector_policy,new_repeat_collector_policy) VALUES($1,$2,$3,$4,$5,$6,$7)',
         [
           randomUUID(),
           actorId,
           old.version + 1,
           old.filter_collected,
           filterCollected,
+          old.repeat_collector_policy,
+          policy,
         ],
       );
       return {
         revision: 'submission-filters-' + (old.version + 1),
         filterCollected,
+        repeatCollectorPolicy: policy,
       };
     });
   }
@@ -878,6 +927,13 @@ export class PgReviewStore implements ReviewStore {
               row.id,
               flags.eventPageId,
             );
+            await requireCollectorAvailable(
+              client,
+              row.itemId,
+              flags.hardcore,
+              row.collectorName,
+              row.id,
+            );
           } else if (
             action === 'reject'
               ? row.status !== 'pending'
@@ -945,6 +1001,14 @@ export class PgReviewStore implements ReviewStore {
             row.id,
             flags.eventPageId,
           );
+          if (row.hardcore !== flags.hardcore)
+            await requireCollectorAvailable(
+              client,
+              row.itemId!,
+              flags.hardcore,
+              row.collectorName,
+              row.id,
+            );
           result = (
             await client.query<Row>(
               'UPDATE submissions SET hardcore=$2,collection_type=$3,collection_reason=$4,reviewed_by=$5,reviewed_at=now(),review_reason=$6,event_page_id=$7,event_page_assignment_pending=false,version=version+1 WHERE id=$1 RETURNING ' +
@@ -1125,6 +1189,20 @@ export class PgReviewStore implements ReviewStore {
               classification.collectionType,
               row.id,
               classification.eventPageId,
+            );
+          if (
+            row.status === 'approved' &&
+            (row.itemId !== fields.itemId ||
+              row.hardcore !== fields.hardcore ||
+              normalizePlayerName(row.collectorName) !==
+                normalizePlayerName(fields.collectorName))
+          )
+            await requireCollectorAvailable(
+              client,
+              fields.itemId,
+              fields.hardcore,
+              fields.collectorName,
+              row.id,
             );
           result = (
             await client.query<Row>(

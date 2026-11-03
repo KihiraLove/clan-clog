@@ -4,6 +4,7 @@ import {
   collectionState,
   formatCollectionDate,
   validateCollectionDate,
+  parseRepeatCollectorPolicy,
 } from '@clog/domain';
 
 export const categories = [
@@ -49,6 +50,7 @@ export interface Credit {
   status: 'approved';
 }
 export interface Collections {
+  repeatCollectorPolicy?: import('@clog/domain').RepeatCollectorPolicy;
   revision: string;
   credits: Credit[];
 }
@@ -203,7 +205,13 @@ export function parseCollections(value: unknown): Collections {
       .filter((c) => c.collectionType === 'event')
       .map((c) => JSON.stringify([c.itemId, c.eventPageId])),
   );
-  return { revision: text(data.revision), credits };
+  return {
+    revision: text(data.revision),
+    credits,
+    repeatCollectorPolicy: parseRepeatCollectorPolicy(
+      data.repeatCollectorPolicy,
+    ),
+  };
 }
 
 /** Independently fetched catalog and credits must still form a valid relationship graph. */

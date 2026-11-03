@@ -177,7 +177,10 @@ export {
 } from './staff-pages.js';
 export {
   parseSubmissionFilters,
+  parseRepeatCollectorPolicy,
+  repeatCollectorPolicies,
   type SubmissionFilters,
+  type RepeatCollectorPolicy,
 } from './submission-filters.js';
 export {
   OperationalDiagnostics,

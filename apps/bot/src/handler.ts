@@ -41,6 +41,13 @@ export function collectorSnapshot(
   return username;
 }
 const submissionSuccessMessage = appText.botHandlerItemSubmittedToReview;
+const receiptMessage = (receipt: Receipt) =>
+  receipt.status === 'rejected'
+    ? appText.repeatCollectorBotRejected(
+        receipt.submissionId,
+        receipt.rejectionReason!,
+      )
+    : submissionSuccessMessage;
 /** Discord snowflakes are safe operator correlation IDs, not bearer credentials. */
 function interactionReference(id: string | undefined): string {
   return id && /^\d{17,20}$/u.test(id)
@@ -220,7 +227,7 @@ export async function handleSubmission(
       correlation: interaction.id,
       receipt: receipt.submissionId,
     });
-    await interaction.editReply(submissionSuccessMessage);
+    await interaction.editReply(receiptMessage(receipt));
   } catch (error) {
     diagnostics?.record(
       'failure',
@@ -243,7 +250,7 @@ export async function handleSubmission(
     await interaction
       .editReply(
         saved
-          ? submissionSuccessMessage
+          ? receiptMessage(saved)
           : error instanceof WorkloadError
             ? appText.botHandlerSubmissionBusyWaitSecondsAndTryAgainThisDeliveryWas(
                 error.retryAfterSeconds,
