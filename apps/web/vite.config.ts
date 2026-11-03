@@ -13,7 +13,13 @@ const appVersion = JSON.parse(
 ).version as string;
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(appVersion) },
-  server: { proxy: { '/api': 'http://127.0.0.1:3000' } },
+  server: {
+    proxy: Object.fromEntries(
+      ['/api', '/favicon.webp', '/favicon.ico', '/apple-touch-icon'].map(
+        (path) => [path, 'http://127.0.0.1:3000'],
+      ),
+    ),
+  },
   plugins: [
     applicationTextPlugin(
       readFileSync(

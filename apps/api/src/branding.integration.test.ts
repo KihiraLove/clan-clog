@@ -177,6 +177,20 @@ test(
       assert.deepEqual(results.map((r) => r.statusCode).sort(), [200, 409]);
       const saved = results.find((r) => r.statusCode === 200)!.json();
       assert.deepEqual((await app.inject('/api/v1/branding')).json(), saved);
+      const current = await app.inject('/favicon.webp');
+      assert.equal(current.statusCode, 200, current.body);
+      assert.deepEqual(
+        current.rawPayload,
+        (await app.inject(saved.faviconPath)).rawPayload,
+      );
+      assert.equal(
+        (await app.inject('/api/v1/branding/hardcore')).json().faviconPath,
+        '/favicon.webp?hardcore=1',
+      );
+      assert.notDeepEqual(
+        (await app.inject('/favicon.webp?hardcore=1')).rawPayload,
+        current.rawPayload,
+      );
       // Both uploads retain their logo/favicon files; only one is committed.
       // Reference-checked maintenance handles the losing upload later.
       assert.equal((await readdir(directory)).length, 4);
@@ -243,6 +257,12 @@ test(
         ...defaultBranding,
         revision: 'branding-3',
       });
+      const resetIcon = await app.inject({
+        url: '/favicon.webp',
+        headers: { 'if-none-match': current.headers.etag as string },
+      });
+      assert.equal(resetIcon.statusCode, 200);
+      assert.notDeepEqual(resetIcon.rawPayload, current.rawPayload);
       // Cached clients and audit history may still refer to the old immutable assets.
       assert.deepEqual(
         (await app.inject(saved.logoPath)).rawPayload,
