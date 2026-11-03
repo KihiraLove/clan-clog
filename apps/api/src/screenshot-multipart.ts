@@ -6,8 +6,8 @@ import { ApiError } from './types.js';
 export const screenshotLimits = {
   fileSize: MAX_SCREENSHOT_BYTES,
   files: 1,
-  parts: 7,
-  fields: 6,
+  parts: 8,
+  fields: 7,
   fieldSize: 8193,
 };
 export async function screenshotParts(

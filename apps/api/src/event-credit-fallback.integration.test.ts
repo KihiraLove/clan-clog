@@ -54,7 +54,7 @@ test(
       INSERT INTO game_item_ids(game_item_id,item_id) VALUES(990001,1);
       INSERT INTO pages(id,name,category,sort_order) VALUES('timed','Timed','bosses',0),('shared','Shared','bosses',1);
       INSERT INTO page_items(page_id,item_id,slot) SELECT 'timed',id,id FROM items;
-      INSERT INTO page_items(page_id,item_id,slot) VALUES('shared',1,0);
+      INSERT INTO page_items(page_id,item_id,slot) VALUES('shared',1,0),('shared',2,1);
       UPDATE collection_scheduling SET enabled=true;
       INSERT INTO collection_log_schedules(id,title,starts_at,ends_at) VALUES('00000000-0000-4000-8000-000000000001','Open event',now()-interval '1 hour',now()+interval '1 hour');
       INSERT INTO collection_log_schedule_pages(schedule_id,page_id) VALUES('00000000-0000-4000-8000-000000000001','timed');
@@ -83,6 +83,7 @@ test(
           collectedOn: '2026-10-18',
           hardcore: false,
           collectionType: 'event',
+          eventPageId: 'timed',
           approve,
         },
         'owner',
@@ -238,7 +239,7 @@ test(
         assert.equal(unknown.receipt.itemId, null);
         assert.equal(unknown.receipt.collectionType, null);
         await pool.query(
-          "UPDATE collection_log_schedules SET ends_at=now(); DELETE FROM page_items WHERE page_id='timed' AND item_id=2",
+          "UPDATE collection_log_schedules SET ends_at=now(); DELETE FROM page_items WHERE page_id='shared' AND item_id=2",
         );
         const correction = {
           itemId: 2,
@@ -349,6 +350,10 @@ test(
         const deferred = await rune(4);
         assert.equal(deferred.receipt.collectionType, 'event');
         assert.equal(deferred.receipt.status, 'pending');
+        assert.match(
+          (await detail(deferred.receipt.submissionId)).audit[0]!.reason ?? '',
+          /approved Event collection already exists/u,
+        );
         await assert.rejects(approve(deferred.receipt.submissionId), {
           status: 409,
         });

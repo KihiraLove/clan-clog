@@ -11,6 +11,7 @@ these fields (their order does not matter):
 | `itemName`    | Optional submitted name, nonempty, up to 200 characters, no NUL |
 | `worldType`   | World type identifier or JSON array of identifiers              |
 | `chatMessage` | Required full chat message, nonempty, up to 8192 UTF-8 bytes    |
+| `eventPageId` | Optional stable catalog page ID for an Event claim              |
 | `screenshot`  | Optional PNG file, MIME `image/png`, up to 10 MiB               |
 
 ```bash
@@ -29,6 +30,16 @@ is attached. Missing/blank messages return **422**; truncated multipart fields
 return **400**. The server preserves the complete text, including whitespace,
 Unicode and game markup, and rejects NUL characters. It never renders the message
 as HTML or follows links from it.
+
+The page field can be omitted by clients without page context. Exactly one eligible
+page in the frozen intake evidence is selected automatically. Several eligible
+pages leave the Event claim pending for staff to choose one; automatic allow rules
+do not guess. A supplied page must contain the item and be eligible at intake.
+Unrelated or ineligible targets return 422. Review uses the saved evidence after
+schedule changes, and one obtain grants Event credit to only one page. An occupied
+Event slot on another page does not force Regular fallback. Hardcore remains Regular.
+The multipart limit permits all seven text fields plus the optional PNG. Exact
+retries preserve the original target, status and receipt, including delayed proof.
 
 Staff see **Chat message** in the private review panel, alongside any optional
 screenshot. Chat-only claims can be reviewed and approved after the usual proof
@@ -142,7 +153,7 @@ can be changed only by the administrator; moderators can view its current state.
 Staff approvals, approved manual entry and credit-moving corrections enforce
 the same policy. When off, repeated Regular credits are allowed, even for the
 same collector. Re-enabling preserves history. Event credits are independent:
-one approved Event credit per normal-world canonical item overall. Replays and recognized five-second duplicates
+one approved Event credit per normal-world canonical item/page pair. Replays and recognized five-second duplicates
 retain their successful receipt. CSRF-protected
 `PUT /api/v1/admin/submission-filters` accepts `{ filterCollected,
 expectedRevision }` using the `submission-filters-N` revision supplied by the

@@ -19,6 +19,7 @@ import type { AdminSession } from './xp-model.ts';
 import { formatUtcTime } from './format-time.ts';
 import { ReviewAuditHistory } from './ReviewAuditHistory.tsx';
 import { ProofLink } from './AdminProofLink.tsx';
+import { EventPagePicker } from './EventPagePicker.tsx';
 import { useAdminAction } from './use-admin-action.ts';
 import {
   reviewBlockers,
@@ -45,17 +46,19 @@ const usesSavedTiming = (row: Submission) =>
   !(row.collectionReason === 'legacy' && row.itemId !== null);
 type ClaimDraft = Pick<
   Correction,
-  'itemId' | 'collectorName' | 'collectedOn' | 'reason'
+  'itemId' | 'collectorName' | 'collectedOn' | 'reason' | 'eventPageId'
 >;
 const draftOf = (row: Submission): ClaimDraft => ({
   itemId: row.itemId ?? 0,
   collectorName: row.collectorName,
   collectedOn: row.collectedOn,
   reason: '',
+  ...(row.eventPageId ? { eventPageId: row.eventPageId } : {}),
 });
 const flagsOf = (row: Submission): CollectionFlags => ({
   hardcore: row.hardcore,
   collectionType: row.collectionType ?? 'regular',
+  ...(row.eventPageId ? { eventPageId: row.eventPageId } : {}),
 });
 function ReviewWindow({
   children,
@@ -157,6 +160,7 @@ export function SubmissionEditor({
     (flags.hardcore !== detail.submission.hardcore ||
       flags.collectionType !==
         (detail.submission.collectionType ?? 'regular') ||
+      (flags.eventPageId ?? null) !== (detail.submission.eventPageId ?? null) ||
       flags.useIntakeTiming === true);
   const dirty =
     !!detail &&
@@ -164,6 +168,7 @@ export function SubmissionEditor({
     (draft.itemId !== (detail.submission.itemId ?? 0) ||
       draft.collectorName.trim() !== detail.submission.collectorName ||
       draft.collectedOn !== detail.submission.collectedOn ||
+      (draft.eventPageId ?? null) !== (detail.submission.eventPageId ?? null) ||
       flagsDirty ||
       reviewNote.trim() !== detail.submission.reviewNote ||
       !!draft.reason);
@@ -213,14 +218,21 @@ export function SubmissionEditor({
   const claimDirty =
     draft.itemId !== (row.itemId ?? 0) ||
     draft.collectorName.trim() !== row.collectorName ||
-    draft.collectedOn !== row.collectedOn;
+    draft.collectedOn !== row.collectedOn ||
+    (draft.eventPageId ?? null) !== (row.eventPageId ?? null);
   const noteDirty = reviewNote.trim() !== row.reviewNote;
   const locked = action.busy || disabled || Boolean(readError),
     proof =
       safeScreenshotPath(row.screenshotPath) ||
       (row.source === 'runelite' && Boolean(row.chatMessage?.trim()));
   const change = (fields: Partial<ClaimDraft>) => {
-    setDraft({ ...draft, ...fields });
+    setDraft({
+      ...draft,
+      ...fields,
+      ...(fields.itemId !== undefined && fields.itemId !== draft.itemId
+        ? { eventPageId: undefined }
+        : {}),
+    });
     setChecked(false);
   };
   const changeFlags = (next: CollectionFlags) => {
@@ -246,6 +258,8 @@ export function SubmissionEditor({
   const perform = (decision?: 'approve' | 'reject' | 'revoke') => {
     void action.execute(
       async (signal) => {
+        if (decision === 'approve' && isEvent && !targetPage)
+          throw Error(appText.eventPageRequired);
         if (decision && claimDirty) throw new Error(unsavedClaimHint);
         if (decision === 'revoke' && flagsDirty)
           throw new Error(
@@ -277,7 +291,7 @@ export function SubmissionEditor({
               draft.reason.trim(),
               session.csrfToken,
               signal,
-              flagsDirty ? flags : undefined,
+              flagsDirty ? selectedPageFlags : undefined,
             )
           : await client.edit(
               id,
@@ -327,7 +341,7 @@ export function SubmissionEditor({
         const next = await client.saveCollectionFlags(
           id,
           row.version,
-          flags,
+          selectedPageFlags,
           draft.reason.trim(),
           session.csrfToken,
           signal,
@@ -335,7 +349,7 @@ export function SubmissionEditor({
         if (signal.aborted) return;
         setDetail({ ...detail, submission: next });
         setFlags(flagsOf(next));
-        if (!claimDirty) setDraft({ ...draft, reason: '' });
+        if (!claimDirty) setDraft(draftOf(next));
         setChecked(false);
         action.setMessage(appText.webSubmissionEditorCollectionFlagsSaved);
         onChanged(next.status);
@@ -399,6 +413,35 @@ export function SubmissionEditor({
     acknowledged: checked,
     reasonProvided: Boolean(draft.reason.trim()),
   });
+  const timed = flags.useIntakeTiming || (usesSavedTiming(row) && !flagsDirty);
+  const isEvent =
+    !flags.hardcore &&
+    (flags.useIntakeTiming
+      ? !!row.eligibleEventPageIds?.length
+      : (flags.collectionType ?? row.collectionType) === 'event');
+  const targetPages = catalog.pages.filter(
+    (p) =>
+      p.itemIds.includes(row.itemId ?? 0) &&
+      (!timed ||
+        !row.eligibleEventPageIds ||
+        row.eligibleEventPageIds.includes(p.id)),
+  );
+  const targetPage =
+    flags.eventPageId ??
+    (targetPages.length === 1 &&
+    (!timed || row.eligibleEventPageIds?.length === 1)
+      ? targetPages[0]!.id
+      : '');
+  const selectedPageFlags: CollectionFlags =
+    isEvent && targetPage ? { ...flags, eventPageId: targetPage } : flags;
+  if (isEvent && !targetPage && !blockers.approve)
+    blockers.approve = appText.eventPageRequired;
+  if (isEvent && row.eventPageBlocked)
+    blockers.approve = appText.eventPageLegacyBlocked;
+  if (row.eventPageAssignmentPending) {
+    blockers.claim = appText.eventPageLegacyBlocked;
+    blockers.approve = appText.eventPageLegacyBlocked;
+  }
   if (row.status === 'approved' && flagsDirty && !blockers.revoke)
     blockers.revoke =
       appText.webSubmissionEditorSaveOrDiscardCollectionFlagsBeforeRevoking;
@@ -462,6 +505,20 @@ export function SubmissionEditor({
                 row.id,
               )}
             </p>
+            {row.collectionType === 'event' && (
+              <p>
+                {row.eventPageAssignmentPending
+                  ? appText.eventPageLegacyLabel
+                  : !row.eventPageId
+                    ? appText.eventPageRequired
+                    : appText.eventPageCurrent(
+                        catalog.pages.find((p) => p.id === row.eventPageId)
+                          ?.name ??
+                          row.eventPageId ??
+                          appText.eventPageUnavailable,
+                      )}
+              </p>
+            )}
           </div>
           <button
             className="site-button review-close"
@@ -686,6 +743,18 @@ export function SubmissionEditor({
                       ))}
                     </select>
                   </div>
+                  {row.collectionType === 'event' &&
+                    draft.itemId !== row.itemId && (
+                      <EventPagePicker
+                        itemId={draft.itemId}
+                        pages={catalog.pages.filter((p) =>
+                          p.itemIds.includes(draft.itemId),
+                        )}
+                        value={draft.eventPageId ?? ''}
+                        onChange={(eventPageId) => change({ eventPageId })}
+                        disabled={locked}
+                      />
+                    )}
                 </div>
               </div>
               {!matches.length && (
@@ -769,6 +838,33 @@ export function SubmissionEditor({
               className="admin-fieldset review-collection-flags"
             >
               <legend>{appText.webSubmissionEditorCollectionFlags}</legend>
+              {row.eventPageBlocked && (
+                <p role="status">{appText.eventPageLegacyBlocked}</p>
+              )}
+              {isEvent && (
+                <EventPagePicker
+                  itemId={row.itemId ?? 0}
+                  pages={targetPages}
+                  value={targetPage}
+                  occupied={row.occupiedEventPageIds}
+                  disabled={locked || !!row.eventPageAssignmentPending}
+                  onChange={(eventPageId) =>
+                    changeFlags(
+                      timed
+                        ? {
+                            hardcore: flags.hardcore,
+                            useIntakeTiming: true,
+                            ...(eventPageId ? { eventPageId } : {}),
+                          }
+                        : {
+                            hardcore: flags.hardcore,
+                            collectionType: 'event',
+                            ...(eventPageId ? { eventPageId } : {}),
+                          },
+                    )
+                  }
+                />
+              )}
               <label className="admin-checkbox">
                 <input
                   type="checkbox"

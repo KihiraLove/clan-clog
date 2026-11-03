@@ -158,7 +158,7 @@ test('migrated Regular credits keep their type unless staff explicitly choose sa
   ).toBeEnabled();
 });
 
-test('Event gold outline and event-first history coexist with complete oldest-first Regular history across shared pages', async ({
+test('Event gold outline belongs to its page and Regular history stays shared', async ({
   page,
 }) => {
   const { admin } = await mockApi(page);
@@ -177,6 +177,7 @@ test('Event gold outline and event-first history coexist with complete oldest-fi
         collectorName,
         collectedOn,
         collectionType,
+        ...(collectionType === 'event' ? { eventPageId: 'vardorvis' } : {}),
         hardcore,
         approve: true,
       },
@@ -227,7 +228,10 @@ test('Event gold outline and event-first history coexist with complete oldest-fi
   await page
     .getByRole('button', { name: 'Duke Sucellus', exact: true })
     .click();
-  await expect(slot).toHaveClass(/item-slot--event/);
+  await expect(slot).not.toHaveClass(/item-slot--event/);
+  await slot.focus();
+  await expect(menu).not.toContainText('Event winner');
+  await expect(menu).toContainText('Earliest regular');
   await page.screenshot({
     path: test.info().outputPath('event-outline-shared-page.png'),
   });
@@ -291,6 +295,7 @@ test.describe('mobile collection history', () => {
         collectedOn: '2026-10-18',
         hardcore: false,
         collectionType: 'event',
+        eventPageId: 'vardorvis',
         approve: true,
       },
       crypto.randomUUID(),
@@ -349,6 +354,9 @@ test('manual entry and approved corrections explicitly choose type and force har
     .selectOption(String(item.id));
   await form.getByLabel('Collection date', { exact: true }).fill('2026-10-18');
   await form.getByLabel('Obtained during events', { exact: true }).check();
+  await form
+    .getByRole('combobox', { name: 'Event page', exact: true })
+    .selectOption('vardorvis');
   await form
     .getByRole('button', { name: 'Create manual submission', exact: true })
     .click();

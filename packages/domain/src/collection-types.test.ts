@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   classifyCollection,
+  eligibleEventPageIds,
   type IntakeSchedulingEvidence,
 } from './collection-types.js';
 import { collectionState, type CollectionCredit } from './index.js';
@@ -34,6 +35,62 @@ test('classification uses frozen membership, defers unmatched normal claims and 
       'regular',
     );
   }
+});
+
+test('one frozen page is selected, shared Event candidates require a choice and page display never duplicates an obtain', () => {
+  assert.equal(classifyCollection(evidence, 1, false).eventPageId, 'event');
+  const shared = {
+    ...evidence,
+    eventPages: [
+      ...evidence.eventPages,
+      { scheduleId: 'other', pageId: 'b', itemIds: [1] },
+      { scheduleId: 'repeat', pageId: 'event', itemIds: [1] },
+    ],
+  };
+  assert.deepEqual(eligibleEventPageIds(shared, 1), ['b', 'event']);
+  assert.equal(classifyCollection(shared, 1, false).eventPageId, null);
+  const row: CollectionCredit = {
+    submissionId: 'a',
+    itemId: 1,
+    collectorName: 'Alice',
+    collectedOn: '2026-10-20',
+    status: 'approved',
+    collectionType: 'event',
+    eventPageId: 'event',
+  };
+  const regular = {
+    ...row,
+    submissionId: 'r',
+    collectionType: 'regular' as const,
+    eventPageId: null,
+  };
+  const b = {
+    ...row,
+    submissionId: 'b',
+    collectorName: 'Bob',
+    eventPageId: 'b',
+  };
+  assert.deepEqual(
+    collectionState(1, [row, b, regular], false, 'event').collectors.map(
+      (c) => c.submissionId,
+    ),
+    ['a', 'r'],
+  );
+  assert.deepEqual(
+    collectionState(1, [row, b, regular], false, 'b').collectors.map(
+      (c) => c.submissionId,
+    ),
+    ['b', 'r'],
+  );
+  assert.equal(
+    collectionState(1, [row], false, 'b').collected,
+    true,
+    'ordinary completion remains canonical',
+  );
+  assert.equal(
+    collectionState(1, [row, b, regular], false, 'b').obtainCount,
+    3,
+  );
 });
 test('event history comes first and all repeated regular credits are stable oldest first', () => {
   const seed: CollectionCredit = {

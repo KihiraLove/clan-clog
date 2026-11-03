@@ -23,6 +23,7 @@ const flags = {
     hardcore: { type: 'boolean' },
     collectionType: { type: 'string', enum: ['regular', 'event'] },
     useIntakeTiming: { type: 'boolean', const: true },
+    eventPageId: { type: 'string', minLength: 1, maxLength: 200 },
   },
   oneOf: [{ required: ['collectionType'] }, { required: ['useIntakeTiming'] }],
 } as const;
@@ -31,6 +32,75 @@ export function reviewRoutes(
   store: ReviewRouteStore,
   authorize: Authorize,
 ) {
+  const assignmentOwner = async (request: FastifyRequest, write = false) => {
+    const actor = await authorize(request, write);
+    if (actor.role !== 'admin')
+      throw new ApiError(403, appText.eventPageAdminOnly);
+    return actor;
+  };
+  app.get(
+    '/api/v1/admin/event-page-assignments',
+    {
+      onRequest: async (request) => {
+        await assignmentOwner(request);
+      },
+    },
+    async () => {
+      if (!store.eventPageAssignments)
+        throw new ApiError(503, appText.eventPageReviewUnavailable);
+      return store.eventPageAssignments();
+    },
+  );
+  app.post<{ Body: import('@clog/domain').EventPageAssignmentSelection }>(
+    '/api/v1/admin/event-page-assignments',
+    {
+      onRequest: async (request) => {
+        await assignmentOwner(request, true);
+      },
+      schema: {
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['expectedRevision', 'assignments'],
+          properties: {
+            expectedRevision: { type: 'string', maxLength: 120 },
+            assignments: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 50,
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['submissionId', 'expectedVersion', 'eventPageId'],
+                properties: {
+                  submissionId: { type: 'string', format: 'uuid' },
+                  expectedVersion: version,
+                  eventPageId: { type: 'string', minLength: 1, maxLength: 200 },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const actor = await assignmentOwner(request, true),
+        key = request.headers['idempotency-key'];
+      if (typeof key !== 'string')
+        throw new ApiError(
+          400,
+          appText.apiReviewRoutesAUuidIdempotencyKeyIsRequired,
+        );
+      if (!store.assignEventPages)
+        throw new ApiError(503, appText.eventPageReviewUnavailable);
+      return store.assignEventPages(
+        request.body,
+        key,
+        actor.id,
+        actor.displayName,
+      );
+    },
+  );
   const guard =
     (write = false) =>
     async (req: FastifyRequest) => {
@@ -111,6 +181,7 @@ export function reviewRoutes(
           properties: {
             itemId: version,
             collectionType: { type: 'string', enum: ['regular', 'event'] },
+            eventPageId: { type: 'string', minLength: 1, maxLength: 200 },
             collectorName: { type: 'string', minLength: 1, maxLength: 80 },
             collectedOn: {
               type: 'string',
@@ -223,6 +294,7 @@ export function reviewRoutes(
         expectedVersion: version,
         useIntakeTiming: { type: 'boolean' },
         collectionType: { type: 'string', enum: ['regular', 'event'] },
+        eventPageId: { type: 'string', minLength: 1, maxLength: 200 },
         itemId: version,
         collectorName: { type: 'string', minLength: 1, maxLength: 80 },
         collectedOn: {
@@ -247,6 +319,9 @@ export function reviewRoutes(
         req.body.expectedVersion,
         {
           itemId: req.body.itemId,
+          ...(req.body.eventPageId === undefined
+            ? {}
+            : { eventPageId: req.body.eventPageId }),
           ...(req.body.useIntakeTiming === undefined
             ? {}
             : { useIntakeTiming: req.body.useIntakeTiming }),

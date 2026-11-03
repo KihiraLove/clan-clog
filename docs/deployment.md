@@ -59,6 +59,17 @@ bundled WebP bytes. See [catalog updates](catalog-import.md#release-updates).
 After a schema upgrade, an older image may be incompatible. Restore the coordinated
 backup to roll back both the database and image; do not delete migration history.
 
+When upgrading from item-wide Event credit, existing single-page credits are
+assigned to their sole active page. Shared, missing or retired-page cases retain
+their data and wait for the administrator's **Assign existing Event collections to
+pages** review. Choose one valid page for each credit; timing evidence is advisory. Choices
+save atomically with audit records and survive restarts. Cancelling leaves them
+outstanding, and uncertain saves must use the original retry operation. Repair
+missing catalog memberships before assigning credits with no available destination.
+While unresolved, only new Event approvals for that item are blocked. Regular
+submissions and unrelated items remain usable. See the
+[staff upgrade review](staff-guide.md#event-credit-upgrade-review).
+
 For an optional pinned updater, keep `infra/` from a reviewed release and run
 from your Compose directory:
 

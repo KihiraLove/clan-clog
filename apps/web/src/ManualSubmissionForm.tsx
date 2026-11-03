@@ -11,6 +11,7 @@ import {
 } from './admin-model.ts';
 import type { AdminSession } from './xp-model.ts';
 import { useAdminDraft } from './admin-route-data.ts';
+import { EventPagePicker } from './EventPagePicker.tsx';
 
 export function ManualSubmissionForm({
   catalog,
@@ -33,6 +34,7 @@ export function ManualSubmissionForm({
     new Date().toISOString().slice(0, 10),
   );
   const [hardcore, setHardcore] = useState(false);
+  const [eventPageId, setEventPageId] = useState('');
   const [collectionType, setCollectionType] = useState<'regular' | 'event'>(
     'regular',
   );
@@ -57,6 +59,14 @@ export function ManualSubmissionForm({
       String(item.id) === search.trim(),
   );
   const chosen = catalog.items.find((item) => item.id === Number(itemId));
+  const eventPages = catalog.pages.filter((p) =>
+    p.itemIds.includes(Number(itemId)),
+  );
+  const eventPage = eventPages.some((p) => p.id === eventPageId)
+    ? eventPageId
+    : eventPages.length === 1
+      ? eventPages[0]!.id
+      : '';
   const visible =
     chosen && !options.some((item) => item.id === chosen.id)
       ? [chosen, ...options]
@@ -79,6 +89,8 @@ export function ManualSubmissionForm({
       return;
     }
     await action.execute(async (signal) => {
+      if (!pending && !hardcore && collectionType === 'event' && !eventPage)
+        throw Error(appText.eventPageRequired);
       const request = pending ?? {
         fields: {
           itemId: chosen.id,
@@ -86,6 +98,9 @@ export function ManualSubmissionForm({
           collectedOn,
           hardcore,
           collectionType: hardcore ? 'regular' : collectionType,
+          ...(!hardcore && collectionType === 'event'
+            ? { eventPageId: eventPage }
+            : {}),
           approve,
           reason: reason.trim(),
         },
@@ -123,6 +138,7 @@ export function ManualSubmissionForm({
       setCollectedOn(new Date().toISOString().slice(0, 10));
       setHardcore(false);
       setCollectionType('regular');
+      setEventPageId('');
       setScreenshot(undefined);
       setFormVersion((value) => value + 1);
       setApprove(true);
@@ -209,7 +225,10 @@ export function ManualSubmissionForm({
                     required
                     size={5}
                     value={itemId}
-                    onChange={(event) => setItemId(event.target.value)}
+                    onChange={(event) => {
+                      setItemId(event.target.value);
+                      setEventPageId('');
+                    }}
                   >
                     <option value="">
                       {appText.webManualSubmissionFormChooseTheExactItem}
@@ -237,6 +256,15 @@ export function ManualSubmissionForm({
               </div>
             </div>
             <div className="manual-submission-options">
+              {collectionType === 'event' && !hardcore && (
+                <EventPagePicker
+                  itemId={Number(itemId)}
+                  pages={eventPages}
+                  value={eventPage}
+                  onChange={setEventPageId}
+                  disabled={busy || !!pending}
+                />
+              )}
               <label className="admin-checkbox">
                 <input
                   type="checkbox"

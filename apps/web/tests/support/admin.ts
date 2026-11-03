@@ -491,11 +491,24 @@ export class MemoryAdminClient implements AdminClient {
     }
     const item = this.data.items.find((row) => row.id === fields.itemId);
     if (!item) throw new AdminRequestError(422);
-    const collectionType = fields.collectionType ?? 'regular';
+    const selected = this.pageCredit(
+      item.id,
+      fields.hardcore,
+      fields.collectionType ?? 'regular',
+      fields.eventPageId,
+      'manual',
+    );
+    const collectionType = selected.collectionType;
     if (fields.hardcore && collectionType === 'event')
       throw new AdminRequestError(422);
     if (fields.approve)
-      this.ensureUnique('', item.id, fields.hardcore, collectionType);
+      this.ensureUnique(
+        '',
+        item.id,
+        fields.hardcore,
+        collectionType,
+        selected.eventPageId,
+      );
     if (fields.proofUrl !== undefined && fields.proofUrl !== '')
       throw new AdminRequestError(422);
     const id = crypto.randomUUID();
@@ -506,8 +519,7 @@ export class MemoryAdminClient implements AdminClient {
         : {}),
       version: 1,
       source: 'manual',
-      collectionType,
-      collectionReason: 'manual',
+      ...selected,
       itemId: item.id,
       rawItemText: item.name,
       collectorName: fields.collectorName.trim(),
@@ -804,12 +816,49 @@ export class MemoryAdminClient implements AdminClient {
     this.changed(false);
     return this.publicSettings();
   }
+  private pageCredit(
+    itemId: number,
+    hardcore: boolean,
+    type: 'regular' | 'event',
+    supplied: string | null | undefined,
+    reason: string,
+    exclude = '',
+  ) {
+    const pages = this.data.pages.filter((p) => p.itemIds.includes(itemId));
+    const eventPageId =
+      type === 'event' && !hardcore
+        ? (supplied ?? (pages.length === 1 ? pages[0]!.id : null))
+        : null;
+    if (eventPageId && !pages.some((p) => p.id === eventPageId))
+      throw new AdminRequestError(422);
+    if (
+      type === 'event' &&
+      eventPageId &&
+      !this.submissionFilterState.filterCollected &&
+      this.rows.some(
+        (r) =>
+          r.id !== exclude &&
+          r.itemId === itemId &&
+          r.status === 'approved' &&
+          r.collectionType === 'event' &&
+          r.eventPageId === eventPageId,
+      )
+    )
+      return {
+        collectionType: 'regular' as const,
+        eventPageId: null,
+        collectionReason: 'event_credit_already_obtained',
+      };
+    return { collectionType: type, eventPageId, collectionReason: reason };
+  }
   private ensureUnique(
     id: string,
     itemId: number,
     hardcore: boolean,
     type: 'regular' | 'event' = 'regular',
+    eventPageId?: string | null,
   ) {
+    if (type === 'event' && !eventPageId) throw new AdminRequestError(422);
     if (type === 'regular' && !this.submissionFilterState.filterCollected)
       return;
     if (
@@ -819,7 +868,10 @@ export class MemoryAdminClient implements AdminClient {
           row.status === 'approved' &&
           row.itemId === itemId &&
           row.hardcore === hardcore &&
-          (row.collectionType ?? 'regular') === type,
+          (row.collectionType ?? 'regular') === type &&
+          (type !== 'event' ||
+            row.eventPageId === eventPageId ||
+            row.eventPageAssignmentPending),
       )
     )
       throw new AdminRequestError(
@@ -1045,6 +1097,9 @@ export class MemoryAdminClient implements AdminClient {
                   collectedOn: row.collectedOn,
                   hardcore: row.hardcore,
                   collectionType: row.collectionType ?? 'regular',
+                  eventPageId: row.eventPageId ?? null,
+                  eventPageAssignmentPending:
+                    row.eventPageAssignmentPending ?? false,
                   status: 'approved',
                 })),
             }
@@ -1173,16 +1228,35 @@ export class MemoryAdminClient implements AdminClient {
       (row.status === 'approved' && !clean.reason)
     )
       throw new AdminRequestError(422);
-    const collectionType = clean.hardcore
+    const requestedType = clean.hardcore
       ? 'regular'
       : (clean.collectionType ?? row.collectionType ?? 'regular');
+    const chosen = this.pageCredit(
+      clean.itemId,
+      clean.hardcore,
+      requestedType,
+      clean.eventPageId ??
+        (clean.itemId === row.itemId ? row.eventPageId : undefined),
+      clean.collectionType === undefined
+        ? (row.collectionReason ?? 'legacy')
+        : 'staff_correction',
+      id,
+    );
+    const collectionType = chosen.collectionType;
     if (
       row.status === 'approved' &&
       (row.itemId !== clean.itemId ||
         row.hardcore !== clean.hardcore ||
-        (row.collectionType ?? 'regular') !== collectionType)
+        (row.collectionType ?? 'regular') !== collectionType ||
+        row.eventPageId !== chosen.eventPageId)
     )
-      this.ensureUnique(id, clean.itemId, clean.hardcore, collectionType);
+      this.ensureUnique(
+        id,
+        clean.itemId,
+        clean.hardcore,
+        collectionType,
+        chosen.eventPageId,
+      );
     const before = structuredClone(row);
     Object.assign(row, {
       itemId: clean.itemId,
@@ -1190,10 +1264,8 @@ export class MemoryAdminClient implements AdminClient {
       collectedOn: clean.collectedOn,
       hardcore: clean.hardcore,
       collectionType,
-      collectionReason:
-        clean.collectionType === undefined
-          ? (row.collectionReason ?? 'legacy')
-          : 'staff_correction',
+      eventPageId: chosen.eventPageId,
+      collectionReason: chosen.collectionReason,
       dateSource:
         clean.collectedOn === before.collectedOn ? before.dateSource : 'admin',
       version: version + 1,
@@ -1214,7 +1286,19 @@ export class MemoryAdminClient implements AdminClient {
     this.access(signal);
     const row = this.row(id, version);
     if (action === 'revoke' && flags) throw new AdminRequestError(422);
-    const selected = flags ? this.selectedFlags(row, flags) : row;
+    const selected = flags
+      ? this.selectedFlags(row, flags)
+      : {
+          ...row,
+          ...this.pageCredit(
+            row.itemId!,
+            row.hardcore,
+            row.collectionType ?? 'regular',
+            row.eventPageId,
+            row.collectionReason ?? 'legacy',
+            id,
+          ),
+        };
     if (
       (action === 'revoke'
         ? row.status !== 'approved'
@@ -1233,9 +1317,10 @@ export class MemoryAdminClient implements AdminClient {
         row.itemId!,
         selected.hardcore,
         selected.collectionType ?? 'regular',
+        selected.eventPageId,
       );
     const before = structuredClone(row);
-    if (flags) Object.assign(row, selected);
+    Object.assign(row, selected);
     row.status = (
       { approve: 'approved', reject: 'rejected', revoke: 'revoked' } as const
     )[action];
@@ -1250,14 +1335,21 @@ export class MemoryAdminClient implements AdminClient {
       (flags.hardcore && flags.collectionType === 'event')
     )
       throw new AdminRequestError(422);
+    const type = flags.hardcore
+      ? 'regular'
+      : flags.useIntakeTiming && row.eligibleEventPageIds?.length
+        ? 'event'
+        : (flags.collectionType ?? row.collectionType ?? 'regular');
     return {
       hardcore: flags.hardcore,
-      collectionType: flags.hardcore
-        ? ('regular' as const)
-        : (flags.collectionType ?? row.collectionType ?? ('regular' as const)),
-      collectionReason: flags.useIntakeTiming
-        ? 'scheduling_disabled'
-        : 'staff_correction',
+      ...this.pageCredit(
+        row.itemId!,
+        flags.hardcore,
+        type,
+        flags.eventPageId ?? row.eventPageId,
+        flags.useIntakeTiming ? 'scheduling_disabled' : 'staff_correction',
+        row.id,
+      ),
     };
   }
   async saveCollectionFlags(
@@ -1278,6 +1370,7 @@ export class MemoryAdminClient implements AdminClient {
       row.itemId!,
       selected.hardcore,
       selected.collectionType,
+      selected.eventPageId,
     );
     const before = structuredClone(row);
     Object.assign(row, selected, {

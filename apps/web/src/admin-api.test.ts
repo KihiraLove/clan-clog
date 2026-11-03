@@ -10,6 +10,53 @@ const json = (data: unknown) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
+test('manual and correction receipts cannot silently assign a different Event page', async () => {
+  const fixture = await adminFixtures(),
+    row = {
+      ...fixture.detail.submission,
+      source: 'manual' as const,
+      hardcore: false,
+      collectionType: 'event' as const,
+      eventPageId: 'wrong-page',
+      status: 'approved' as const,
+      version: fixture.detail.submission.version + 1,
+    };
+  const fields = {
+    itemId: row.itemId!,
+    collectorName: row.collectorName,
+    collectedOn: row.collectedOn,
+    hardcore: false,
+    collectionType: 'event' as const,
+    eventPageId: 'selected-page',
+    reason: 'Review',
+    approve: true,
+  };
+  const client = new LiveAdminClient(async (_path, options) => {
+    assert.equal(
+      JSON.parse(options!.body as string).eventPageId,
+      'selected-page',
+    );
+    return new Response(JSON.stringify(row), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  });
+  await assert.rejects(
+    client.addManual(fields, 'key', 'csrf', signal()),
+    /unexpected|receipt/iu,
+  );
+  await assert.rejects(
+    client.edit(
+      row.id,
+      fixture.detail.submission.version,
+      fields,
+      'csrf',
+      signal(),
+    ),
+    /unexpected|receipt/iu,
+  );
+});
+
 test('manual, correction and decision receipts accept only an explained Event-to-Regular fallback', async () => {
   const fixture = await adminFixtures();
   const row = {
