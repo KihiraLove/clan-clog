@@ -70,7 +70,13 @@ staff can explicitly request saved intake timing or change collection flags.
 
 Sections contain pages, and pages can share canonical items. Moving or removing
 one membership does not create another item or erase credits elsewhere.
-Manual items may omit a game ID; RuneLite matching needs an unambiguous game ID.
+New items need a name, in-game item ID and selected page. **Item icon (optional)**
+uses the bundled default when left blank; no upload is needed. A selected PNG/WebP
+must finish validation before saving. **Remove selected icon** returns to the
+default. Uploaded icons keep their native dimensions and transparency.
+You can replace the default later in the item inspector; leaving **Replace item icon**
+untouched keeps the current icon. Existing item edits may omit game IDs; RuneLite
+matching needs an unambiguous game ID.
 Use the inspector to edit names, icons and memberships. Deletion retains audit
 and submission history. Section, page and item order stays local until you click
 **Save changes**. Leaving a page with unsaved edits asks whether to discard them.

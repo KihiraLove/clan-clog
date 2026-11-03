@@ -436,7 +436,7 @@ test('manual item creation shares one identity, keyboard and drag order affect o
   });
   await page.getByRole('button', { name: 'Add new item', exact: true }).click();
   await page
-    .getByLabel('Item icon (required)', { exact: true })
+    .getByLabel('Item icon (optional)', { exact: true })
     .setInputFiles(await pngFile(itemIcon));
   await expect(page.getByAltText('New item icon preview')).toBeVisible();
   await page.getByLabel('Item name', { exact: true }).fill('New clan drop');
@@ -899,7 +899,7 @@ test('invalid icons do not upload; an uncertain create retries identical payload
     .getByLabel('In-game item ID (required)', { exact: true })
     .fill('900001');
   await page.getByLabel('Item name', { exact: true }).fill('New live drop');
-  await page.getByLabel('Item icon (required)', { exact: true }).setInputFiles({
+  await page.getByLabel('Item icon (optional)', { exact: true }).setInputFiles({
     name: 'spoof.png',
     mimeType: 'image/png',
     buffer: Buffer.from('<svg/>'),
@@ -912,7 +912,7 @@ test('invalid icons do not upload; an uncertain create retries identical payload
   expect(uploads).toBe(0);
   expect(creates).toBe(0);
   await page
-    .getByLabel('Item icon (required)', { exact: true })
+    .getByLabel('Item icon (optional)', { exact: true })
     .setInputFiles(await pngFile(itemIcon));
   await expect(page.getByAltText('New item icon preview')).toBeVisible();
   await page.getByRole('button', { name: 'Create item', exact: true }).click();

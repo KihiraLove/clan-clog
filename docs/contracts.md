@@ -34,6 +34,16 @@ Saving definitions creates no competition or schedule; request a fresh preview
 before Apply. Custom semantics are included in saved `metricDefinitions` so
 public/admin validation uses the same frozen definition.
 
+`POST /admin/catalog/items` creates one canonical item with `name`, distinct positive
+`gameItemIds` and one or more existing `pageIds`, plus an optional `iconAssetId`.
+Omitting the icon field uses `/catalog/default.webp` with no upload record or custom
+icon override. Explicit empty, null or malformed asset IDs are invalid. Supplied
+assets must remain owned by the actor, unexpired, verified and unassociated.
+The `Idempotency-Key` freezes the exact creation fields: replay returns the original
+item/receipt, and changing icon choice under that key conflicts. Existing uploaded-icon
+receipts retain their payload format. Item edits can replace the default through
+the existing staged upload path; omitting the replacement preserves the current icon.
+
 Catalog update review uses administrator-only `GET /admin/catalog-updates`,
 `POST /admin/catalog-updates/seen`, `/rescan` and `/apply`. Seen/rescan accept a
 bundle-set `revision`; apply accepts `{ revision, catalogRevision, apply, keep }`

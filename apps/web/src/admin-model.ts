@@ -1,4 +1,5 @@
 import * as appText from '@clog/domain';
+export { validateItem } from './item-creation.ts';
 /** Private API contracts and form validation; server authorization remains mandatory. */
 import { validateCollectionDate, parseSubmissionFilters } from '@clog/domain';
 import { parseCatalog, type Catalog, type Item, type Page } from './model.ts';
@@ -113,7 +114,7 @@ export interface StagedIcon {
 export interface CreateItem {
   gameItemIds: number[];
   name: string;
-  iconAssetId: string;
+  iconAssetId?: string;
   pageIds: string[];
 }
 export interface CreatedItem {
@@ -666,33 +667,6 @@ export function validateCorrection(
     collectedOn: validateCollectionDate(fields.collectedOn),
   };
 }
-/** New manual items need a game identity, staged icon and existing page. */
-export function validateItem(fields: CreateItem, catalog: Catalog): CreateItem {
-  const name = fields.name.trim();
-  if (!name || name.length > 200)
-    throw new Error(appText.webAdminModelEnterAnItemNameOf1200Characters);
-  if (!fields.iconAssetId.trim())
-    throw new Error(appText.webAdminModelChooseAndUploadAnItemIcon);
-  if (
-    !fields.gameItemIds?.length ||
-    fields.gameItemIds.length > 100 ||
-    new Set(fields.gameItemIds).size !== fields.gameItemIds.length ||
-    fields.gameItemIds.some(
-      (id) => !Number.isInteger(id) || id < 1 || id > 2147483647,
-    )
-  )
-    throw new Error(appText.webAdminModelEnterDistinctPositiveInGameItemIds);
-  if (
-    !fields.pageIds.length ||
-    new Set(fields.pageIds).size !== fields.pageIds.length ||
-    fields.pageIds.some((id) => !catalog.pages.some((page) => page.id === id))
-  )
-    throw new Error(
-      appText.webAdminModelSelectOneOrMoreExistingCollectionLogPages,
-    );
-  return { ...fields, name };
-}
-
 export function parseGameItemIds(value: string): number[] {
   const tokens = value.trim().split(/[\s,]+/u);
   if (!value.trim() || tokens.some((token) => !/^\d+$/u.test(token)))

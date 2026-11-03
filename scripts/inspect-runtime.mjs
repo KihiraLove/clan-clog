@@ -89,14 +89,22 @@ for (const file of [
   'catalog/snapshot.sha256',
   'catalog/clue-taxonomy.json',
   'catalog/assets.json',
+  'catalog/default-icon.json',
   'catalog/legacy-assets.sha256',
   'catalog/updates/index.json',
   '/usr/share/nginx/html/index.html',
+  '/usr/share/nginx/html/catalog/default.webp',
   '/usr/lib/postgresql/17/bin/postgres',
   '/usr/local/bin/clog',
   '/usr/local/bin/start-installation',
 ])
   await lstat(file);
+assert.equal(
+  createHash('sha256')
+    .update(await readFile('/usr/share/nginx/html/catalog/default.webp'))
+    .digest('hex'),
+  '29100989e785983a128c97ddfa5b4dda68d52bb1c6d4c7f929bd746503d8fb53',
+);
 // The official PostgreSQL template is a symlink into its parent directory.
 await readFile('/usr/share/postgresql/17/postgresql.conf.sample');
 const migrations = (await readdir('packages/database/migrations'))

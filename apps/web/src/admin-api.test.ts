@@ -518,6 +518,51 @@ test('icon staging uses multipart, and item retries retain the same idempotency 
   }
 });
 
+test('no-icon creation sends no upload or asset field and preserves the receipt and retry key', async () => {
+  const fixture = await adminFixtures(),
+    requests: { path: string; body: object; key: string | null }[] = [];
+  const fields = {
+    name: 'Default icon drop',
+    gameItemIds: [900001],
+    pageIds: [fixture.catalog.pages[0]!.id],
+  };
+  const result = {
+    item: {
+      id: 50001,
+      name: fields.name,
+      iconPath: '/catalog/default.webp',
+      origin: 'manual',
+      overrides: ['name', 'pages'],
+      gameItemIds: fields.gameItemIds,
+    },
+    pageIds: fields.pageIds,
+    catalogRevision: 'catalog-2',
+  };
+  const client = new LiveAdminClient(async (path, options) => {
+    requests.push({
+      path: String(path),
+      body: JSON.parse(options!.body as string),
+      key: new Headers(options!.headers).get('Idempotency-Key'),
+    });
+    return json(result);
+  });
+  assert.deepEqual(
+    await client.create(fields, 'default-stable-key', 'csrf', signal()),
+    result,
+  );
+  assert.deepEqual(
+    await client.create(fields, 'default-stable-key', 'csrf', signal()),
+    result,
+  );
+  assert.equal(requests.length, 2);
+  for (const request of requests) {
+    assert.equal(request.path, '/api/v1/admin/catalog/items');
+    assert.equal(request.key, 'default-stable-key');
+    assert.deepEqual(request.body, fields);
+    assert.equal(Object.hasOwn(request.body, 'iconAssetId'), false);
+  }
+});
+
 test('page-order writes send the complete permutation/revision and reject mismatched receipts', async () => {
   const fixture = await adminFixtures(),
     page = fixture.catalog.pages.find((page) => page.id === 'vardorvis')!;

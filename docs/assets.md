@@ -29,6 +29,16 @@ art. New assets should be local, necessary, and include attribution and hashes
 where the existing manifest requires them. Build-time catalog checks catch missing
 or altered pinned assets. Outdated review screenshots are not shipped.
 
+New manual items without an uploaded icon share `/catalog/default.webp`.
+The supplied 26 × 26 lossless WebP, original PNG hash and delivery hash are recorded
+in [default icon provenance](../catalog/default-icon.json). Preserve its exact bytes,
+native size, transparency and filename. This is a bundled asset, separate from the
+immutable historical catalog manifest. It ships in the normal web output and
+production image; creating items does not copy it into temporary upload storage.
+Upload cleanup and item deletion never remove it. Database backups retain the item
+path; restore it with the corresponding application image containing this asset.
+An actual uploaded replacement remains a custom item icon with normal retention.
+
 New catalog artwork uses the [release update manifest](catalog-import.md#release-updates).
 The original asset manifest and bytes stay pinned; a new image gets a new hash.
 The installer retains selected legacy and supplied images in PostgreSQL, served

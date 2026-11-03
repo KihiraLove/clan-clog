@@ -1,4 +1,5 @@
 import * as appText from '@clog/domain';
+import { DEFAULT_ITEM_ICON_PATH } from '@clog/domain/catalog-icons';
 /** Catalog writes share the import lock; each receipt, audit and membership change commits together. */
 import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -32,7 +33,7 @@ export interface AdminCatalog {
 export interface NewItem {
   gameItemIds: number[];
   name: string;
-  iconAssetId: string;
+  iconAssetId?: string;
   pageIds: string[];
 }
 export interface CreatedItem {
@@ -804,23 +805,26 @@ export class PgCatalogStore {
           400,
           appText.apiCatalogStoreChooseDistinctExistingCollectionLogPages,
         );
-      const asset = (
-        await client.query<CatalogAsset>(
-          'SELECT id,sha256,byte_size AS "byteSize",width,height,actor_discord_id AS actor,expires_at AS "expiresAt",item_id AS "itemId" FROM catalog_assets WHERE id=$1 FOR UPDATE',
-          [fields.iconAssetId],
+      let asset: CatalogAsset | undefined;
+      if (fields.iconAssetId !== undefined) {
+        asset = (
+          await client.query<CatalogAsset>(
+            'SELECT id,sha256,byte_size AS "byteSize",width,height,actor_discord_id AS actor,expires_at AS "expiresAt",item_id AS "itemId" FROM catalog_assets WHERE id=$1 FOR UPDATE',
+            [fields.iconAssetId],
+          )
+        ).rows[0];
+        if (
+          !asset ||
+          asset.actor !== actor ||
+          asset.itemId !== null ||
+          asset.expiresAt.getTime() <= Date.now()
         )
-      ).rows[0];
-      if (
-        !asset ||
-        asset.actor !== actor ||
-        asset.itemId !== null ||
-        asset.expiresAt.getTime() <= Date.now()
-      )
-        throw new ApiError(
-          409,
-          appText.apiCatalogStoreUploadAFreshIconBeforeCreatingThisItem,
-        );
-      await verifyAsset(asset);
+          throw new ApiError(
+            409,
+            appText.apiCatalogStoreUploadAFreshIconBeforeCreatingThisItem,
+          );
+        await verifyAsset(asset);
+      }
       const limits = (
         await client.query<{ items: number; slots: number }>(
           'SELECT (SELECT count(*)::int FROM items) AS items,(SELECT count(*)::int FROM page_items) AS slots',
@@ -834,14 +838,20 @@ export class PgCatalogStore {
       );
       const item = (
         await client.query<AdminItem>(
-          `INSERT INTO items(name,icon_path,origin,overrides,icon_asset_id) VALUES($1,$2,'manual',ARRAY['name','icon','pages'],$3) RETURNING id,name,icon_path AS "iconPath",origin,overrides`,
-          [fields.name, iconPath(asset.id), asset.id],
+          `INSERT INTO items(name,icon_path,origin,overrides,icon_asset_id) VALUES($1,$2,'manual',$3::text[],$4) RETURNING id,name,icon_path AS "iconPath",origin,overrides`,
+          [
+            fields.name,
+            asset ? iconPath(asset.id) : DEFAULT_ITEM_ICON_PATH,
+            ['name', ...(asset ? ['icon'] : []), 'pages'],
+            asset?.id ?? null,
+          ],
         )
       ).rows[0]!;
-      await client.query('UPDATE catalog_assets SET item_id=$1 WHERE id=$2', [
-        item.id,
-        asset.id,
-      ]);
+      if (asset)
+        await client.query('UPDATE catalog_assets SET item_id=$1 WHERE id=$2', [
+          item.id,
+          asset.id,
+        ]);
       await client.query(
         'INSERT INTO game_item_ids(game_item_id,item_id) SELECT unnest($1::integer[]),$2',
         [fields.gameItemIds, item.id],

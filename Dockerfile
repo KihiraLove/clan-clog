@@ -65,6 +65,7 @@ COPY --from=production-dependencies --chown=node:node /opt/clog-runtime/ ./
 COPY --from=build --chown=node:node /app/packages/database/migrations ./packages/database/migrations
 COPY --from=build --chown=node:node /app/catalog/snapshot.json /app/catalog/snapshot.sha256 /app/catalog/clue-taxonomy.json ./catalog/
 COPY --from=build --chown=node:node /app/catalog/assets.json ./catalog/
+COPY --from=build --chown=node:node /app/catalog/default-icon.json ./catalog/
 COPY --from=build --chown=node:node /app/catalog/legacy-assets.sha256 ./catalog/
 COPY --from=build --chown=node:node /app/catalog/updates ./catalog/updates
 COPY --from=build --chown=node:node /app/apps/web/public/catalog/items ./catalog/legacy-images

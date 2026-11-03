@@ -1,11 +1,11 @@
 import * as appText from '@clog/domain';
-/** Decode a local icon, stage its upload, then create one item with multiple memberships. */
-import { useCallback, useEffect, useState } from 'react';
+import { DEFAULT_ITEM_ICON_PATH } from '@clog/domain/catalog-icons';
+/** Create a shared item with the bundled fallback or a validated staged upload. */
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminRequestError } from './admin-api.ts';
 import {
   validateIconFile,
   validateIconSize,
-  validateItem,
   parseGameItemIds,
   type AdminCatalog,
   type AdminClient,
@@ -14,19 +14,24 @@ import {
   type StagedIcon,
 } from './admin-model.ts';
 import type { AdminSession } from './xp-model.ts';
+import { validateItem } from './item-creation.ts';
 import { useAdminAction } from './use-admin-action.ts';
 import { useAdminDraft } from './admin-route-data.ts';
 
+export type IconSelection = 'empty' | 'checking' | 'invalid' | 'valid';
 /** Revoke preview URLs and close decoded bitmaps when replacing files or leaving the form. */
 export function IconPicker({
   disabled,
   onValid,
+  onSelection,
   optional = false,
 }: {
   disabled: boolean;
   onValid: (file: File | undefined) => void;
+  onSelection?: (state: IconSelection) => void;
   optional?: boolean;
 }) {
+  const input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File>(),
     [url, setUrl] = useState<string>(),
     [error, setError] = useState<string>();
@@ -39,6 +44,7 @@ export function IconPicker({
     setError(undefined);
     setSize(undefined);
     onValid(undefined);
+    onSelection?.(file ? 'checking' : 'empty');
     setChecking(Boolean(file));
     if (!file) return;
     void (async () => {
@@ -51,17 +57,20 @@ export function IconPicker({
         setUrl(imageUrl);
         setSize(bitmap.width + ' × ' + bitmap.height + ' pixels');
         onValid(file);
+        onSelection?.('valid');
       } finally {
         bitmap.close();
       }
     })()
       .catch((failure: unknown) => {
-        if (active)
+        if (active) {
+          onSelection?.('invalid');
           setError(
             failure instanceof Error && !('code' in failure)
               ? failure.message
               : appText.webItemCreatorTheFileCouldNotBeDecodedAsAPngWebP,
           );
+        }
       })
       .finally(() => {
         if (active) setChecking(false);
@@ -70,21 +79,54 @@ export function IconPicker({
       active = false;
       if (imageUrl) URL.revokeObjectURL(imageUrl);
     };
-  }, [file, onValid]);
+  }, [file, onValid, onSelection]);
+  const select = (next: File | undefined) => {
+    setFile(next);
+    onValid(undefined);
+    onSelection?.(next ? 'checking' : 'empty');
+  };
   return (
     <div className="icon-picker">
       <label>
         {optional
           ? appText.webItemCreatorReplaceItemIcon
-          : appText.webItemCreatorItemIconRequired}
+          : appText.webItemCreatorItemIconOptional}
         <input
+          ref={input}
           type="file"
           accept="image/png,image/webp,.png,.webp"
           disabled={disabled}
-          onChange={(event) => setFile(event.target.files?.[0])}
+          onChange={(event) => select(event.target.files?.[0])}
         />
       </label>
       <p className="admin-note">{appText.webItemCreatorPngOrWebP}</p>
+      {!file && !optional && (
+        <>
+          <p className="admin-note">{appText.webItemCreatorDefaultIconHelp}</p>
+          <div className="icon-picker__preview">
+            <img
+              src={DEFAULT_ITEM_ICON_PATH}
+              alt={appText.webItemCreatorDefaultIconPreview}
+            />
+          </div>
+        </>
+      )}
+      {file && (
+        <button
+          type="button"
+          className="site-button"
+          disabled={disabled}
+          onClick={() => {
+            if (input.current) {
+              input.current.value = '';
+              input.current.focus();
+            }
+            select(undefined);
+          }}
+        >
+          {appText.webItemCreatorRemoveSelectedIcon}
+        </button>
+      )}
       {checking && <p role="status">{appText.webItemCreatorCheckingIcon}</p>}
       {error && (
         <p role="alert" className="admin-error">
@@ -123,14 +165,21 @@ export function ItemCreator({
   const [file, setFile] = useState<File>(),
     [staged, setStaged] = useState<StagedIcon>(),
     [reset, setReset] = useState(0);
+  const [iconSelection, setIconSelection] = useState<IconSelection>('empty');
   const [pending, setPending] = useState<{ fields: CreateItem; key: string }>(),
     [created, setCreated] = useState<CreatedItem>();
   const action = useAdminAction(onAccessLost);
-  const dirty = !!(name || file || gameIds || pending);
+  const dirty = !!(
+    name ||
+    file ||
+    gameIds ||
+    pending ||
+    iconSelection !== 'empty'
+  );
   useEffect(() => {
     onStateChange?.({ dirty, busy: action.busy });
   }, [dirty, action.busy, onStateChange]);
-  useAdminDraft(!!(name || file || gameIds || pending), action.busy);
+  useAdminDraft(dirty, action.busy);
   const iconChanged = useCallback((file: File | undefined) => {
     setFile(file);
     setStaged(undefined);
@@ -141,21 +190,20 @@ export function ItemCreator({
       // Preserve payload and idempotency key after an uncertain response to avoid duplicates.
       let request = pending;
       if (!request) {
-        if (!file)
+        if (iconSelection !== 'empty' && (iconSelection !== 'valid' || !file))
           throw new Error(
             appText.webItemCreatorChooseAValidItemIconBeforeSaving,
           );
-        validateItem(
+        const clean = validateItem(
           {
             name,
             pageIds,
             gameItemIds: parseGameItemIds(gameIds),
-            iconAssetId: 'not-uploaded-yet',
           },
           catalog,
         );
         let icon = staged;
-        if (!icon || Date.parse(icon.expiresAt) <= Date.now()) {
+        if (file && (!icon || Date.parse(icon.expiresAt) <= Date.now())) {
           icon = await client.upload(file, session.csrfToken, signal);
           if (signal.aborted) return;
           setStaged(icon);
@@ -163,10 +211,8 @@ export function ItemCreator({
         request = {
           fields: validateItem(
             {
-              name,
-              pageIds,
-              gameItemIds: parseGameItemIds(gameIds),
-              iconAssetId: icon.assetId,
+              ...clean,
+              ...(icon ? { iconAssetId: icon.assetId } : {}),
             },
             catalog,
           ),
@@ -200,6 +246,7 @@ export function ItemCreator({
       setName('');
       setGameIds('');
       setFile(undefined);
+      setIconSelection('empty');
       setStaged(undefined);
       setReset((n) => n + 1);
       action.setMessage(
@@ -268,7 +315,12 @@ export function ItemCreator({
         }}
       >
         <fieldset className="admin-fieldset" disabled={locked}>
-          <IconPicker key={reset} disabled={locked} onValid={iconChanged} />
+          <IconPicker
+            key={reset}
+            disabled={locked}
+            onValid={iconChanged}
+            onSelection={setIconSelection}
+          />
           <label>
             {appText.webItemCreatorItemName}
             <input
@@ -295,7 +347,11 @@ export function ItemCreator({
             }
           </p>
         )}
-        <button className="site-button" type="submit" disabled={action.busy}>
+        <button
+          className="site-button"
+          type="submit"
+          disabled={action.busy || (!pending && iconSelection === 'checking')}
+        >
           {action.busy
             ? appText.webItemCreatorSavingItem
             : pending

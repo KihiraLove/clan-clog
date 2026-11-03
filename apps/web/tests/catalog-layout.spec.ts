@@ -140,12 +140,12 @@ test('new-item editor uses its selected page and requires an in-game ID', async 
   await page
     .getByLabel('In-game item ID (required)', { exact: true })
     .fill('900001');
-  await page.getByRole('button', { name: 'Create item', exact: true }).click();
-  await expect(page.locator('.item-creator').getByRole('alert')).toContainText(
-    'Choose a valid item icon',
+  await expect(page.getByAltText('Default item icon preview')).toHaveAttribute(
+    'src',
+    '/catalog/default.webp',
   );
   await page
-    .getByLabel('Item icon (required)', { exact: true })
+    .getByLabel('Item icon (optional)', { exact: true })
     .setInputFiles('public/skills/sailing.webp');
   await expect(page.getByAltText('New item icon preview')).toBeVisible();
 });

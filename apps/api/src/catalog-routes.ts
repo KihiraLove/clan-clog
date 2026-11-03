@@ -240,7 +240,7 @@ export function catalogRoutes(
         body: {
           type: 'object',
           additionalProperties: false,
-          required: ['name', 'iconAssetId', 'pageIds', 'gameItemIds'],
+          required: ['name', 'pageIds', 'gameItemIds'],
           properties: {
             gameItemIds: { ...ids, minItems: 1, maxItems: 100 },
             name: { type: 'string', minLength: 1, maxLength: 200 },
