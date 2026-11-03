@@ -4964,5 +4964,3 @@ export const eventPageUnavailable = 'Unavailable historical page';
 export const eventHistoryLoading = 'Loading collection history…';
 export const eventHistoryUnavailable =
   'Collection history could not be loaded. Reload the page to try again.';
-export const eventPageNoPageCredit =
-  'No Event credit for this page. Regular history is shared across pages.';

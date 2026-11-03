@@ -1,6 +1,7 @@
 import { test, expect } from './test.ts';
 import { mockApi } from './mock-api.ts';
 import { adminFixtures } from './admin-fixtures.ts';
+import type { Credit } from '../src/model.ts';
 
 test('a failed history chunk preserves the log and can be retried by reloading', async ({
   page,
@@ -56,7 +57,7 @@ test('shared item Event history and highlighting follow the selected page, keepi
       { id: 'b', name: 'Page B', category: 'bosses', itemIds: [1] },
     ],
   };
-  let rows = [
+  let rows: Omit<Credit, 'status'>[] = [
     {
       submissionId: 'event-a',
       itemId: 1,
@@ -65,15 +66,6 @@ test('shared item Event history and highlighting follow the selected page, keepi
       hardcore: false,
       collectionType: 'event',
       eventPageId: 'a',
-    },
-    {
-      submissionId: 'regular',
-      itemId: 1,
-      collectorName: 'Regular collector',
-      collectedOn: '2026-10-01',
-      hardcore: false,
-      collectionType: 'regular',
-      eventPageId: null,
     },
   ];
   await page.route('**/api/v1/catalog', (route) =>
@@ -89,37 +81,59 @@ test('shared item Event history and highlighting follow the selected page, keepi
     menu = page.getByRole('tooltip');
   await expect(slot).toHaveClass(/item-slot--event/);
   await slot.click();
-  await expect(menu).toContainText('Alice on A');
-  await expect(menu).toContainText('Regular collector');
+  await expect(menu.locator('.item-menu__event')).toContainText('Alice on A');
+  await expect(menu.locator('.item-menu__regular')).toHaveCount(0);
   await page.getByRole('button', { name: 'Page B', exact: true }).click();
   await expect(menu).toHaveCount(0);
   await expect(slot).not.toHaveClass(/item-slot--event/);
   await slot.click();
-  await expect(menu).toContainText('Regular collector');
-  await expect(menu).not.toContainText('Alice on A');
-  rows.push({
-    submissionId: 'event-b',
-    itemId: 1,
-    collectorName: 'Bob on B',
-    collectedOn: '2026-10-21',
-    hardcore: false,
-    collectionType: 'event',
-    eventPageId: 'b',
-  });
+  await expect(menu.locator('.item-menu__event')).toHaveCount(0);
+  await expect(menu.locator('.item-menu__regular')).toContainText('Alice on A');
+  await expect(menu.locator('.item-menu__regular')).toContainText('20/10/26');
+  await expect(menu).not.toContainText('No Event credit for this page');
+  await expect(slot.locator('.item-obtain-count')).toHaveCount(0);
+  await expect(slot).toHaveAccessibleName('Shared trophy: collected');
+  rows.push(
+    {
+      submissionId: 'regular',
+      itemId: 1,
+      collectorName: 'Regular collector',
+      collectedOn: '2026-10-01',
+      hardcore: false,
+      collectionType: 'regular',
+      eventPageId: null,
+    },
+    {
+      submissionId: 'event-b',
+      itemId: 1,
+      collectorName: 'Bob on B',
+      collectedOn: '2026-10-21',
+      hardcore: false,
+      collectionType: 'event',
+      eventPageId: 'b',
+    },
+  );
   await page.reload();
   await page.getByRole('button', { name: 'Page B', exact: true }).click();
   await expect(slot).toHaveClass(/item-slot--event/);
   await slot.click();
-  await expect(menu).toContainText('Bob on B');
-  await expect(menu).toContainText('21/10/26');
-  await expect(menu).not.toContainText('Alice on A');
+  await expect(menu.locator('.item-menu__event')).toContainText('Bob on B');
+  await expect(menu.locator('.item-menu__event')).toContainText('21/10/26');
+  await expect(menu.locator('.item-menu__event')).not.toContainText(
+    'Alice on A',
+  );
+  await expect(menu.locator('.item-menu__regular p')).toHaveText([
+    'Collected by Regular collector on 01/10/26',
+    'Collected by Alice on A on 20/10/26',
+  ]);
   await expect(slot.locator('.item-obtain-count')).toHaveText('3');
   await page.screenshot({ path: info.outputPath('event-page-b-desktop.png') });
   await page.setViewportSize({ width: 320, height: 900 });
   await page.getByRole('button', { name: 'Page A', exact: true }).click();
   await slot.click();
-  await expect(menu).toContainText('Alice on A');
-  await expect(menu).not.toContainText('Bob on B');
+  await expect(menu.locator('.item-menu__event')).toContainText('Alice on A');
+  await expect(menu.locator('.item-menu__event')).not.toContainText('Bob on B');
+  await expect(menu.locator('.item-menu__regular')).toContainText('Bob on B');
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(320);
@@ -130,8 +144,10 @@ test('shared item Event history and highlighting follow the selected page, keepi
   await expect(slot).not.toHaveClass(/item-slot--event/);
   await slot.click();
   await expect(menu).not.toContainText('Alice on A');
-  await expect(menu).not.toContainText('Bob on B');
+  await expect(menu.locator('.item-menu__event')).toHaveCount(0);
+  await expect(menu.locator('.item-menu__regular')).toContainText('Bob on B');
   await expect(menu).toContainText('Regular collector');
+  await expect(slot.locator('.item-obtain-count')).toHaveText('2');
 });
 
 test('upgrade review never guesses a shared legacy page, survives cancellation and retries an uncertain choice exactly', async ({

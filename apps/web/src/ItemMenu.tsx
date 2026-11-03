@@ -27,14 +27,14 @@ export function ItemMenu({
   highlights: { event: HighlightColour; hardcore: HighlightColour };
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const eventCredits = open.collectors.filter(
-    (c) =>
-      !open.hardcore &&
-      c.collectionType === 'event' &&
-      !c.eventPageAssignmentPending,
-  );
+  const isPageEvent = (c: Credit) =>
+    !open.hardcore &&
+    c.collectionType === 'event' &&
+    !c.eventPageAssignmentPending &&
+    (open.pageId === undefined || c.eventPageId === open.pageId);
+  const eventCredits = open.collectors.filter(isPageEvent);
   const regularCredits = open.collectors.filter(
-    (c) => c.collectionType !== 'event',
+    (c) => !c.eventPageAssignmentPending && !isPageEvent(c),
   );
   const [position, setPosition] = useState({ left: 0, top: 0, ready: false });
   useLayoutEffect(() => {
@@ -157,11 +157,7 @@ export function ItemMenu({
             ))}
         </>
       ) : (
-        <p className="item-menu__empty">
-          {open.pageId
-            ? appText.eventPageNoPageCredit
-            : appText.webItemMenuNotCollected}
-        </p>
+        <p className="item-menu__empty">{appText.webItemMenuNotCollected}</p>
       )}
     </div>,
     document.body,

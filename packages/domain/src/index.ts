@@ -37,6 +37,9 @@ export function collectionState(
   hardcore?: boolean,
   pageId?: string,
 ) {
+  const isPageEvent = (entry: CollectionCredit) =>
+    entry.collectionType === 'event' &&
+    (pageId === undefined || entry.eventPageId === pageId);
   const collectors = submissions
     .filter(
       (entry) =>
@@ -46,24 +49,14 @@ export function collectionState(
     )
     .sort(
       (a, b) =>
-        Number(b.collectionType === 'event') -
-          Number(a.collectionType === 'event') ||
+        Number(isPageEvent(b)) - Number(isPageEvent(a)) ||
         a.collectedOn.localeCompare(b.collectedOn) ||
         a.submissionId.localeCompare(b.submissionId),
     );
   return {
     collected: collectors.length > 0,
     obtainCount: collectors.length,
-    collectors:
-      pageId === undefined
-        ? collectors
-        : collectors.filter(
-            (c) =>
-              c.collectionType !== 'event' ||
-              c.eventPageId === pageId ||
-              c.eventPageAssignmentPending ||
-              c.eventPageId == null,
-          ),
+    collectors,
   };
 }
 

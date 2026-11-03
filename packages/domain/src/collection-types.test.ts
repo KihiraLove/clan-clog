@@ -63,24 +63,39 @@ test('one frozen page is selected, shared Event candidates require a choice and 
     submissionId: 'r',
     collectionType: 'regular' as const,
     eventPageId: null,
+    collectedOn: '2026-10-01',
   };
   const b = {
     ...row,
     submissionId: 'b',
     collectorName: 'Bob',
     eventPageId: 'b',
+    collectedOn: '2026-10-21',
   };
   assert.deepEqual(
     collectionState(1, [row, b, regular], false, 'event').collectors.map(
       (c) => c.submissionId,
     ),
-    ['a', 'r'],
+    ['a', 'r', 'b'],
   );
   assert.deepEqual(
     collectionState(1, [row, b, regular], false, 'b').collectors.map(
       (c) => c.submissionId,
     ),
-    ['b', 'r'],
+    ['b', 'r', 'a'],
+  );
+  assert.deepEqual(
+    collectionState(1, [b, regular, row], false, 'third').collectors.map(
+      (c) => c.submissionId,
+    ),
+    ['r', 'a', 'b'],
+    'other pages retain the obtains in date order',
+  );
+  assert.equal(collectionState(1, [row], false, 'b').collectors[0], row);
+  assert.equal(
+    row.collectionType,
+    'event',
+    'display never changes the stored type',
   );
   assert.equal(
     collectionState(1, [row], false, 'b').collected,

@@ -230,7 +230,13 @@ test('Event gold outline belongs to its page and Regular history stays shared', 
     .click();
   await expect(slot).not.toHaveClass(/item-slot--event/);
   await slot.focus();
-  await expect(menu).not.toContainText('Event winner');
+  await expect(menu.locator('.item-menu__event')).toHaveCount(0);
+  await expect(menu.locator('.item-menu__regular')).toContainText(
+    'Event winner',
+  );
+  await expect(menu.locator('.item-menu__regular p').last()).toContainText(
+    '18/10/26',
+  );
   await expect(menu).toContainText('Earliest regular');
   await page.screenshot({
     path: test.info().outputPath('event-outline-shared-page.png'),
