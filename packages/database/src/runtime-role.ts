@@ -20,6 +20,7 @@ const tablePolicy: Readonly<Record<string, readonly TablePrivilege[]>> = {
   asset_retirements: read,
   admin_sessions: replace,
   audit_events: append,
+  event_page_assignment_requests: append,
   auth_rate_limits: mutable,
   catalog_assets: edit,
   catalog_audit: append,

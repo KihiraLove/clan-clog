@@ -6,6 +6,7 @@ export * from './skills.js';
 export * from './collection-types.js';
 export * from './submission-help.js';
 export type * from './catalog-updates.js';
+export type * from './event-page-assignments.js';
 export interface CatalogItem {
   id: number;
   name: string;
@@ -18,6 +19,8 @@ export interface CatalogPage {
 }
 
 export interface CollectionCredit {
+  eventPageId?: string | null;
+  eventPageAssignmentPending?: boolean;
   submissionId: string;
   itemId: number;
   collectorName: string;
@@ -27,11 +30,12 @@ export interface CollectionCredit {
   collectionType?: import('./collection-types.js').CollectionType;
 }
 
-/** Collection state belongs to the canonical item, never to a page occurrence. */
+/** Completion/obtain totals remain canonical; Event display belongs to one page. */
 export function collectionState(
   itemId: number,
   submissions: readonly CollectionCredit[],
   hardcore?: boolean,
+  pageId?: string,
 ) {
   const collectors = submissions
     .filter(
@@ -47,7 +51,20 @@ export function collectionState(
         a.collectedOn.localeCompare(b.collectedOn) ||
         a.submissionId.localeCompare(b.submissionId),
     );
-  return { collected: collectors.length > 0, collectors };
+  return {
+    collected: collectors.length > 0,
+    obtainCount: collectors.length,
+    collectors:
+      pageId === undefined
+        ? collectors
+        : collectors.filter(
+            (c) =>
+              c.collectionType !== 'event' ||
+              c.eventPageId === pageId ||
+              c.eventPageAssignmentPending ||
+              c.eventPageId == null,
+          ),
+  };
 }
 
 /** Validate the imported catalog graph, including globally unambiguous game-ID aliases.

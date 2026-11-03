@@ -261,7 +261,7 @@ test(
         assert.equal(
           (await submit({ ...base(), itemName: 'Valid', extra: 'unexpected' }))
             .statusCode,
-          413,
+          400,
         );
         assert.equal(
           (await submit({ ...base(), clanName: 'Wrong clan' })).statusCode,

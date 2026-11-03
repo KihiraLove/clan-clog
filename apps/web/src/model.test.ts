@@ -103,6 +103,7 @@ test('typed public histories retain repeated Regular credits, one Event and inde
     ...normal,
     submissionId: 'event',
     collectionType: 'event' as const,
+    eventPageId: 'one',
     collectedOn: '2026-10-18',
   };
   const credits = parseCollections({
@@ -143,6 +144,63 @@ test('typed public histories retain repeated Regular credits, one Event and inde
       revision: 'duplicate-event',
       credits: [event, { ...event, submissionId: 'another-event' }],
     }),
+  );
+});
+
+test('Event display is page-specific while ordinary progress and obtain totals remain canonical', () => {
+  const a = {
+      ...normal,
+      submissionId: 'event-a',
+      collectionType: 'event',
+      eventPageId: 'one',
+    },
+    b = {
+      ...a,
+      submissionId: 'event-b',
+      eventPageId: 'two',
+      collectorName: 'Other collector',
+    };
+  const regular = {
+    ...normal,
+    submissionId: 'regular',
+    collectionType: 'regular',
+  };
+  const credits = parseCollections({
+    revision: 'pages',
+    credits: [a, b, regular],
+  }).credits;
+  assert.deepEqual(
+    itemState(1, credits, 'one').collectors.map((c) => c.submissionId),
+    ['event-a', 'regular'],
+  );
+  assert.deepEqual(
+    itemState(1, credits, 'two').collectors.map((c) => c.submissionId),
+    ['event-b', 'regular'],
+  );
+  assert.equal(itemState(1, credits, 'one').obtainCount, 3);
+  assert.equal(itemState(1, [credits[0]!], 'two').eventCollected, false);
+  assert.equal(itemState(1, [credits[0]!], 'two').collected, true);
+  assert.deepEqual(progress([1, 1], credits), { collected: 1, total: 1 });
+  assert.throws(() =>
+    parseCollections({
+      revision: 'duplicate',
+      credits: [a, { ...a, submissionId: 'same-page' }],
+    }),
+  );
+  assert.throws(() =>
+    parseCollections({
+      revision: 'bad',
+      credits: [{ ...a, eventPageId: null, eventPageAssignmentPending: false }],
+    }),
+  );
+  const legacy = parseCollections({
+    revision: 'legacy',
+    credits: [{ ...a, eventPageId: null, eventPageAssignmentPending: true }],
+  }).credits;
+  assert.equal(itemState(1, legacy, 'one').eventCollected, false);
+  assert.equal(
+    itemState(1, legacy, 'two').collectors[0]?.eventPageAssignmentPending,
+    true,
   );
 });
 

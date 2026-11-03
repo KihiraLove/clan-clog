@@ -31,6 +31,7 @@ export function botSubmission(json: string): BotSubmissionInput {
           'itemId',
           'collectorName',
           'hardcore',
+          'eventPageId',
         ].includes(key),
     ) ||
     !['interactionId', 'guildId', 'actorDiscordId'].every(
@@ -43,6 +44,10 @@ export function botSubmission(json: string): BotSubmissionInput {
     !input.collectorName.trim() ||
     input.collectorName.length > 80 ||
     (input.hardcore !== undefined && typeof input.hardcore !== 'boolean') ||
+    (input.eventPageId !== undefined &&
+      (typeof input.eventPageId !== 'string' ||
+        !input.eventPageId.trim() ||
+        input.eventPageId.length > 200)) ||
     (input.itemId !== undefined &&
       (!Number.isSafeInteger(input.itemId) ||
         Number(input.itemId) < 1 ||
@@ -78,6 +83,9 @@ export function claimHash(input: BotSubmissionInput): string {
         null, // Preserve the legacy hash field position for existing retries.
         input.hardcore,
         ...(input.image ? [{ screenshot: input.image.sha256 }] : []),
+        ...(input.eventPageId === undefined
+          ? []
+          : [{ eventPageId: input.eventPageId }]),
       ]),
     )
     .digest('hex');

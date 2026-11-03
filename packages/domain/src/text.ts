@@ -4909,3 +4909,60 @@ export const apiAuthAdmissionUnavailable =
   'Sign-in is temporarily unavailable. Try again shortly.';
 export const webAdminPageLoginCooldown = (seconds: number) =>
   `Too many sign-in attempts. Try again in ${seconds} ${seconds === 1 ? 'second' : 'seconds'}.`;
+export const eventPageInvalid = 'Choose an eligible page containing this item.';
+export const eventPageReviewChanged =
+  'The Event page assignments or catalog changed. Reload the review before saving.';
+export const eventPageAdminOnly =
+  'Only an administrator can review existing Event page assignments.';
+export const eventPageReviewUnavailable =
+  'Event page assignment review is unavailable. Try again.';
+export const eventPageAssigned =
+  'Assigned the existing Event obtain to one page during upgrade review.';
+export const eventPageRequired =
+  'Choose one Event page before approving this obtain.';
+export const eventPageLegacyBlocked =
+  'An administrator must assign this item’s existing Event credit to a page first.';
+export const eventPageOccupied =
+  'An approved Event collection already exists for this item on the selected page.';
+export const eventPageLegacyLabel =
+  'Existing Event collection — page assignment pending';
+export const eventPageAssignmentsTitle =
+  'Assign existing Event collections to pages';
+export const eventPageAssignmentsHelp =
+  'Each existing Event obtain needs one page. Other pages stay available for independent Event collections. Unassigned credits are retained and block only conflicting Event approvals.';
+export const eventPageReviewButton = 'Review Event page assignments';
+export const eventPageChoose = 'Event page';
+export const eventPageSave = 'Save page assignments';
+export const eventPageRetry = 'Retry page assignments';
+export const eventPageCancel = 'Choose later';
+export const eventPageReload = 'Reload page assignments';
+export const eventPageAssignmentsSaved = 'Event page assignments saved.';
+export const eventPageSavedReload =
+  'The choices were saved. Reload to see the remaining assignments.';
+export const eventPageRepairCatalog =
+  'No available page contains this item. Repair its catalog membership or reactivate it; the original credit is retained.';
+export const eventPageRetryHelp =
+  'The save result is uncertain. Retry the same choices to recover the saved result.';
+export const eventPageNoEvidence = 'No saved scheduling evidence';
+export const eventPageOutstanding = (total: number) =>
+  `${total} existing Event credits still need one page. Up to 50 are shown at a time.`;
+export const eventPageObtain = (
+  item: string,
+  collector: string,
+  date: string,
+) => `${item} — ${collector} — ${date}`;
+export const eventPageFrozenEvidence = (pages: string) =>
+  `Originally eligible pages: ${pages}. This evidence does not select a page for you.`;
+export const eventPageSelectionHelp =
+  'Choose one page for this Event obtain. Saved intake timing restricts the choice to the original eligible pages. Explicit staff Event corrections can override timing.';
+export const eventPageAvailability = (name: string, occupied: boolean) =>
+  occupied ? `${name} — Event already collected` : `${name} — available`;
+export const eventPageAvailabilityRecheck =
+  'Availability is checked again when saving.';
+export const eventPageCurrent = (page: string) => `Event page: ${page}`;
+export const eventPageUnavailable = 'Unavailable historical page';
+export const eventHistoryLoading = 'Loading collection history…';
+export const eventHistoryUnavailable =
+  'Collection history could not be loaded. Reload the page to try again.';
+export const eventPageNoPageCredit =
+  'No Event credit for this page. Regular history is shared across pages.';

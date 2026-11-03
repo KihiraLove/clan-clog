@@ -51,20 +51,53 @@ PNG screenshot and note. External proof links are no longer accepted. Check
 Approve immediately is on by default. Hardcore forces Regular and has independent
 credit. Staff can record hardcore claims even when the public hardcore view is disabled.
 
-Normal-world items can have one approved Event collection and independent Regular
-collections. **Filter out regular duplicates** blocks another Regular credit in
+Choose an **Event page** when recording an Event claim. One eligible page is
+selected automatically; several eligible pages require a choice before approval.
+Source claims use the eligible pages saved at intake, even if the schedule later
+changes. Explicit staff Event overrides can choose a current page containing the
+item outside that schedule. The review controls show the saved target and occupied
+pages. Corrections retain an existing historical target unless explicitly changed.
+
+Normal-world items can have one approved Event collection per page and independent
+Regular collections. The same shared item can have different Event collectors and
+dates on different pages. Each page highlights and displays only its own Event
+history alongside shared Regular history. Completion and obtain totals still count
+the original canonical items and obtains, without multiplying them by page membership.
+**Filter out regular duplicates** blocks another Regular credit in
 the same world mode when on. When off, Regular collections can repeat, including
 the same collector. Re-enabling it preserves existing history. Staff approval and
 corrections enforce the same rules. Revoke a credit to remove that entry only.
 
 With the regular duplicate filter off, a later Event-eligible obtain becomes
-Regular when that item already has an approved Event collection, even while the
-schedule is still open. It follows the usual review/automatic approval policy.
+Regular when the selected page already has an approved Event collection for that
+item, even while the schedule is still open. It follows the usual review/automatic
+approval policy.
 The original Event credit stays intact; the later obtain appears in Regular
 history and adds to the obtain total. Review details explain this fallback.
 Approval checks again if another claim acquired the Event credit after intake.
 Ordinary edits and later Event revocation do not promote a saved fallback to Event;
 staff can explicitly request saved intake timing or change collection flags.
+
+## Event credit upgrade review
+
+After an upgrade, **Assign existing Event collections to pages** opens for the
+administrator when legacy Event collections still need a page. Single-page credits are assigned
+automatically; shared items require one choice for each original credit. Review
+the collector, date, available pages and original timing evidence. Evidence is
+advisory and never selects a shared item's destination automatically.
+
+Save selected choices together, or choose later/Escape to leave them outstanding.
+Outstanding credits return on the next visit, including after a restart. If a save
+times out, use Retry with the same choices; the saved receipt prevents a second
+assignment. Reload after a stale catalog or credit conflict. Items without an
+available page retain their legacy credit and need catalog membership repair first.
+Moderators cannot read or apply these assignments.
+
+Unassigned credits remain visible as legacy Event history. New Event approvals for
+that item wait until assignment is resolved; Regular credits and unrelated items
+remain usable. Assigning a legacy credit changes only its target and audit/version
+metadata. Renaming or retiring a page, or removing an item from it later, retains
+the historical page identity and evidence; it never moves credit to another page.
 
 ## Catalog
 
@@ -145,7 +178,8 @@ reclassify a claim. Unmatched claims resolve from that saved evidence when staff
 save a canonical match. **Use saved intake timing** keeps that behavior; an explicit
 Regular/Event correction is audited. Manual date-only claims use the selected type.
 Approved Event credit has a gold item outline and a gold-bordered history block.
-The hover/tap menu shows Event first, then every Regular credit oldest first.
+The hover/tap menu shows the current page's Event first, then every Regular credit
+oldest first. Unassigned legacy Event history has a separate label until resolved.
 
 [WOM imports](wom-competitions.md) can create activity windows or publish skill
 results. Importing does not enable scheduling automatically. RuneLite stores

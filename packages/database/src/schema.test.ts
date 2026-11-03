@@ -25,6 +25,7 @@ test(
           '002_custom_competition_metrics.sql',
           '003_catalog_updates.sql',
           '004_catalog_bootstrap_state.sql',
+          '005_page_event_credits.sql',
         ],
       );
       // Roll back fixtures; migrations persist in the disposable test database.
@@ -50,7 +51,7 @@ test(
       );
       assert.deepEqual(await read(), [false, false]);
       await client.query(
-        "UPDATE submissions SET status = 'approved', collection_type='event', reviewed_at = now(), reviewed_by = '3' WHERE discord_interaction_id = 'fixture'",
+        "UPDATE submissions SET status = 'approved', collection_type='event',event_page_id='fixture-a', reviewed_at = now(), reviewed_by = '3' WHERE discord_interaction_id = 'fixture'",
       );
       assert.deepEqual(await read(), [true, true]);
       assert.equal(
@@ -66,7 +67,7 @@ test(
       await client.query('SAVEPOINT duplicate_credit');
       await assert.rejects(
         client.query(
-          "INSERT INTO submissions (id, discord_interaction_id, discord_user_id, discord_guild_id, raw_item_text, item_id, collector_name, collected_on, date_source, proof_url, collection_type, status, reviewed_by, reviewed_at) SELECT '00000000-0000-4000-8000-000000000003', 'fixture-duplicate', discord_user_id, discord_guild_id, raw_item_text, item_id, collector_name, collected_on, date_source, proof_url, 'event', 'approved', '3', now() FROM submissions WHERE discord_interaction_id = 'fixture'",
+          "INSERT INTO submissions (id, discord_interaction_id, discord_user_id, discord_guild_id, raw_item_text, item_id, collector_name, collected_on, date_source, proof_url, collection_type, status, reviewed_by, reviewed_at,event_page_id) SELECT '00000000-0000-4000-8000-000000000003', 'fixture-duplicate', discord_user_id, discord_guild_id, raw_item_text, item_id, collector_name, collected_on, date_source, proof_url, 'event', 'approved', '3', now(),'fixture-a' FROM submissions WHERE discord_interaction_id = 'fixture'",
         ),
         { code: '23505' },
       );

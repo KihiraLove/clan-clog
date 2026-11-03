@@ -70,6 +70,8 @@ export type ReviewRouteStore = Pick<
   | 'mutate'
   | 'submissionFilters'
   | 'saveSubmissionFilters'
+  | 'eventPageAssignments'
+  | 'assignEventPages'
 >;
 export type ManualReviewStore = Pick<ReviewStore, 'createManual'>;
 export type XpPublicStore = Pick<XpStore, 'tracker' | 'trackerSnapshot'>;
