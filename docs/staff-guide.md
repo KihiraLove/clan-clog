@@ -61,7 +61,9 @@ pages. Corrections retain an existing historical target unless explicitly change
 Normal-world items can have one approved Event collection per page and independent
 Regular collections. The same shared item can have different Event collectors and
 dates on different pages. Each page highlights and displays only its own Event
-history alongside shared Regular history. Completion and obtain totals still count
+history alongside shared Regular history. An Event obtain assigned to another page
+appears here as a Regular collection, retaining its original collector and date.
+Its Event assignment and single obtain count are preserved. Completion and obtain totals still count
 the original canonical items and obtains, without multiplying them by page membership.
 **Filter out regular duplicates** blocks another Regular credit in
 the same world mode when on. When off, Regular collections can repeat, including

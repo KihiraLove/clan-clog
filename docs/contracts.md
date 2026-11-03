@@ -140,7 +140,9 @@ allowed per canonical item/page pair. Submissions, new receipts and public credi
 include nullable `eventPageId`; public credits also expose
 `eventPageAssignmentPending` for retained legacy Event credits awaiting assignment.
 Regular and Hardcore credits have no Event page. Public history contains all page
-credits, but page-specific Event display filters by page ID; completion, Regular
+credits. The hover menu groups the current page's assigned obtain as Event and
+other pages' Event obtains as Regular, preserving each original collector/date and
+one record per obtain. Only the assigned page receives Event highlighting. Completion, Regular
 history and obtain totals retain their canonical meaning. The regular duplicate
 switch governs Regular credits in each world mode. Existing receipts/audits keep their original JSON; older omitted
 types display as Regular. See [staff rules](staff-guide.md).

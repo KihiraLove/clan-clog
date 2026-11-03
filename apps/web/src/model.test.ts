@@ -153,12 +153,14 @@ test('Event display is page-specific while ordinary progress and obtain totals r
       submissionId: 'event-a',
       collectionType: 'event',
       eventPageId: 'one',
+      collectedOn: '2026-10-20',
     },
     b = {
       ...a,
       submissionId: 'event-b',
       eventPageId: 'two',
       collectorName: 'Other collector',
+      collectedOn: '2026-10-21',
     };
   const regular = {
     ...normal,
@@ -171,15 +173,17 @@ test('Event display is page-specific while ordinary progress and obtain totals r
   }).credits;
   assert.deepEqual(
     itemState(1, credits, 'one').collectors.map((c) => c.submissionId),
-    ['event-a', 'regular'],
+    ['event-a', 'regular', 'event-b'],
   );
   assert.deepEqual(
     itemState(1, credits, 'two').collectors.map((c) => c.submissionId),
-    ['event-b', 'regular'],
+    ['event-b', 'regular', 'event-a'],
   );
   assert.equal(itemState(1, credits, 'one').obtainCount, 3);
   assert.equal(itemState(1, [credits[0]!], 'two').eventCollected, false);
   assert.equal(itemState(1, [credits[0]!], 'two').collected, true);
+  assert.deepEqual(itemState(1, [credits[0]!], 'two').collectors, [credits[0]]);
+  assert.equal(itemState(1, [credits[0]!], 'two').obtainCount, 1);
   assert.deepEqual(progress([1, 1], credits), { collected: 1, total: 1 });
   assert.throws(() =>
     parseCollections({
