@@ -17,12 +17,14 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['json', { outputFile: '../../.data/local-checks/stack-report.json' }],
+    ['../../scripts/check-browser-policy.mjs', { suite: 'stack' }],
   ],
   use: {
     baseURL: 'https://clog.example.com',
     ignoreHTTPSErrors: true, // A fresh self-signed certificate exists only inside this disposable runner.
     viewport: { width: 1440, height: 1000 },
     timezoneId: 'UTC',
+    locale: 'en-US',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

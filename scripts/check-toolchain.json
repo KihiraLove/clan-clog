@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "node": "24.21.0",
+  "npm": "11.19.0",
+  "platform": "linux/amd64",
+  "hostedRunner": "ubuntu-24.04",
+  "supported": {
+    "docker": { "min": "28.0.0", "maxMajor": 29 },
+    "compose": { "min": "2.30.0", "maxMajor": 5 },
+    "buildx": { "min": "0.17.0", "maxMajor": 0 }
+  },
+  "aptSnapshot": "20261102T000000Z",
+  "images": {
+    "node": "node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
+    "docker": "docker:28.5.2-cli@sha256:625d9431a9f54c5a2bc90f24f0e1c3d55b1349fd857dd85035f98c2c9acbdd4d",
+    "postgres": "postgres:17.11-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5",
+    "actionlint": "rhysd/actionlint:1.7.7@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9",
+    "playwright": "mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e"
+  },
+  "profiles": {
+    "normal": {
+      "runner": { "cpus": "0", "memory": "0", "shm": "1g" },
+      "database": { "cpus": "0", "memory": "0" },
+      "application": { "cpus": "0", "memory": "0" }
+    },
+    "constrained": {
+      "runner": { "cpus": "2", "memory": "4g", "shm": "1g" },
+      "database": { "cpus": "1", "memory": "512m" },
+      "application": { "cpus": "1", "memory": "1g" }
+    }
+  }
+}

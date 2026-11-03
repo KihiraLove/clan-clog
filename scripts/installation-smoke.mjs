@@ -6,6 +6,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { applicationLimits } from './check-toolchain.mjs';
 const image = process.env.CHECK_APP_IMAGE;
 if (!image) throw Error('Set CHECK_APP_IMAGE to the disposable test image');
 const directory = await mkdtemp(path.join(tmpdir(), 'clog-installation-'));
@@ -78,6 +79,7 @@ async function ready(service) {
 }
 const service = (volume) => ({
   image,
+  ...applicationLimits(),
   restart: 'no',
   stop_grace_period: '90s',
   environment: {
@@ -96,6 +98,7 @@ try {
         second: service('second-data'),
         unrelated: {
           image,
+          ...applicationLimits(),
           entrypoint: ['node', '-e', 'setInterval(()=>{},1000)'],
           restart: 'no',
         },

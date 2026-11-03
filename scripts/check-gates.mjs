@@ -5,11 +5,22 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { finished } from 'node:stream/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { sha256 } from './check-source.mjs';
+import { toolchain, checkToolchain } from './check-toolchain.mjs';
+import { containerEnvironment } from './check-environment.mjs';
 
 export function checkPlan(env) {
   const gates = [];
   const add = (name, command, needs = [], group, nodeTests = false) =>
-    gates.push({ name, command, needs, group, nodeTests });
+    gates.push({
+      name,
+      command,
+      needs,
+      group,
+      nodeTests,
+      evidenceClass:
+        name === 'dependencies' ? 'live-network' : 'reproducible-inputs',
+    });
   const npm = (name, script, needs = [], workspace, group = 'validate') =>
     add(
       name,
@@ -23,6 +34,7 @@ export function checkPlan(env) {
       group,
       script === 'test',
     );
+  add('toolchain', ['node', 'scripts/check-toolchain-cli.mjs']);
   add('workflows', [
     'bash',
     '-c',
@@ -31,7 +43,7 @@ export function checkPlan(env) {
   add('supervisor', [
     'bash',
     '-c',
-    'shellcheck -x infra/*.sh infra/clog scripts/check-container.sh scripts/compose-smoke.sh',
+    'shellcheck -x infra/*.sh infra/clog scripts/check-container.sh scripts/compose-smoke.sh scripts/check-apt-snapshot.sh',
   ]);
   add('tools', ['npm', 'run', 'test:tools'], [], undefined, true);
   add('dependencies', ['node', 'scripts/check-dependencies.mjs']);
@@ -83,15 +95,23 @@ export function checkPlan(env) {
   npm('loading', 'test:loading', ['build-web'], 'web', 'loading');
   // Build failures belong in the stage report, not in the host's prerequisites.
   add('app-image', [
-    'docker',
+    'node',
+    'scripts/check-app-image.mjs',
+    'buildx',
     'build',
+    '--load',
+    '--platform',
+    toolchain.platform,
+    '--metadata-file',
+    '.data/local-checks/app-build.json',
+    ...(env.CHECK_COLD_CACHE === '1' ? ['--no-cache'] : []),
     '--target',
     'app',
     '--build-arg',
     `RELEASE_REVISION=${env.CHECK_REVISION}`,
     '--tag',
     env.CHECK_APP_IMAGE,
-    '.',
+    '-',
   ]);
   const smoke = (name, needs) =>
     add(name, ['bash', 'scripts/compose-smoke.sh', name], needs, 'smoke');
@@ -178,7 +198,38 @@ export function checkPlan(env) {
     ['node', 'scripts/check-release-results.mjs'],
     gates.map(({ name }) => name),
   );
+  if (env.CHECK_SCOPE === 'catalog')
+    return [
+      ...gates.filter(({ name }) =>
+        ['toolchain', 'build-domain'].includes(name),
+      ),
+      {
+        name: 'catalog',
+        command: ['node', 'scripts/check-catalog-replay.mjs'],
+        needs: ['build-domain'],
+        group: 'browser',
+      },
+    ];
   return gates;
+}
+
+export function planFingerprint(gates) {
+  return sha256(
+    JSON.stringify(
+      gates.map((gate) => ({
+        ...gate,
+        command: gate.command
+          .map((arg) =>
+            arg.startsWith('RELEASE_REVISION=')
+              ? 'RELEASE_REVISION=<revision>'
+              : /^clog-local-app:/u.test(arg)
+                ? '<application-image>'
+                : arg,
+          )
+          .filter((arg) => arg !== '--no-cache'),
+      })),
+    ),
+  );
 }
 
 export async function runGates(
@@ -210,11 +261,13 @@ export async function runGates(
     await writeFile(path.join(output, group + '.log'), '');
   const report = {
     format: 1,
+    planFingerprint: planFingerprint(gates),
     status: 'running',
     startedAt: new Date().toISOString(),
-    gates: gates.map(({ name, command }) => ({
+    gates: gates.map(({ name, command, evidenceClass }) => ({
       name,
       command,
+      evidenceClass: evidenceClass ?? 'reproducible-inputs',
       status: 'pending',
       log: name + '.log',
     })),
@@ -339,6 +392,14 @@ if (
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
   try {
+    await mkdir('.data/local-checks', { recursive: true });
+    await writeFile(
+      '.data/local-checks/container-environment.json',
+      JSON.stringify(await containerEnvironment(process.cwd()), null, 2) + '\n',
+    );
+    await checkToolchain();
+    if (process.versions.node !== toolchain.node)
+      throw Error('Container Node toolchain mismatch');
     const result = await runGates(checkPlan(process.env), {
       signal: controller.signal,
     });

@@ -9,6 +9,7 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['json', { outputFile: '../../.data/local-checks/loading-report.json' }],
+    ['../../scripts/check-browser-policy.mjs', { suite: 'loading' }],
   ],
   use: {
     baseURL: 'http://127.0.0.1:5189',
@@ -17,6 +18,8 @@ export default defineConfig({
     viewport: { width: 1100, height: 850 },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    timezoneId: 'UTC',
+    locale: 'en-US',
   },
   webServer: {
     command:

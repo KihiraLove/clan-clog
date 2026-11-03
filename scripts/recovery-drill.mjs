@@ -13,6 +13,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { applicationLimits } from './check-toolchain.mjs';
 if (
   !/^clog-checks-[a-z0-9-]+$/.test(process.env.COMPOSE_PROJECT_NAME ?? '') ||
   !process.env.CHECK_APP_IMAGE
@@ -190,6 +191,7 @@ try {
       services: {
         recovery: {
           image: baseId,
+          ...applicationLimits(),
           restart: 'no',
           stop_grace_period: '90s',
           environment: {

@@ -120,15 +120,23 @@ The maintainer runs this before release, with Linux Docker running:
 node scripts/check-local.mjs
 ```
 
-Only Node 24 and Docker Compose 2.24.4+ are required on the host. The runner
+The checked-in [toolchain specification](../scripts/check-toolchain.json) declares
+Node 24.21.0/npm 11.19.0, Linux/amd64 acceptance, Docker Engine 28–29,
+Compose 2.30.0 through 5.x and Buildx 0.17.0 or newer in the 0.x series.
+Use `.nvmrc` to select the host Node runtime. Docker Desktop must use Linux
+containers; an ARM host needs amd64 emulation, which is visible in the report.
+Clean-ref replay also needs Git and `tar` (included with Git for Windows/WSL).
+Hosted acceptance uses Ubuntu 24.04. Host/daemon versions are recorded and checked;
+they need not be byte-identical across supported hosts. The runner
 builds isolated Linux tooling, PostgreSQL and browser environments without
 reading runtime `.env` or logging into real Discord. It covers formatting,
 lint, builds, catalog checks, typechecks, Node tests, three-browser HTTPS flows,
 security headers, image inspection, performance and backup/recovery. Full
 acceptance rejects skips and missing required scenarios.
 
-Reports and logs are in `.data/local-checks/<run-id>/`; record the tested commit
-and dirty/clean state. Independent checks continue after failures. Checks that
+Reports and logs are in `.data/local-checks/<run-id>/`. Record the run ID,
+source fingerprint and final manifest SHA-256 from `summary.md` in PR/release
+evidence. Independent checks continue after failures. Checks that
 need a failed build, unavailable test service or missing prerequisite fixture data
 are marked **blocked**, and the
 run still exits with an error. Initial tooling/database setup must succeed before
@@ -145,8 +153,141 @@ After a crash, inspect resources labelled `clog.local-checks` and clean up only
 that run's namespace. Avoid global Docker prune on a shared machine.
 
 Hosted CI runs manually or on a published Release. Publishing waits for complete
-acceptance. Local evidence does not replace checking your own HTTPS host,
+acceptance and always uses a clean commit. Local evidence does not replace checking your own HTTPS host,
 Discord guild, supported devices and off-host recovery before launch.
+
+### Exact source and replay
+
+The default tests the working tree, including untracked files that Docker allows.
+Before building, Docker applies the context exclusions and exports an immutable
+source archive. Both the checks image and its application build consume that
+snapshot. A versioned `manifest.json` records commit/ref, tracked dirty state,
+participating untracked path hashes, lockfile hash and the fingerprint of every
+included path, byte sequence, file type/mode and text line ending count. Paths are
+hashed; source contents, ignored secrets and arbitrary filenames are not uploaded.
+Timestamps and tar entry order do not change the fingerprint. CRLF/LF or executable
+mode differences do; inspect Git checkout settings when comparing Windows/WSL/CI.
+Keep shell helpers and migration files at their declared LF endings.
+
+For release comparison, replay an exact commit without stashing or modifying the
+current checkout:
+
+```bash
+node scripts/check-local.mjs --ref <40-character-commit>
+```
+
+Git archives only that commit; unrelated local files and dirty edits cannot enter
+the context. The manifest still describes the initiating checkout's dirty state,
+and identifies the tested source as `clean-ref`. The commit must contain the same
+replay/toolchain contract as the driver; use the target commit's driver when that
+contract changes. Setup failures retain partial manifests with missing facts.
+
+The default reuses Docker's content-addressed layers. A scoped cold build bypasses
+layers for this run's checks/application builds, while retaining immutable base
+images and leaving other projects' cache, containers and volumes alone:
+
+```bash
+node scripts/check-local.mjs --ref <commit> --cache cold
+```
+
+Do not prune the daemon to investigate a test. Preserve the original failed run
+directory before rerunning; each invocation uses a new namespace.
+
+### Focused timing investigation
+
+The catalog replay uses the normal browser configuration, with one worker,
+one diagnostic retry, `forbidOnly` and `failOnFlakyTests`. It selects the item
+creation/order and page-candidate regressions plus deterministic request-gated
+save, stale-review and superseded-refresh scenarios. No arbitrary sleeps or
+timeout increases are used. Each case repeats three times by default; the seed
+and repeat index alternate the controlled older/newer response order. Every
+attempt and trace is retained, including passes. Retries never turn a failed
+first attempt into accepted evidence.
+
+```bash
+node scripts/check-local.mjs --ref <commit> --scope catalog --profile constrained --repeat 3 --seed 126
+```
+
+Repetitions are bounded to 1–10; seeds are integers from 0 to 2147483647. Catalog
+scope is investigation evidence and cannot grant release acceptance. The manual
+CI workflow exposes the same scope, cache, profile, repetition and seed options;
+select the branch containing the commit to investigate.
+
+The constrained profile limits the runner to 2 CPUs/4 GiB with 1 GiB shared
+memory, its test PostgreSQL to 1 CPU/512 MiB and application installations to
+1 CPU/1 GiB each, including recovery/installation fixtures. The normal profile
+keeps only the existing 1 GiB runner shared-memory setting. These are explicit
+container ceilings, not assumptions about hosted runner capacity. BuildKit is a
+daemon service outside those ceilings; its version/driver and daemon capacity
+are reported. Gate timings, cgroup quotas and available disk/memory help classify
+capacity failures separately from synchronization defects.
+
+### Compare and retain evidence
+
+```bash
+node scripts/check-compare.mjs .data/local-checks/<local-run> <downloaded-ci-manifest.json>
+```
+
+The comparison identifies matching material inputs, source/toolchain/policy
+differences, execution-environment differences and missing evidence. Missing facts
+yield an inconclusive comparison. Matching HEAD values alone never prove source
+equivalence. Ephemeral BuildKit stdin-session IDs are omitted; tar transport
+digests are diagnostic, while comparisons use canonical source fingerprints and
+resolved base materials. Matching fingerprints/configuration still cannot guarantee identical
+scheduling. `gates.json` preserves commands/order, prerequisites, result classes
+and stage durations. The manifest records resolved image IDs/base materials,
+host/container Node/npm, Docker/Compose/BuildKit, OS/kernel/architecture,
+resource limits, locale/timezone, installed tooling packages and resolved browser
+projects/workers/retries/timeouts. Only selected non-secret configuration is kept.
+
+CI uploads compact manifests, gate summaries and browser statistics on success
+and failure, including manual runs, for 14 days. Compact evidence is capped at
+8 MiB per run. Failure/catalog traces and screenshots have a separate 64 MiB,
+200-file cap; `retention.json` records omission counts and a bounded path sample. Traces contain disposable
+synthetic test traffic. The upload allowlist excludes checkouts, environment
+files, database dumps, raw Docker inspection and host/application logs. Full logs
+and reports remain in the local run directory. Hard runner termination can
+prevent final export; retained partial manifests must be treated as incomplete.
+
+### Toolchain updates and failure classification
+
+Dockerfile image references pin multi-architecture index digests. Checks tooling
+and production runtime packages resolve through a dated, signed Ubuntu/Debian
+archive snapshot; installed versions are inventoried. Archive unavailability
+fails setup, with no fallback to current packages. See the upstream
+[Docker digest guidance](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions),
+[Ubuntu snapshots](https://snapshot.ubuntu.com/) and
+[Debian snapshots](https://snapshot.debian.org/).
+
+Update image tags/digests, Node/npm, `.nvmrc` and the archive snapshot together in
+the toolchain specification and Dockerfile. Keep Playwright's package and image
+versions matched. Review security updates regularly; pins require deliberate
+maintenance. Run the toolchain/source/report tests and focused image/browser
+checks, then obtain clean normal/cold and local/hosted comparisons before release.
+The consistency guard rejects declared-toolchain drift.
+
+Focused runner checks can run independently of acceptance:
+
+```bash
+node --test scripts/check-source.test.mjs scripts/check-evidence.test.mjs scripts/check-local.test.mjs scripts/check-gates.test.mjs scripts/check-report.test.mjs scripts/check-release-results.test.mjs scripts/check-browser-results.test.mjs
+CHECK_SOURCE_DOCKER_TEST=1 node --test scripts/check-source.test.mjs
+```
+
+The opt-in Docker cases use only synthetic temporary Git repositories, including
+ignored secrets, Dockerfile-specific exclusions and normal/cold source snapshots.
+
+`npm ci` remains authoritative for the committed lockfile and integrity hashes.
+Advisory requests intentionally stay live: high/critical findings and unavailable
+advisory evidence still fail acceptance, and release evidence must be fresh and
+match the lockfile. Compare `dependencies.json` timestamps/findings separately
+from frozen test inputs. Documentation checks validate relative links locally;
+registry/archive transport availability is separate from pinned-content integrity.
+Classify failures as source/configuration drift, pinned-input transport/setup,
+fresh advisory/network findings, synchronization defects, application races or
+capacity failures, using the retained request timeline and gate/resource facts.
+Do not classify a retry pass as success, allow skips, or broaden timeouts to hide
+a race. The request-gate tests supplement the
+[Playwright completion assertions](https://playwright.dev/docs/best-practices#use-web-first-assertions).
 
 ## Focused catalog upgrade smoke
 
