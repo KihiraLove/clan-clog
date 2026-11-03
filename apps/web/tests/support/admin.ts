@@ -281,7 +281,10 @@ export class MemoryAdminClient implements AdminClient {
     };
   }
   private logoSettings: Branding = { ...defaultBranding };
-  private hardcoreLogoSettings: Branding = { ...defaultBranding };
+  private hardcoreLogoSettings: Branding = {
+    ...defaultBranding,
+    faviconPath: '/favicon.webp?hardcore=1',
+  };
   publicBranding(hardcore = false) {
     return { ...(hardcore ? this.hardcoreLogoSettings : this.logoSettings) };
   }
@@ -300,7 +303,10 @@ export class MemoryAdminClient implements AdminClient {
     if (revision !== this.publicBranding(hardcore).revision)
       throw new AdminRequestError(409);
     if (file) throw new Error('Use the HTTP asset fixture for uploads.');
-    const paths = defaultBranding;
+    const paths = {
+      ...defaultBranding,
+      faviconPath: '/favicon.webp' + (hardcore ? '?hardcore=1' : ''),
+    };
     // Recheck after asynchronous image decoding to preserve the same concurrency contract.
     if (revision !== this.publicBranding(hardcore).revision)
       throw new AdminRequestError(409);

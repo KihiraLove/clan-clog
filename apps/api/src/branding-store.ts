@@ -44,7 +44,7 @@ export class PgBrandingStore implements BrandingStore {
         : defaultBranding.logoPath,
       faviconPath: row.logo_asset_id
         ? `/api/v1/branding/${row.logo_asset_id}/favicon.webp`
-        : defaultBranding.faviconPath,
+        : defaultBranding.faviconPath + (hardcore ? '?hardcore=1' : ''),
     };
   }
   async asset(id: string): Promise<LogoRecord | null> {
@@ -124,7 +124,7 @@ export class PgBrandingStore implements BrandingStore {
         logoPath: id ? `/api/v1/branding/${id}.webp` : defaultBranding.logoPath,
         faviconPath: id
           ? `/api/v1/branding/${id}/favicon.webp`
-          : defaultBranding.faviconPath,
+          : defaultBranding.faviconPath + (hardcore ? '?hardcore=1' : ''),
       };
     } catch (error) {
       await client.query('ROLLBACK');

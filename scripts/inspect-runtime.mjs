@@ -14,6 +14,7 @@ for (const [file, expected] of Object.entries(manifest.files)) {
   assert.ok(
     file === 'package.json' ||
       file === 'LICENSE' ||
+      file === 'apps/web/public/favicon.webp' ||
       /^(?:apps\/(?:api|bot)|packages\/(?:database|domain))\/(?:package\.json|dist\/.+\.js)$/u.test(
         file,
       ),
@@ -94,11 +95,16 @@ for (const file of [
   'catalog/updates/index.json',
   '/usr/share/nginx/html/index.html',
   '/usr/share/nginx/html/catalog/default.webp',
+  'apps/web/public/favicon.webp',
   '/usr/lib/postgresql/17/bin/postgres',
   '/usr/local/bin/clog',
   '/usr/local/bin/start-installation',
 ])
   await lstat(file);
+assert.deepEqual(
+  await readFile('apps/web/public/favicon.webp'),
+  await readFile('/usr/share/nginx/html/favicon.webp'),
+);
 assert.equal(
   createHash('sha256')
     .update(await readFile('/usr/share/nginx/html/catalog/default.webp'))

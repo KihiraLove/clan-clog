@@ -120,7 +120,7 @@ for (const width of [1440, 320]) {
           .toBe(true);
         await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
           'type',
-          'image/webp',
+          'image/png',
         );
         const assets = await page.evaluate(async () =>
           Promise.all(

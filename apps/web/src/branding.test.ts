@@ -10,6 +10,11 @@ const branding = {
 };
 test('live branding allows only a matched same-origin logo/favicon pair', () => {
   assert.deepEqual(parseBranding(defaultBranding), defaultBranding);
+  const hardcoreDefault = {
+    ...defaultBranding,
+    faviconPath: '/favicon.webp?hardcore=1',
+  };
+  assert.deepEqual(parseBranding(hardcoreDefault), hardcoreDefault);
   assert.deepEqual(parseBranding(branding), branding);
   for (const invalid of [
     { ...branding, logoPath: 'https://example.com/logo.svg' },
@@ -17,6 +22,10 @@ test('live branding allows only a matched same-origin logo/favicon pair', () => 
     { ...branding, faviconPath: '/favicon.webp' },
     { ...branding, revision: 'branding-0' },
     { ...branding, logoPath: '/api/v1/branding/../file.webp' },
+    {
+      ...defaultBranding,
+      faviconPath: '/favicon.webp?hardcore=1&url=https://example.com',
+    },
   ])
     assert.throws(() => parseBranding(invalid));
 });

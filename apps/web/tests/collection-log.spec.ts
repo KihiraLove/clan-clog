@@ -173,7 +173,7 @@ test('homepage uses the supplied default branding, 2x log, separate XP navigatio
   );
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
     'href',
-    '/favicon.webp',
+    '/apple-touch-icon.png?v=branding-1',
   );
   await expect(
     page.getByRole('button', { name: 'Hardcore worlds', exact: true }),

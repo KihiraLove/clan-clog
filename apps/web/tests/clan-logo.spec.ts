@@ -3,6 +3,73 @@ import { expect, test } from './test.ts';
 import sharp from 'sharp';
 import { adminFixtures } from './admin-fixtures.ts';
 
+test('root and deep-link HTML declare a PNG icon before delayed branding; metadata keeps mobile and tab artwork consistent', async ({
+  page,
+}) => {
+  await mockApi(page);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const id = '00000000-0000-4000-8000-000000000001';
+  const branded = {
+    revision: 'branding-2',
+    logoPath: `/api/v1/branding/${id}.webp`,
+    faviconPath: `/api/v1/branding/${id}/favicon.webp`,
+  };
+  const png = await sharp({
+    create: { width: 180, height: 180, channels: 4, background: '#ff00ff' },
+  })
+    .png()
+    .toBuffer();
+  await page.route('**/*apple-touch-icon.png*', (route) =>
+    route.fulfill({
+      body: png,
+      contentType: 'image/png',
+      headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' },
+    }),
+  );
+  await page.route('**/api/v1/branding', async (route) => {
+    await gate;
+    await route.fulfill({ json: branded });
+  });
+  for (const path of ['/', '/xp']) {
+    const html = await (await page.request.get(path)).text();
+    expect(html).toMatch(/rel="icon"[^>]+type="image\/png"/);
+    expect(html).toMatch(
+      /rel="apple-touch-icon"[^>]+href="\/apple-touch-icon.png"/,
+    );
+    expect(html).not.toContain('alternate icon');
+  }
+  await page.goto('/xp');
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
+    'href',
+    /\/apple-touch-icon\.png/,
+  );
+  // Discovery retrieves the configured artwork while the JSON metadata is held.
+  const pixel = await page.evaluate(async () => {
+    const response = await fetch('/apple-touch-icon.png');
+    const bitmap = await createImageBitmap(await response.blob());
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 180;
+    const context = canvas.getContext('2d')!;
+    context.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return {
+      type: response.headers.get('Content-Type'),
+      pixel: [...context.getImageData(90, 90, 1, 1).data],
+    };
+  });
+  expect(pixel).toEqual({ type: 'image/png', pixel: [255, 0, 255, 255] });
+  release();
+  const path = `/api/v1/branding/${id}/apple-touch-icon.png`;
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', path);
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
+    'href',
+    path,
+  );
+});
+
 test('admin uploads GIF and animated WebP logos, updates the website icon and restores the default', async ({
   page,
 }) => {
@@ -35,12 +102,12 @@ test('admin uploads GIF and animated WebP logos, updates the website icon and re
       logo: document.querySelector<HTMLImageElement>('.clan-logo')!.src,
       favicon:
         document.querySelector<HTMLLinkElement>('link[rel="icon"]')!.href,
-      alternate: document.querySelector<HTMLLinkElement>(
-        'link[rel="alternate icon"]',
+      touch: document.querySelector<HTMLLinkElement>(
+        'link[rel="apple-touch-icon"]',
       )!.href,
     }));
     expect(paths.favicon).toMatch(/\/api\/v1\/branding\//);
-    expect(paths.alternate).toBe(paths.favicon);
+    expect(paths.touch).toBe(paths.favicon);
     const formats = await page.evaluate(
       async ({ logo, favicon }) => ({
         logo: (await fetch(logo)).headers.get('Content-Type'),
@@ -48,7 +115,7 @@ test('admin uploads GIF and animated WebP logos, updates the website icon and re
       }),
       paths,
     );
-    expect(formats).toEqual({ logo: 'image/webp', favicon: 'image/webp' });
+    expect(formats).toEqual({ logo: 'image/webp', favicon: 'image/png' });
   }
   await page.setViewportSize({ width: 320, height: 850 });
   await expect(
@@ -68,7 +135,7 @@ test('admin uploads GIF and animated WebP logos, updates the website icon and re
     .click();
   await expect(logo).toHaveAttribute('src', '/brand/clan-logo.webp');
   expect(await page.locator('link[rel="icon"]').getAttribute('href')).toBe(
-    '/favicon.webp',
+    '/apple-touch-icon.png?v=branding-4',
   );
 });
 
@@ -76,6 +143,16 @@ test('live branding changes the public logo and icon; moderator accounts have no
   page,
 }) => {
   const fixture = await adminFixtures();
+  await page.route('**/*apple-touch-icon.png*', async (route) =>
+    route.fulfill({
+      body: await sharp({
+        create: { width: 180, height: 180, channels: 4, background: '#ff00ff' },
+      })
+        .png()
+        .toBuffer(),
+      contentType: 'image/png',
+    }),
+  );
   let privateReads = 0;
   const id = '00000000-0000-4000-8000-000000000001';
   const branding = {
@@ -110,7 +187,7 @@ test('live branding changes the public logo and icon; moderator accounts have no
   );
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
     'href',
-    branding.faviconPath,
+    branding.faviconPath.replace('favicon.webp', 'apple-touch-icon.png'),
   );
   await expect(
     page.getByRole('heading', { name: 'Submissions', exact: true }),

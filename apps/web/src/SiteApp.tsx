@@ -132,8 +132,10 @@ export function SiteApp({
   });
   const [helpOpen, setHelpOpen] = useState(false);
   const [liveBranding, setLiveBranding] = useState(defaultBranding);
-  const [liveHardcoreBranding, setLiveHardcoreBranding] =
-    useState(defaultBranding);
+  const [liveHardcoreBranding, setLiveHardcoreBranding] = useState({
+    ...defaultBranding,
+    faviconPath: '/favicon.webp?hardcore=1',
+  });
   const [liveHardcoreAppearance, setLiveHardcoreAppearance] =
     useState<HardcoreAppearance>();
   const metadata = useMemo(() => new PublicMetadataClient(), []);
@@ -216,13 +218,22 @@ export function SiteApp({
   useEffect(() => {
     document
       .querySelectorAll<HTMLLinkElement>(
-        'link[rel="icon"], link[rel="alternate icon"]',
+        'link[rel="icon"], link[rel="apple-touch-icon"]',
       )
       .forEach((icon) => {
-        icon.type = 'image/webp';
-        icon.href = branding.faviconPath;
+        icon.type = 'image/png';
+        icon.href =
+          branding.faviconPath.replace(
+            '/favicon.webp',
+            '/apple-touch-icon.png',
+          ) +
+          (branding.faviconPath.startsWith('/api/')
+            ? ''
+            : (branding.faviconPath.includes('?') ? '&' : '?') +
+              'v=' +
+              branding.revision);
       });
-  }, [branding.faviconPath]);
+  }, [branding.faviconPath, branding.revision]);
   const copy = appearance?.copy ?? defaultSiteCopy;
   const settingsSaved = (value: SiteSettings) => {
     setHighlights({

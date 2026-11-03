@@ -7,6 +7,7 @@ import { MemoryXpClient } from './support/xp.ts';
 import { MemoryCompetitionClient } from './support/competition.ts';
 import { defaultBranding, type Branding } from '../src/branding.ts';
 import type { Scenario } from './support/scenarios.ts';
+import { readFile } from 'node:fs/promises';
 
 export async function mockApi(
   page: Page,
@@ -33,7 +34,43 @@ export async function mockApi(
       contentType: 'image/webp',
     },
   );
-  const logos: Branding[] = [{ ...defaultBranding }, { ...defaultBranding }];
+  const logos: Branding[] = [
+    { ...defaultBranding },
+    { ...defaultBranding, faviconPath: '/favicon.webp?hardcore=1' },
+  ];
+  await page.route(
+    /\/(?:apple-touch-icon[^/]*\.png|favicon\.webp)(?:\?.*)?$/u,
+    async (route) => {
+      const url = new URL(route.request().url());
+      if (
+        ![
+          '/apple-touch-icon.png',
+          '/apple-touch-icon-precomposed.png',
+          '/favicon.webp',
+        ].includes(url.pathname)
+      )
+        return route.fallback();
+      const mode = url.searchParams.get('hardcore') === '1' ? 1 : 0;
+      const webp = url.pathname === '/favicon.webp';
+      const image = assets.get(
+        webp
+          ? logos[mode]!.faviconPath
+          : logos[mode]!.faviconPath.replace(
+              'favicon.webp',
+              'apple-touch-icon.png',
+            ),
+      );
+      const fallback = await readFile('public/favicon.webp');
+      return route.fulfill(
+        image ?? {
+          body: webp
+            ? fallback
+            : await sharp(fallback).resize(180, 180).png().toBuffer(),
+          contentType: webp ? 'image/webp' : 'image/png',
+        },
+      );
+    },
+  );
   const previews = new Map<
     string,
     Awaited<ReturnType<typeof competition.preview>>
@@ -113,7 +150,11 @@ export async function mockApi(
         if (method !== 'GET') {
           const next = Number(logos[mode]!.revision.slice(9)) + 1;
           if (method === 'DELETE')
-            logos[mode] = { ...defaultBranding, revision: 'branding-' + next };
+            logos[mode] = {
+              ...defaultBranding,
+              revision: 'branding-' + next,
+              faviconPath: '/favicon.webp' + (mode ? '?hardcore=1' : ''),
+            };
           else {
             const file = form!.get('logo') as File,
               bytes = Buffer.from(await file.arrayBuffer()),
@@ -131,6 +172,16 @@ export async function mockApi(
                 .toBuffer(),
               contentType: 'image/webp',
             });
+            assets.set(
+              faviconPath.replace('favicon.webp', 'apple-touch-icon.png'),
+              {
+                body: await sharp(bytes, { pages: 1 })
+                  .resize(180, 180, { fit: 'contain' })
+                  .png()
+                  .toBuffer(),
+                contentType: 'image/png',
+              },
+            );
             logos[mode] = {
               revision: 'branding-' + next,
               logoPath,
