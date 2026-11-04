@@ -1,6 +1,13 @@
 import * as appText from '@clog/domain';
 /** Public collection/XP routes share their branding, world controls and navigation. */
-import { useCallback, useMemo, useEffect, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useMemo,
+  useEffect,
+  useState,
+} from 'react';
 import { XpPage } from './XpPage.tsx';
 import { ActivityCompetitions } from './ActivityCompetitions.tsx';
 import type { CompetitionClient } from './competition-api.ts';
@@ -9,7 +16,13 @@ import { usePublicLog } from './use-public-log.ts';
 import { type SiteSettings } from './site-settings.ts';
 import { defaultBranding } from './branding.ts';
 import { PublicMetadataClient } from './public-metadata.ts';
-import { SubmissionHelp } from './SubmissionHelp.tsx';
+import { RenderBoundary } from './RenderBoundary.tsx';
+const SubmissionHelp = lazy(() =>
+  import('./SubmissionHelp.tsx').then((module) => ({
+    default: module.SubmissionHelp,
+  })),
+);
+const PublicNameChanges = lazy(() => import('./PublicNameChanges.tsx'));
 import { usePublicPolling } from './use-public-polling.ts';
 import type { SiteNavigation } from './use-route-navigation.ts';
 import type { RouteResources } from './app-runtime.ts';
@@ -431,20 +444,42 @@ export function SiteApp({
                 {appText.webSiteAppXpTracker2}
               </a>
             </nav>
-            <button
-              type="button"
-              className="site-button submission-help-button"
-              onClick={(event) => {
-                event.currentTarget.focus({ preventScroll: true });
-                setHelpOpen(true);
-              }}
-            >
-              {appText.webSiteAppHowToSubmit}
-            </button>
+            <div className="public-actions">
+              <button
+                type="button"
+                className="site-button submission-help-button"
+                onClick={(event) => {
+                  event.currentTarget.focus({ preventScroll: true });
+                  setHelpOpen(true);
+                }}
+              >
+                {appText.webSiteAppHowToSubmit}
+              </button>
+              <RenderBoundary fallback={null}>
+                <Suspense fallback={null}>
+                  <PublicNameChanges />
+                </Suspense>
+              </RenderBoundary>
+            </div>
           </div>
         )}
         {!admin && helpOpen && (
-          <SubmissionHelp text={liveHelp} onClose={() => setHelpOpen(false)} />
+          <RenderBoundary
+            fallback={
+              <p>
+                {
+                  appText.webSubmissionHelpInstructionsCouldNotBeDisplayedPleaseAskYourClanStaff
+                }
+              </p>
+            }
+          >
+            <Suspense fallback={null}>
+              <SubmissionHelp
+                text={liveHelp}
+                onClose={() => setHelpOpen(false)}
+              />
+            </Suspense>
+          </RenderBoundary>
         )}
         <main
           id={admin ? 'admin-main' : xp ? 'xp-main' : 'collection-log'}

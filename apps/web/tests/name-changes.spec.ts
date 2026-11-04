@@ -390,5 +390,8 @@ test('search recovery, no-op feedback, escaped names and moderator permissions r
     'Only the administrator can change collector names.',
   );
   await expect(panel.getByLabel('New name', { exact: true })).toHaveCount(0);
+  await expect(
+    panel.getByRole('switch', { name: 'Enable user submitted name changes' }),
+  ).toBeDisabled();
   expect(state.requests).toHaveLength(0);
 });

@@ -75,6 +75,8 @@ export type ReviewRouteStore = Pick<
   | 'collectors'
   | 'previewCollectorName'
   | 'applyCollectorName'
+  | 'userNameChangesSettings'
+  | 'saveUserNameChangesSettings'
 >;
 export type ManualReviewStore = Pick<ReviewStore, 'createManual'>;
 export type XpPublicStore = Pick<XpStore, 'tracker' | 'trackerSnapshot'>;

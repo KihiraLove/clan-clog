@@ -82,6 +82,14 @@ export interface ReviewAudit {
   after: ReviewSubmission;
 }
 export interface ReviewStore {
+  userNameChangesSettings?(): Promise<
+    import('@clog/domain').UserNameChangeSettings
+  >;
+  saveUserNameChangesSettings?(
+    enabled: boolean,
+    revision: string,
+    actorId: string,
+  ): Promise<import('@clog/domain').UserNameChangeSettings>;
   collectors?(query: string): Promise<{
     collectors: import('@clog/domain').CollectorIdentity[];
     hasMore: boolean;

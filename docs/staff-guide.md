@@ -117,6 +117,27 @@ staff can explicitly request saved intake timing or change collection flags.
 
 ## Collector name changes
 
+**Enable user submitted name changes**, directly below the **Name Changes**
+heading, controls the public **Change name** button below **How to submit**.
+It starts disabled after upgrade. Administrators can toggle it; moderators can
+see its current setting. The staff rename and merge workflow below does not
+require Wise Old Man (WOM) verification.
+
+When enabled, visitors enter their old and new RuneScape names in the public
+dialog. The server requires an approved WOM name change on the new name's current
+player profile, including a chain of approved changes when necessary. If the old
+name still exists without that approved change, the dialog links to WOM's name
+change form. Missing, unavailable or ambiguous WOM records ask the visitor to
+contact staff. A successful check applies the same collector rename or merge,
+closes the dialog and displays **Name successfully changed**. Disabling the toggle
+also blocks new public changes on the server, including an open dialog.
+
+If the public dialog cannot confirm a response, click **Change** again to recover
+the same request. A retired name reused by a different WOM player, a previously
+used verification record or conflicting known player identities requires staff
+review. This check trusts WOM's approval; it does not authenticate the visitor
+or update accounts on WOM.
+
 The administrator can use **Name Changes**, below **Duplicate handling** on
 **Submissions**, to rename a collection-log collector or merge that collector into
 an existing one. Search for the source collector, select it, and enter the new

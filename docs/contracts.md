@@ -258,6 +258,44 @@ there is no automatic historical alias resolution for recycled/late player names
 Staff can verify and merge it explicitly. Normalized case/spacing variants of a
 current name still resolve to that current identity.
 
+### Public WOM-verified changes
+
+Migration 008 adds a versioned singleton setting (disabled by default), its
+append-only administrator audit, optional WOM player bindings and an append-only
+ledger of consumed WOM name-change records. Existing submission and receipt data
+is retained. Staff rename/merge routes continue to operate without WOM.
+
+| Method | Route                                   | Contract                                                                                                                         |
+| ------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/collector-name-changes`        | Anonymous, no-store `{ enabled }`.                                                                                               |
+| POST   | `/api/v1/collector-name-changes`        | Same-origin JSON `{ oldName, newName }`, UUID `Idempotency-Key`; success `{ status: 'changed', operationId, oldName, newName }`. |
+| GET    | `/api/v1/admin/collector-name-settings` | Authenticated staff; `{ enabled, revision }`.                                                                                    |
+| PUT    | `/api/v1/admin/collector-name-settings` | Administrator, Origin and CSRF; `{ enabled, expectedRevision }`. Stale revision returns 409.                                     |
+
+Public inputs are limited to RuneScape names of 1–12 ASCII letters, digits,
+spaces, underscores or hyphens. Verification uses read-only HTTPS GETs to the
+fixed WOM API: the new name's current player profile and approved `/names`
+history, then the old profile. Exact normalized names, one player ID and an
+ordered approved chain are required. Recycled old profiles belonging to another
+player fail closed. Upstream failures, malformed/oversized responses and the
+six-second deadline do not authorize a change. No WOM update or submission POST
+is made.
+
+The server captures the source/target snapshot before verification and rechecks
+that snapshot and the enabled setting at commit. The identity operation, normal
+audit/receipt, player binding and consumed verification IDs commit atomically.
+Conflicting known bindings and reused proofs require staff. The public actor/key
+receipt hashes the original names; identical retries recover the saved response
+before rate limits or the enabled setting, without applying again or calling WOM.
+A different payload with the same key conflicts. Public responses omit internal
+collector IDs, status counts and private provenance.
+
+Public work is bounded to two concurrent requests and 30 per minute globally,
+one concurrent request and five per minute per hashed client IP, with at most
+512 in-memory IP scopes. Rejected admission returns 429 before WOM work. These
+process-local budgets reset on restart; they supplement the deployment's network
+controls rather than providing visitor authentication.
+
 ## Legacy Event page assignments
 
 Administrator-only `GET /admin/event-page-assignments` returns `revision`, `total`
