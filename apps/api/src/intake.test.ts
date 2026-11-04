@@ -123,6 +123,7 @@ test('hardcore and every immutable claim field enter the idempotency fingerprint
     standard,
   );
   for (const change of [
+    { gameMode: 'ironman' as const },
     { hardcore: true },
     { collectorName: 'Someone else' },
     { itemId: 42 },

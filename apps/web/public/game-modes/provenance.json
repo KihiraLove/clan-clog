@@ -1,0 +1,68 @@
+{
+  "sourcePage": "https://support.runescape.com/hc/en-gb/articles/360001358698-Chat-badges",
+  "retrievedAt": "2026-11-04",
+  "copyright": "OSRS chat badge artwork © Jagex Ltd. All rights reserved.",
+  "conversion": "Lossless WebP; native dimensions and transparency preserved; no resizing or artwork changes.",
+  "assets": [
+    {
+      "gameMode": "ironman",
+      "file": "ironman.webp",
+      "sourceUrl": "https://support.runescape.com/hc/article_attachments/27922167090833",
+      "sourceSha256": "da33147d9ecb80ce17a0239171d231b35a6b83e41a7593257b6fc66fa9d01cf4",
+      "sha256": "a401676edd3be24f88757a6c5a1e790dd2b4edc2b4c038a27821d414921edc00",
+      "width": 10,
+      "height": 13,
+      "bytes": 128
+    },
+    {
+      "gameMode": "hardcore_ironman",
+      "file": "hardcore_ironman.webp",
+      "sourceUrl": "https://support.runescape.com/hc/article_attachments/27922172235793",
+      "sourceSha256": "93080bcd75009c3b831d4953bab39dc8af78e040e4bd93855e96a683923efafa",
+      "sha256": "a7e0b9afdad9dac2c29f14c8ef79b71eb30a76237df10ea37bf3f30e7cc6ab12",
+      "width": 10,
+      "height": 13,
+      "bytes": 120
+    },
+    {
+      "gameMode": "ultimate_ironman",
+      "file": "ultimate_ironman.webp",
+      "sourceUrl": "https://support.runescape.com/hc/article_attachments/27922167096081",
+      "sourceSha256": "ad70633103737f667ba371ca763ddce51d4476fd0df145fa76d08a7afba01177",
+      "sha256": "75e6701e4a0c5353277a4331d4c1beffc33437a69b89f5e24a41aa90da46df61",
+      "width": 13,
+      "height": 13,
+      "bytes": 170
+    },
+    {
+      "gameMode": "group_ironman",
+      "file": "group_ironman.webp",
+      "sourceUrl": "https://support.runescape.com/hc/article_attachments/27922172238865",
+      "sourceSha256": "cb4a86b376213986cd1e2ff26df7a5313ef4a85fc37742190204c4f6df61a103",
+      "sha256": "f268a517d022e8bc197341f7b16363b80abe361649c47023e07190e8b2c72f5c",
+      "width": 10,
+      "height": 13,
+      "bytes": 132
+    },
+    {
+      "gameMode": "hardcore_group_ironman",
+      "file": "hardcore_group_ironman.webp",
+      "sourceUrl": "https://support.runescape.com/hc/article_attachments/27922172240657",
+      "sourceSha256": "f4a0d11e171183a1477b401711f2852361fd1498f3af093e63a65f320575962d",
+      "sha256": "d8a96304e7f5a03ceb961b10de82d4cfed240814c742be7c8d8d375412106363",
+      "width": 10,
+      "height": 13,
+      "bytes": 132
+    },
+    {
+      "gameMode": "unranked_group_ironman",
+      "file": "unranked_group_ironman.webp",
+      "sourceUrl": "https://support.runescape.com/hc/article_attachments/27922167101457",
+      "sourceSha256": "bc943e5feab42c2ef9173f53596cd2e352b0b20f7e17dd0c0df5caee95465588",
+      "sha256": "799d502d49a4b4d20eca8e0e8189531313d4c46c51da89266aa3c55fb66cf390",
+      "width": 10,
+      "height": 13,
+      "bytes": 134
+    }
+  ]
+}

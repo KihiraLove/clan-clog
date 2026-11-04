@@ -1,7 +1,11 @@
 import * as appText from '@clog/domain';
 export { validateItem } from './item-creation.ts';
 /** Private API contracts and form validation; server authorization remains mandatory. */
-import { validateCollectionDate, parseSubmissionFilters } from '@clog/domain';
+import {
+  validateCollectionDate,
+  parseSubmissionFilters,
+  parseGameMode,
+} from '@clog/domain';
 import { parseCatalog, type Catalog, type Item, type Page } from './model.ts';
 import {
   identity,
@@ -23,6 +27,8 @@ export function dateSourceLabel(source: Submission['dateSource']): string {
       : appText.webAdminModelAdminCorrection;
 }
 export interface Submission {
+  gameMode?: import('@clog/domain').GameMode | null;
+  submittedGameMode?: import('@clog/domain').GameMode | null;
   collectorId?: string;
   originalCollectorName?: string;
   admissionPolicy?: import('@clog/domain').SubmissionFilters;
@@ -52,6 +58,7 @@ export interface Submission {
   reviewReason: string | null;
 }
 export interface ManualSubmissionInput {
+  gameMode?: import('@clog/domain').GameMode;
   eventPageId?: string;
   collectionType?: import('@clog/domain').CollectionType;
   itemId: number;
@@ -171,6 +178,7 @@ export function parseStaffAccount(input: unknown): StaffAccount {
 }
 export interface AdminClient {
   collectorNameClient?(): Promise<typeof import('./collector-name-api.ts')>;
+  collectorModeClient?(): Promise<typeof import('./collector-mode-api.ts')>;
   eventPageClient?(): Promise<typeof import('./event-page-api.ts')>;
   catalogUpdateClient?(): Promise<typeof import('./catalog-update-api.ts')>;
   accessControl(
@@ -481,6 +489,12 @@ export function parseSubmission(value: unknown): Submission {
   )
     throw new Error(appText.webAdminModelInvalidSubmissionData);
   return {
+    ...(row.gameMode === undefined
+      ? {}
+      : { gameMode: parseGameMode(row.gameMode) }),
+    ...(row.submittedGameMode === undefined
+      ? {}
+      : { submittedGameMode: parseGameMode(row.submittedGameMode) }),
     id: text(row.id),
     ...(row.admissionPolicy === undefined
       ? {}

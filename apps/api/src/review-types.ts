@@ -1,5 +1,7 @@
 /** REVIEW-01 private response types. Public credits never expose these fields. */
 export interface ReviewSubmission {
+  gameMode?: import('@clog/domain').GameMode | null;
+  submittedGameMode?: import('@clog/domain').GameMode | null;
   collectorId?: string;
   originalCollectorName?: string;
   admissionPolicy?: import('@clog/domain').SubmissionFilters;
@@ -32,6 +34,7 @@ export interface ReviewSubmission {
   reviewReason: string | null;
 }
 export interface ManualSubmissionInput {
+  gameMode?: import('@clog/domain').GameMode;
   eventPageId?: string;
   collectionType?: import('@clog/domain').CollectionType;
   itemId: number;
@@ -82,6 +85,16 @@ export interface ReviewAudit {
   after: ReviewSubmission;
 }
 export interface ReviewStore {
+  collectorGameMode?(
+    submissionId: string,
+  ): Promise<import('@clog/domain').CollectorGameMode>;
+  saveCollectorGameMode?(
+    submissionId: string,
+    fields: import('@clog/domain').CollectorGameModeChange,
+    key: string,
+    actorId: string,
+    actorName: string,
+  ): Promise<import('@clog/domain').CollectorGameModeResult>;
   userNameChangesSettings?(): Promise<
     import('@clog/domain').UserNameChangeSettings
   >;
@@ -98,6 +111,7 @@ export interface ReviewStore {
     sourceId: string,
     newName: string,
     actorId: string,
+    modeResolution?: import('@clog/domain').GameMode,
   ): Promise<import('@clog/domain').CollectorNamePreview>;
   applyCollectorName?(
     token: string,

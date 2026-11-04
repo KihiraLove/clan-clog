@@ -76,6 +76,8 @@ export type ReviewRouteStore = Pick<
   | 'previewCollectorName'
   | 'applyCollectorName'
   | 'userNameChangesSettings'
+  | 'collectorGameMode'
+  | 'saveCollectorGameMode'
   | 'saveUserNameChangesSettings'
 >;
 export type ManualReviewStore = Pick<ReviewStore, 'createManual'>;

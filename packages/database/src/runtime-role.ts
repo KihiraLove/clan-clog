@@ -56,6 +56,8 @@ const tablePolicy: Readonly<Record<string, readonly TablePrivilege[]>> = {
   collector_name_settings: update,
   collector_name_settings_audit: append,
   collector_name_wom_verifications: append,
+  collector_game_mode_audit: append,
+  collector_game_mode_requests: append,
   competition_import_history: append,
   competition_previews: edit,
   competition_metric_state: update,

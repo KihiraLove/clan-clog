@@ -1,8 +1,10 @@
 import * as appText from '@clog/domain';
+import { gameModes } from '@clog/domain';
 /** Allowlisted, CSRF-protected review API with versioned queue and private audit. */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { ApiError } from './types.js';
 import { collectorNameRoutes } from './collector-name-routes.js';
+import { collectorGameModeRoutes } from './collector-game-mode-routes.js';
 import type { ReviewRouteStore } from './route-services.js';
 import type {
   ReviewAction,
@@ -34,6 +36,7 @@ export function reviewRoutes(
   authorize: Authorize,
 ) {
   collectorNameRoutes(app, store, authorize);
+  collectorGameModeRoutes(app, store, authorize);
   const assignmentOwner = async (request: FastifyRequest, write = false) => {
     const actor = await authorize(request, write);
     if (actor.role !== 'admin')
@@ -193,6 +196,7 @@ export function reviewRoutes(
           ],
           properties: {
             itemId: version,
+            gameMode: { type: 'string', enum: [...gameModes] },
             collectionType: { type: 'string', enum: ['regular', 'event'] },
             eventPageId: { type: 'string', minLength: 1, maxLength: 200 },
             collectorName: { type: 'string', minLength: 1, maxLength: 80 },

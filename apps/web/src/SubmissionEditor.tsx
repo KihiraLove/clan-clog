@@ -18,6 +18,7 @@ import {
 import type { AdminSession } from './xp-model.ts';
 import { formatUtcTime } from './format-time.ts';
 import { ReviewAuditHistory } from './ReviewAuditHistory.tsx';
+import { GameModeEditor } from './GameModeEditor.tsx';
 import { ProofLink } from './AdminProofLink.tsx';
 import { EventPagePicker } from './EventPagePicker.tsx';
 import { useAdminAction } from './use-admin-action.ts';
@@ -115,6 +116,8 @@ export function SubmissionEditor({
   const [readError, setReadError] = useState<string>(),
     [refresh, setRefresh] = useState(0);
   const action = useAdminAction(onAccessLost);
+  const [modeDirty, setModeDirty] = useState(false),
+    [modeBusy, setModeBusy] = useState(false);
   const hintId = useId();
   // A new version invalidates both the draft and the user's previous proof acknowledgment.
   const accept = (next: SubmissionDetail) => {
@@ -174,9 +177,9 @@ export function SubmissionEditor({
       !!draft.reason);
   useAdminDraft(dirty, action.busy);
   const close = () => {
-    if (action.busy) return;
+    if (action.busy || modeBusy) return;
     if (
-      dirty &&
+      (dirty || modeDirty) &&
       !window.confirm(appText.webSubmissionEditorDiscardUnsavedReviewChanges)
     )
       return;
@@ -523,12 +526,24 @@ export function SubmissionEditor({
           <button
             className="site-button review-close"
             aria-label={appText.webSubmissionEditorCloseReview}
-            disabled={action.busy}
+            disabled={action.busy || modeBusy}
             onClick={close}
           >
             {appText.webSubmissionEditorCloseSymbol}
           </button>
         </div>
+        <GameModeEditor
+          row={row}
+          client={client}
+          session={session}
+          onAccessLost={onAccessLost}
+          onDirty={setModeDirty}
+          onBusy={setModeBusy}
+          onSaved={() => {
+            onChanged(row.status);
+            if (!dirty) setRefresh((n) => n + 1);
+          }}
+        />
         <div className="submission-review-layout">
           <div className="submission-review-evidence">
             <h3>{appText.webSubmissionEditorSubmissionDetails}</h3>

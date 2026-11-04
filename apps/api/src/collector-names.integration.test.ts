@@ -109,7 +109,7 @@ test(
       ],
     );
     const historySql =
-      "SELECT to_jsonb(s)-'collector_id'-'original_collector_name' AS data FROM submissions s WHERE id=ANY($1::uuid[]) ORDER BY id";
+      "SELECT to_jsonb(s)-'collector_id'-'original_collector_name'-'submitted_game_mode' AS data FROM submissions s WHERE id=ANY($1::uuid[]) ORDER BY id";
     const before = (await owner.query(historySql, [ids])).rows,
       oldAudit = (await owner.query('SELECT * FROM audit_events ORDER BY id'))
         .rows;

@@ -1838,6 +1838,30 @@ html:has(.submission-review-dialog[open]) {
 .site-header-link__icon {
   display: none;
 }
+.collector-name {
+  display: inline;
+}
+.collector-helmet {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  max-width: 16px;
+  max-height: 16px;
+  margin-right: 3px;
+  vertical-align: -1px;
+  image-rendering: pixelated;
+}
+.collector-mode-editor {
+  border-top: 1px solid #796544;
+  border-bottom: 1px solid #796544;
+  padding: 12px 0;
+  margin: 12px 0;
+}
+.collector-mode-editor > label {
+  display: grid;
+  gap: 6px;
+  max-width: 360px;
+}
 .public-navigation-bar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 292px minmax(0, 1fr);

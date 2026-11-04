@@ -12,6 +12,7 @@ import {
 import type { AdminSession } from './xp-model.ts';
 import { useAdminDraft } from './admin-route-data.ts';
 import { EventPagePicker } from './EventPagePicker.tsx';
+import { gameModes, gameModeLabel, type GameMode } from '@clog/domain';
 
 export function ManualSubmissionForm({
   catalog,
@@ -30,6 +31,7 @@ export function ManualSubmissionForm({
   const [search, setSearch] = useState('');
   const [itemId, setItemId] = useState('');
   const [collectorName, setCollectorName] = useState('');
+  const [gameMode, setGameMode] = useState<GameMode | ''>('');
   const [collectedOn, setCollectedOn] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
@@ -95,6 +97,7 @@ export function ManualSubmissionForm({
         fields: {
           itemId: chosen.id,
           collectorName: collectorName.trim(),
+          ...(gameMode ? { gameMode } : {}),
           collectedOn,
           hardcore,
           collectionType: hardcore ? 'regular' : collectionType,
@@ -135,6 +138,7 @@ export function ManualSubmissionForm({
       setSearch('');
       setItemId('');
       setCollectorName('');
+      setGameMode('');
       setCollectedOn(new Date().toISOString().slice(0, 10));
       setHardcore(false);
       setCollectionType('regular');
@@ -188,6 +192,22 @@ export function ManualSubmissionForm({
                     value={collectorName}
                     onChange={(event) => setCollectorName(event.target.value)}
                   />
+                </label>
+                <label>
+                  {appText.gameModeTitle}
+                  <select
+                    value={gameMode}
+                    onChange={(event) =>
+                      setGameMode(event.target.value as GameMode | '')
+                    }
+                  >
+                    <option value="">{appText.gameModeUnassigned}</option>
+                    {gameModes.map((mode) => (
+                      <option value={mode} key={mode}>
+                        {gameModeLabel(mode)}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label>
                   {appText.webManualSubmissionFormPngScreenshotOptional}

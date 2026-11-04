@@ -8,6 +8,7 @@ import { MemoryCompetitionClient } from './support/competition.ts';
 import { defaultBranding, type Branding } from '../src/branding.ts';
 import type { Scenario } from './support/scenarios.ts';
 import { readFile } from 'node:fs/promises';
+import { normalizePlayerName, type CollectorGameMode } from '@clog/domain';
 
 export async function mockApi(
   page: Page,
@@ -21,6 +22,7 @@ export async function mockApi(
   );
   const state = { scenario: options.scenario as Scenario | undefined };
   let publicNames = { enabled: false, revision: 'collector-name-settings-1' };
+  const collectorModes = new Map<string, CollectorGameMode>();
   if (options.xpSamples) await xp.samples();
   const signal = new AbortController().signal;
   const assets = new Map<string, { body: Buffer; contentType: string }>();
@@ -493,6 +495,45 @@ export async function mockApi(
           result = row;
           status = 201;
         }
+      } else if (
+        path.endsWith('/game-mode') &&
+        path.startsWith('/api/v1/admin/submissions/')
+      ) {
+        const detail = await admin.detail(path.split('/')[5]!, signal),
+          name = detail.submission.collectorName,
+          identity = normalizePlayerName(name);
+        let profile = collectorModes.get(identity);
+        if (!profile) {
+          const id = crypto.randomUUID();
+          profile = {
+            collectorId: id,
+            collectorName: name,
+            gameMode: null,
+            revision: 'collector-mode-' + id + '-1-1',
+          };
+          collectorModes.set(identity, profile);
+        }
+        if (method === 'PUT') {
+          if (
+            b.expectedRevision !== profile.revision ||
+            b.collectorId !== profile.collectorId
+          )
+            throw Object.assign(Error('Changed'), { status: 409 });
+          const version = Number(profile.revision.split('-').at(-1)) + 1;
+          profile = {
+            ...profile,
+            gameMode: b.gameMode,
+            revision:
+              'collector-mode-' +
+              profile.collectorId +
+              '-' +
+              version +
+              '-' +
+              version,
+          };
+          collectorModes.set(identity, profile);
+          result = { ...profile, operationId: crypto.randomUUID() };
+        } else result = profile;
       } else if (path.startsWith('/api/v1/admin/submissions/')) {
         const parts = path.split('/'),
           id = parts[5]!,

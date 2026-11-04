@@ -1,6 +1,7 @@
 import * as appText from './text.js';
 import { normalizePlayerName } from './runelite-rules.js';
 export interface CollectorIdentity {
+  gameMode?: import('./game-modes.js').GameMode | null;
   id: string;
   name: string;
   version: string;
@@ -39,6 +40,8 @@ export type CollectorCounts = Record<
   number
 >;
 export interface CollectorNamePreview {
+  modeResolutionRequired?: boolean;
+  gameMode?: import('./game-modes.js').GameMode | null;
   token: string;
   operation: 'rename' | 'merge' | 'noop';
   source: CollectorIdentity;
@@ -47,6 +50,7 @@ export interface CollectorNamePreview {
   counts: CollectorCounts;
 }
 export interface CollectorNameResult {
+  gameMode?: import('./game-modes.js').GameMode | null;
   operationId: string;
   operation: 'rename' | 'merge';
   sourceId: string;

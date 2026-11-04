@@ -117,6 +117,39 @@ staff can explicitly request saved intake timing or change collection flags.
 
 ## Collector name changes
 
+### Collector game modes
+
+Each collector has one current **Game mode**, shared across items and normal and
+Hardcore collection worlds. Existing collectors start **Unassigned**. **Normal**
+is an explicit assignment, not the default for missing information. Supported
+modes are Normal, Ironman, Ultimate Ironman, Hardcore Ironman, Group Ironman (GIM),
+Hardcore Group Ironman (HCGIM) and Unranked Group Ironman (UGIM); team sizes are not
+tracked.
+
+In a submission review, administrators and moderators with Submissions access can
+choose **Game mode**, then **Save game mode** or **Discard**. This saves the
+collector profile independently of the claim: it needs no item match or proof
+acknowledgment and does not approve, reject, revoke or change the claim's date,
+world or Event credit. Original submitted modes remain private provenance. A
+different submitted value is shown as a disagreement for review; later intake
+cannot replace an established or explicitly reviewed assignment.
+
+A stale mode draft must be reloaded before saving. An uncertain result keeps the
+original request; **Retry game mode save** recovers it, including after reopening
+the review. Successful changes refresh public appearances. The six Ironman modes
+show a labeled helmet beside usernames in item hover/tap menus. Normal and
+Unassigned show no helmet. Current mode does not affect duplicate identity or
+obtain/completion totals.
+
+A rename retains the mode. A merge carries the assigned value when only one
+collector has one, and retains matching assignments. Conflicting assignments
+require choosing **Game mode after merging**, requesting **Preview selected game
+mode**, and then confirming **Merge users**. The exact name-change confirmation
+remains visible and the selected resolution is audited. A public WOM-verified
+merge with conflicting modes requires staff.
+
+### Name changes and merges
+
 **Enable user submitted name changes**, directly below the **Name Changes**
 heading, controls the public **Change name** button below **How to submit**.
 It starts disabled after upgrade. Administrators can toggle it; moderators can
