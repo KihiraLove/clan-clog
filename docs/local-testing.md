@@ -85,6 +85,9 @@ The formatting commands exclude `.data` and `.clog` before expanding file paths.
 These runtime directories can contain protected backups and secrets. Keep the
 negative directory globs in both `format` scripts: `.prettierignore` also excludes
 their files, but does not prevent the CLI's initial directory scan.
+Both commands also skip the WebP-only catalog, UI and test-item asset directories
+and catalog update assets. Keep those directory exclusions in sync with
+`.prettierignore`; brand and skill metadata remains part of formatting checks.
 
 Run checks for the behavior/files you changed. Examples:
 
