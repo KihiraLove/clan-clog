@@ -4990,3 +4990,45 @@ export const repeatCollectorPolicySnapshot = (
   policy: string,
   revision: string,
 ) => `${policy} (${revision})`;
+export const collectorNamesTitle = 'Name Changes';
+export const collectorNamesSearch = 'Search collectors';
+export const collectorNamesSource = 'Existing collector';
+export const collectorNamesSelect = 'Select a collector';
+export const collectorNamesNarrowSearch =
+  'More collectors match. Refine your search to find a name.';
+export const collectorNamesReload = 'Reload collectors';
+export const collectorNamesNewName = 'New name';
+export const collectorNamesChange = 'Change name';
+export const collectorNamesMerge = 'Merge users';
+export const collectorNamesCancel = 'Cancel';
+export const collectorNamesConfirmation = (
+  merge: boolean,
+  original: string,
+  name: string,
+) =>
+  `Are you sure you want to ${merge ? 'merge' : 'change'} user ${original} to ${merge ? 'existing ' : ''}${name}?\nThis action cannot be reversed.`;
+export const collectorNamesAdminOnly =
+  'Only the administrator can change collector names.';
+export const collectorNameInvalid =
+  'Enter a valid collector name of 1–80 characters.';
+export const collectorNamesUnavailable =
+  'Collector names could not be loaded. Try again.';
+export const collectorNamesMissing =
+  'That collector is no longer available. Search for the current name.';
+export const collectorNamesChanged =
+  'Collector history or names changed. Preview the operation again before confirming.';
+export const collectorNamesNoop =
+  'This collector already uses that name. No changes were made.';
+export const collectorNamesUncertain =
+  'The result is not confirmed. Retry confirmation to recover the saved result.';
+export const collectorNamesRetry = 'Retry confirmation';
+export const collectorNamesRefreshPreview = 'Preview again';
+export const collectorNamesOriginal = 'Originally submitted as';
+export const collectorNamesSuccess = (
+  merge: boolean,
+  original: string,
+  name: string,
+) =>
+  merge
+    ? `Merged ${original} into ${name}.`
+    : `Changed ${original} to ${name}.`;

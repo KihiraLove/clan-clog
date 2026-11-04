@@ -34,10 +34,10 @@ test(
       await Promise.all([migrate(url), migrate(url)]);
       const rows = (await client.query('SELECT name FROM schema_migrations'))
         .rows;
-      assert.equal(rows.length, 4);
+      assert.equal(rows.length, 7);
       assert.equal(
         new Set(rows.map((row: { name: string }) => row.name)).size,
-        4,
+        7,
       );
       assert.equal(
         (await client.query('SELECT count(*)::int AS count FROM xp_state'))
@@ -225,10 +225,18 @@ test(
         ).rows.map((row) => row.name),
         ['Bosses', 'Raids', 'Clues', 'Minigames', 'Other'],
       );
-      assert.ok(
-        (await client.query('SELECT version FROM projection_state')).rows.every(
-          (row) => row.version === '1',
-        ),
+      assert.deepEqual(
+        (
+          await client.query(
+            'SELECT resource FROM projection_state ORDER BY resource',
+          )
+        ).rows.map((row) => row.resource),
+        ['activities', 'catalog', 'collections', 'matches', 'xp'],
+      );
+      assert.equal(
+        (await client.query('SELECT count(*)::int AS n FROM collectors'))
+          .rows[0].n,
+        0,
       );
       for (const table of [
         'staff_accounts',

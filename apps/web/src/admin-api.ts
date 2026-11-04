@@ -37,7 +37,6 @@ import {
   parseAdminCatalog,
   parseAdminItem,
   parseAdminPage,
-  parseDetail,
   parseQueue,
   parseSubmission,
   parseStaffAccount,
@@ -88,6 +87,8 @@ export class AdminRequestError extends Error {
         serverConflict &&
         [
           appText.repeatCollectorRejected,
+          appText.collectorNamesChanged,
+          appText.collectorNamesMissing,
           appText.webAdminApiAnApprovedEventCollectionAlreadyExistsForThisItemRevoke,
           appText.webAdminApiFilterOutRegularDuplicatesIsOnAndThisItemAlready,
           appText.webAdminApiThatUsernameIsAlreadyInUse,
@@ -129,6 +130,9 @@ export class AdminRequestError extends Error {
 export class LiveAdminClient implements AdminClient {
   async eventPageClient() {
     return import('./event-page-api.ts');
+  }
+  async collectorNameClient() {
+    return import('./collector-name-api.ts');
   }
   async catalogUpdateClient() {
     return import('./catalog-update-api.ts');
@@ -956,6 +960,7 @@ export class LiveAdminClient implements AdminClient {
     );
   }
   async detail(id: string, signal: AbortSignal, cursor?: string) {
+    const { parseDetail } = await import('./submission-detail.ts');
     const params = new URLSearchParams();
     if (cursor) params.set('cursor', cursor);
     const result = parseDetail(

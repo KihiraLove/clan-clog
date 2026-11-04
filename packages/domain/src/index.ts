@@ -198,3 +198,4 @@ export {
   type HighlightColour,
   type HighlightUpdate,
 } from './highlight-colour.js';
+export * from './collector-names.js';

@@ -115,6 +115,58 @@ Approval checks again if another claim acquired the Event credit after intake.
 Ordinary edits and later Event revocation do not promote a saved fallback to Event;
 staff can explicitly request saved intake timing or change collection flags.
 
+## Collector name changes
+
+The administrator can use **Name Changes**, below **Duplicate handling** on
+**Submissions**, to rename a collection-log collector or merge that collector into
+an existing one. Search for the source collector, select it, and enter the new
+name. Existing target names are suggested while typing. **Change name** requests
+a server preview; it does not change any collection history.
+
+The confirmation shows either:
+
+```text
+Are you sure you want to change user Alice to Alice New?
+This action cannot be reversed.
+```
+
+or, when the normalized target already exists:
+
+```text
+Are you sure you want to merge user Alice to existing Bob?
+This action cannot be reversed.
+```
+
+Confirm with **Change name** or **Merge users**. **Cancel** and Escape dismiss the
+window without applying the preview. There is no Undo or Unmerge action. If a
+collector's names or history change after the preview, use **Preview again** and
+review a new confirmation. An uncertain save retains its request: **Retry
+confirmation** recovers that same operation, including after dismissing the
+window. Do not assume an unconfirmed response means the operation did not happen.
+
+Renames affect the collector's pending, approved, rejected and revoked submissions
+in both world modes. Merges keep the existing target identity and every original
+obtain, including overlapping items and repeated dates. Status, dates, Event pages,
+proof, actual obtain totals and completion counts stay intact. Original submitted
+names remain visible in submission details; old audit entries and delivery
+receipts keep their original content. Existing staff editors must reload after a
+collector name change. Staff sign-in names and WOM accounts/results are separate.
+
+Name matching uses the same case/space/underscore normalization as repeat-collector
+policies. A case-only spelling change is a display-name change; an unchanged
+effective display name reports that no changes were made. A confirmed merge never
+retroactively rejects overlapping history, even in reject-repeat mode. Future
+obtains under the survivor's current name use its combined approved history for
+duplicate checks. Separate mode still lists every obtain; merge mode groups the
+Regular entries under the current name, with the Event entry kept separate.
+
+Retired names are **not permanent aliases**. A genuinely new submission under an
+old name creates a separate collector, because a player name can be recycled.
+An old delivery retried with its original request key returns its saved receipt.
+Verify a late arrival before using a confirmed merge, or correct that individual
+submission. Editing one submission's collector reassigns that claim only; use
+**Name Changes** for a collector-wide display spelling change.
+
 ## Event credit upgrade review
 
 After an upgrade, **Assign existing Event collections to pages** opens for the

@@ -139,7 +139,7 @@ test(
       [randomUUID(), admin.id],
     );
     const historySql =
-      "SELECT to_jsonb(s)-'admission_policy' AS data FROM submissions s ORDER BY id";
+      "SELECT to_jsonb(s)-'admission_policy'-'collector_id'-'original_collector_name' AS data FROM submissions s ORDER BY id";
     const before = (await owner.query(historySql)).rows;
     const oldAudit = (await owner.query('SELECT * FROM audit_events')).rows;
     await migrate(url.href);

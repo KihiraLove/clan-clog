@@ -23,6 +23,8 @@ export function dateSourceLabel(source: Submission['dateSource']): string {
       : appText.webAdminModelAdminCorrection;
 }
 export interface Submission {
+  collectorId?: string;
+  originalCollectorName?: string;
   admissionPolicy?: import('@clog/domain').SubmissionFilters;
   eventPageId?: string | null;
   eventPageAssignmentPending?: boolean;
@@ -168,6 +170,7 @@ export function parseStaffAccount(input: unknown): StaffAccount {
   };
 }
 export interface AdminClient {
+  collectorNameClient?(): Promise<typeof import('./collector-name-api.ts')>;
   eventPageClient?(): Promise<typeof import('./event-page-api.ts')>;
   catalogUpdateClient?(): Promise<typeof import('./catalog-update-api.ts')>;
   accessControl(
@@ -524,6 +527,12 @@ export function parseSubmission(value: unknown): Submission {
       ? {}
       : { gameItemId: identity(row.gameItemId) }),
     collectorName: text(row.collectorName),
+    ...(row.collectorId === undefined
+      ? {}
+      : { collectorId: text(row.collectorId) }),
+    ...(row.originalCollectorName === undefined
+      ? {}
+      : { originalCollectorName: text(row.originalCollectorName) }),
     collectedOn: validateCollectionDate(text(row.collectedOn)),
     dateSource: choice(row.dateSource, ['submission', 'claim', 'admin']),
     submittedAt: timestamp(row.submittedAt),
@@ -577,44 +586,7 @@ export function parseQueue(value: unknown, view: QueueView): QueueResult {
     pageCursor: text(data.pageCursor),
   };
 }
-/** Every before/after audit snapshot must refer to the selected submission. */
-export function parseDetail(value: unknown): SubmissionDetail {
-  const data = object(value),
-    submission = parseSubmission(data.submission);
-  const audit = list(data.audit).map((entry) => {
-    const a = object(entry),
-      before = parseSubmission(a.before),
-      after = parseSubmission(a.after);
-    if (before.id !== submission.id || after.id !== submission.id)
-      throw new Error(appText.webAdminModelUnexpectedAuditIdentity);
-    return {
-      id: text(a.id),
-      actorName: text(a.actorName),
-      at: timestamp(a.at),
-      action: choice(a.action, [
-        'create',
-        'edit',
-        'approve',
-        'reject',
-        'revoke',
-      ]),
-      reason: a.reason === null ? null : text(a.reason),
-      before,
-      after,
-    };
-  });
-  unique(audit.map((a) => a.id));
-  if (audit.length > 20)
-    throw new Error(appText.webAdminModelAuditPageExceedsSupportedSize);
-  return {
-    submission,
-    audit,
-    auditRevision: text(data.auditRevision),
-    auditCursor: text(data.auditCursor),
-    nextAuditCursor:
-      data.nextAuditCursor === null ? null : text(data.nextAuditCursor),
-  };
-}
+export { parseDetail } from './submission-detail.ts';
 export function parseAdminItem(value: unknown): AdminItem {
   const data = object(value);
   const item = parseCatalog({ revision: 'item', items: [data], pages: [] })

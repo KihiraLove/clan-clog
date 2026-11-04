@@ -533,6 +533,12 @@ export function SubmissionEditor({
           <div className="submission-review-evidence">
             <h3>{appText.webSubmissionEditorSubmissionDetails}</h3>
             <dl className="submission-facts">
+              {row.originalCollectorName && (
+                <div>
+                  <dt>{appText.collectorNamesOriginal}</dt>
+                  <dd>{row.originalCollectorName}</dd>
+                </div>
+              )}
               {row.reviewReason && (
                 <div>
                   <dt>{appText.repeatCollectorDecisionReason}</dt>
