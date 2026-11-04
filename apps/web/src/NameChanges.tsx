@@ -320,7 +320,7 @@ export function NameChanges({
           {open && preview && (
             <dialog
               ref={dialog}
-              className="submission-review-dialog collector-name-dialog"
+              className="site-dialog submission-review-dialog collector-name-dialog"
               aria-labelledby={`${id}-title`}
               aria-describedby={`${id}-confirmation`}
               onCancel={(event) => {

@@ -178,7 +178,7 @@ export default function PublicNameChanges() {
       {open && (
         <dialog
           ref={dialog}
-          className="submission-review-dialog public-name-dialog"
+          className="site-dialog submission-review-dialog public-name-dialog"
           aria-labelledby={id}
           onCancel={(event) => {
             event.preventDefault();

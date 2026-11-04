@@ -194,6 +194,7 @@ test('saved colours reach silhouette filters and portalled Event/hardcore menus 
         collectorName: hardcore ? 'HC collector' : 'Event collector',
         collectedOn: '2026-10-01',
         collectionType: hardcore ? 'regular' : 'event',
+        eventPageId: hardcore ? null : 'vardorvis',
         hardcore,
         approve: true,
       },

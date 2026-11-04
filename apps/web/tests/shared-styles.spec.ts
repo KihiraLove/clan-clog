@@ -160,3 +160,151 @@ for (const viewport of [
     },
   );
 }
+
+// A shared edit must reach lazy staff routes, body portals and native top-layer
+// dialogs in either navigation order, without a feature copying the theme.
+for (const width of [1440, 320]) {
+  for (const firstRoute of ['/', '/admin/settings']) {
+    test(`shared tokens reach controls, portals and dialogs at ${width} starting on ${firstRoute}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      const { admin } = await mockApi(page, {
+        scenario: 'hardcore',
+        xpSamples: true,
+      });
+      const signal = new AbortController().signal;
+      const settings = await admin.settings(signal);
+      await admin.saveSettings(true, settings.revision, 'test-admin', signal);
+      await page.goto(firstRoute);
+      await expect(page.locator('.clan-name')).toBeVisible();
+      await page.evaluate(() => {
+        const tokens = {
+          '--surface-panel': '#182736',
+          '--surface-field': '#203040',
+          '--surface-tooltip': '#304050',
+          '--control-background': '#405060',
+          '--text-heading': '#f0dfab',
+          '--focus-ring': '#aabbcc',
+          '--feedback-error': '#ee8899',
+        };
+        for (const [name, value] of Object.entries(tokens))
+          document.documentElement.style.setProperty(name, value);
+      });
+      const staff = async () => {
+        await expect(page.locator('.admin-panel').first()).toHaveCSS(
+          'background-color',
+          'rgb(24, 39, 54)',
+        );
+        await expect(page.locator('.admin-panel h2').first()).toHaveCSS(
+          'color',
+          'rgb(240, 223, 171)',
+        );
+        await expect(
+          page.locator('.admin-panel input:not([type="checkbox"])').first(),
+        ).toHaveCSS('background-color', 'rgb(32, 48, 64)');
+      };
+      if (firstRoute !== '/') {
+        await staff();
+        await page
+          .getByRole('link', { name: 'Main site', exact: true })
+          .click();
+      }
+      const help = page.getByRole('button', {
+        name: 'How to submit',
+        exact: true,
+      });
+      await expect(help).toHaveCSS('background-color', 'rgb(64, 80, 96)');
+      await page.keyboard.press('Tab');
+      await help.focus();
+      await expect(help).toHaveCSS('outline-color', 'rgb(170, 187, 204)');
+      const item = page.locator('.item-slot--collected').first();
+      await item.click();
+      const tooltip = page.getByRole('tooltip');
+      await expect(tooltip).toHaveCSS('background-color', 'rgb(48, 64, 80)');
+      expect(
+        await tooltip.evaluate((node) => node.parentElement === document.body),
+      ).toBe(true);
+      await page.keyboard.press('Escape');
+      await help.click();
+      const helpDialog = page.getByRole('dialog', {
+        name: 'How to submit',
+        exact: true,
+      });
+      await expect(helpDialog).toHaveCSS('background-color', 'rgb(24, 39, 54)');
+      expect(
+        await helpDialog.evaluate(
+          (node) => getComputedStyle(node, '::backdrop').backgroundColor,
+        ),
+      ).toBe('rgba(0, 0, 0, 0.733)');
+      await page.keyboard.press('Escape');
+      const hardcore = page.getByRole('button', {
+        name: 'Hardcore worlds',
+        exact: true,
+      });
+      await hardcore.click();
+      await page.locator('.item-slot--hardcore').first().click();
+      await expect(tooltip).toHaveCSS('background-color', 'rgb(48, 64, 80)');
+      await page.keyboard.press('Escape');
+      await hardcore.click();
+      await page.getByRole('link', { name: 'Xp tracker', exact: true }).click();
+      await page.locator('.skill-cell').first().focus();
+      await expect(page.locator('.xp-tooltip')).toHaveCSS(
+        'background-color',
+        'rgb(48, 64, 80)',
+      );
+      await page.keyboard.press('Escape');
+      await page.locator('.site-header-link').click();
+      await page
+        .getByRole('link', { name: 'Site settings', exact: true })
+        .click();
+      await staff();
+      const hex = page
+        .getByRole('group', { name: 'Event collection highlight', exact: true })
+        .getByLabel('HEX', { exact: true });
+      await hex.fill('invalid');
+      await expect(hex).toHaveCSS('border-top-color', 'rgb(238, 136, 153)');
+      await expect(page.locator('.admin-error').first()).toHaveCSS(
+        'color',
+        'rgb(238, 136, 153)',
+      );
+      // Invalid form feedback and the disabled control state share the same
+      // primitives inside a lazy staff route as on public dialogs.
+      const save = page.getByRole('button', {
+        name: 'Save site settings',
+        exact: true,
+      });
+      await expect(save).toBeDisabled();
+      await save.hover();
+      await expect(save).toHaveCSS('background-color', 'rgb(64, 80, 96)');
+      await expect(save).toHaveCSS('opacity', '0.5');
+      await page
+        .getByRole('button', { name: 'Discard changes', exact: true })
+        .click();
+      await page
+        .getByRole('link', { name: 'Submissions', exact: true })
+        .click();
+      await page
+        .getByRole('button', { name: /^Review / })
+        .first()
+        .click();
+      const review = page.getByRole('dialog', {
+        name: 'Submission review',
+        exact: true,
+      });
+      await expect(review).toHaveCSS('background-color', 'rgb(24, 39, 54)');
+      await expect(
+        review.locator('input:not([type="checkbox"])').first(),
+      ).toHaveCSS('background-color', 'rgb(32, 48, 64)');
+      const box = (await review.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      expect(box.y + box.height).toBeLessThanOrEqual(900);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    });
+  }
+}

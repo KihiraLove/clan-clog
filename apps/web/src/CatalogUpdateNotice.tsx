@@ -283,7 +283,7 @@ export function CatalogUpdateNotice({
       {open && review && (
         <dialog
           ref={dialog}
-          className="catalog-update-dialog"
+          className="site-dialog catalog-update-dialog"
           aria-labelledby="catalog-update-title"
           onCancel={(e) => {
             e.preventDefault();

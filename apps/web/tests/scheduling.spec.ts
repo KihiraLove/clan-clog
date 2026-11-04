@@ -103,9 +103,15 @@ test('admin configures overlapping page schedules in local time, reviews UTC, ed
     })
     .getByRole('button', { name: 'Delete', exact: true })
     .click();
-  await expect(
-    page.getByRole('dialog', { name: 'Delete schedule' }),
-  ).toBeVisible();
+  const confirmation = page.getByRole('dialog', { name: 'Delete schedule' });
+  await expect(confirmation).toBeVisible();
+  const bounds = (await confirmation.boundingBox())!;
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+  expect(
+    await confirmation.evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true);
+  await expect(page.locator('html')).toHaveCSS('overflow', 'hidden');
   await page
     .getByRole('button', { name: 'Keep schedule', exact: true })
     .click();

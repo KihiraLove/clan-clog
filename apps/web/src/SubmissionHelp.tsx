@@ -52,7 +52,7 @@ export function SubmissionHelp({
   return (
     <dialog
       ref={dialog}
-      className="submission-help-dialog"
+      className="site-dialog submission-help-dialog"
       aria-labelledby="submission-help-title"
       onKeyDown={(event) => {
         if (event.key !== 'Tab') return;
