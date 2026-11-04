@@ -192,11 +192,14 @@ Anonymous `GET /collections` also includes `repeatCollectorPolicy`. Missing lega
 metadata defaults to separate; invalid values fail validation. Policy writes
 advance its public revision/ETag even when credits stay unchanged. An open menu
 refreshes the presentation using that metadata, without private requests. Merge
-mode groups normalized usernames per canonical item/world, keeps one original
-record per obtain, and prioritizes groups containing the current page's Event.
+mode groups Regular entries by normalized username per canonical item/world,
+keeping one original record per obtain. The current page's Event credit stays
+separate and first, with its original collector/date wording; that collector's
+additional obtains appear below a single Regular collection separator. An Event
+obtain assigned to another page joins the Regular entries on the current page.
 The summary is `Collected <number>x by <collector name> first on <date>` for repeats;
-singletons retain their existing text. Expanded history retains every date and
-page-specific Event/Regular label. Equal dates still represent separate obtains.
+singletons retain their existing text. Merged groups display only the first date.
+Equal dates still represent separate obtains. No stored credit is collapsed.
 
 ## Legacy Event page assignments
 

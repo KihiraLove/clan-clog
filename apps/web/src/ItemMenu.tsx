@@ -133,9 +133,7 @@ export function ItemMenu({
         )}
         {open.item.name}
       </div>
-      {repeatCollectorPolicy === 'merge' ? (
-        <MergedHistory credits={open.collectors} pageId={open.pageId} />
-      ) : open.collectors.length ? (
+      {open.collectors.length ? (
         <>
           {!!eventCredits.length && (
             <div className="item-menu__event">
@@ -148,9 +146,13 @@ export function ItemMenu({
           {!!regularCredits.length && (
             <div className="item-menu__regular">
               <strong>{appText.webItemMenuRegularCollection}</strong>
-              {regularCredits.map((credit) => (
-                <p key={credit.submissionId}>{creditLine(credit)}</p>
-              ))}
+              {repeatCollectorPolicy === 'merge' ? (
+                <MergedHistory credits={regularCredits} />
+              ) : (
+                regularCredits.map((credit) => (
+                  <p key={credit.submissionId}>{creditLine(credit)}</p>
+                ))
+              )}
             </div>
           )}
           {open.collectors

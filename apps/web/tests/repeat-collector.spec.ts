@@ -1,25 +1,29 @@
 import { test, expect } from './test.ts';
 import { mockApi } from './mock-api.ts';
 import type { Credit } from '../src/model.ts';
-test('repeat policy has its own section, preserves broad filtering and persists at desktop and mobile widths', async ({
+test('Duplicate handling combines both controls and persists at desktop and mobile widths', async ({
   page,
 }, info) => {
   const { admin } = await mockApi(page);
   const signal = new AbortController().signal;
   await page.goto('/admin/submissions');
-  const panel = page.locator('.repeat-collector-panel'),
+  const panel = page.locator('.duplicate-handling-panel'),
     choice = panel.getByRole('combobox', {
       name: 'Repeat collections by username',
       exact: true,
     });
   await expect(choice).toHaveValue('separate');
   await expect(choice.getByRole('option')).toHaveCount(3);
-  expect(
-    await panel.evaluate((e) =>
-      e.previousElementSibling?.classList.contains('submission-filter-panel'),
-    ),
-  ).toBe(true);
-  await page
+  await expect(panel.getByRole('heading', { level: 2 })).toHaveText(
+    'Duplicate handling',
+  );
+  await expect(page.locator('.submission-filter-panel')).toHaveCount(1);
+  await expect(panel.getByRole('button', { name: /Reload/ })).toHaveCount(0);
+  await expect(panel).not.toContainText('Use the normal review rules');
+  await expect(panel).not.toContainText('takes precedence');
+  // Saving the existing toggle must retain an unsaved policy choice.
+  await choice.selectOption('merge');
+  await panel
     .getByRole('switch', { name: 'Filter out regular duplicates', exact: true })
     .click();
   await expect(
@@ -28,10 +32,8 @@ test('repeat policy has its own section, preserves broad filtering and persists 
       exact: true,
     }),
   ).toHaveAttribute('aria-checked', 'true');
-  await choice.selectOption('merge');
-  await panel
-    .getByRole('button', { name: 'Save repeat collection policy', exact: true })
-    .click();
+  await expect(choice).toHaveValue('merge');
+  await panel.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(panel.getByRole('status')).toHaveText(
     'Repeat collection policy saved.',
   );
@@ -41,9 +43,7 @@ test('repeat policy has its own section, preserves broad filtering and persists 
   for (const width of [1100, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await choice.scrollIntoViewIfNeeded();
-    await expect(panel).toContainText(
-      'Filter out regular duplicates takes precedence',
-    );
+    await expect(panel.getByRole('switch')).toBeVisible();
     const box = (await choice.boundingBox())!;
     expect(box.x + box.width).toBeLessThanOrEqual(width);
     await panel.screenshot({
@@ -75,13 +75,13 @@ test('failed and stale policy writes keep the draft and moderators have a read-o
     return route.fallback();
   });
   await page.goto('/admin/submissions');
-  const panel = page.locator('.repeat-collector-panel');
+  const panel = page.locator('.duplicate-handling-panel');
   const choice = panel.getByRole('combobox', {
       name: 'Repeat collections by username',
       exact: true,
     }),
     save = panel.getByRole('button', {
-      name: 'Save repeat collection policy',
+      name: 'Save',
       exact: true,
     });
   await choice.selectOption('merge');
@@ -117,12 +117,13 @@ test('failed and stale policy writes keep the draft and moderators have a read-o
   await page.reload();
   await expect(choice).toHaveValue('merge');
   await expect(choice).toBeDisabled();
+  await expect(panel.getByRole('switch')).toHaveCount(0);
   await expect(save).toHaveCount(0);
   await expect(panel).toContainText(
     'Only the administrator can change this policy.',
   );
 });
-test('merged hover summaries keep the requested wording, all dates, Event prominence, canonical counts and live refresh', async ({
+test('merged hover summaries keep Event separate, one Regular heading, first dates, canonical counts and live refresh', async ({
   page,
 }, info) => {
   const { admin } = await mockApi(page);
@@ -209,21 +210,25 @@ test('merged hover summaries keep the requested wording, all dates, Event promin
   await slot.click();
   await expect(menu.locator('.item-menu__event')).toHaveCount(1);
   await expect(menu.locator('.item-menu__regular p')).toHaveCount(3);
+  await expect(
+    menu.getByText('Regular collection', { exact: true }),
+  ).toHaveCount(1);
   mode = 'merge';
   await refresh();
   await expect(menu.locator('.item-menu__event > p')).toHaveText(
-    'Collected 3x by Alice Smith first on 01/10/26',
+    'Collected by alice smith on 20/10/26',
   );
   await expect(menu.locator('.item-menu__regular > p')).toHaveText([
     'Collected by Bob on 01/09/26',
+    'Collected 2x by Alice Smith first on 01/10/26',
   ]);
   await expect(slot.locator('.item-obtain-count')).toHaveText('4');
-  await menu.locator('summary').click();
-  await expect(menu.locator('details p')).toHaveText([
-    'Regular collection — 01/10/26',
-    'Regular collection — 01/10/26',
-    'First event collection — 20/10/26',
-  ]);
+  await expect(
+    menu.getByText('Regular collection', { exact: true }),
+  ).toHaveCount(1);
+  await expect(menu.locator('details, summary')).toHaveCount(0);
+  await expect(menu).not.toContainText('Collection history');
+  await menu.screenshot({ path: info.outputPath('merged-menu-desktop.png') });
   await page.setViewportSize({ width: 320, height: 900 });
   await expect
     .poll(async () => (await menu.boundingBox())?.width ?? 0)
@@ -256,6 +261,58 @@ test('merged hover summaries keep the requested wording, all dates, Event promin
   await expect(menu).toContainText('Collected by Alice Smith on 02/09/26');
   await expect(menu).not.toContainText('first on');
   await expect(menu).not.toContainText('Bob');
+  // A page's sole Event credit has the original wording in every policy mode.
+  rows = [
+    {
+      submissionId: 'event-only',
+      itemId: 1,
+      collectorName: 'Alice Smith',
+      collectedOn: '2026-10-20',
+      hardcore: false,
+      collectionType: 'event',
+      eventPageId: 'a',
+    },
+  ];
+  await page
+    .getByRole('button', { name: 'Hardcore worlds', exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: 'Hardcore worlds', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Page A', exact: true }).click();
+  await refresh();
+  await slot.click();
+  for (mode of ['merge', 'separate', 'reject']) {
+    await refresh();
+    await expect(menu.locator('.item-menu__event > p')).toHaveText(
+      'Collected by Alice Smith on 20/10/26',
+    );
+    await expect(menu.locator('.item-menu__regular')).toHaveCount(0);
+    await expect(menu.locator('details, summary')).toHaveCount(0);
+  }
+  // Unassigned legacy Event credit must retain its visible staff-review label.
+  mode = 'merge';
+  rows = [
+    { ...rows[0]!, collectionType: 'regular', eventPageId: null },
+    {
+      ...rows[0]!,
+      submissionId: 'legacy',
+      collectedOn: '2026-10-21',
+      eventPageId: null,
+      eventPageAssignmentPending: true,
+    },
+  ];
+  await refresh();
+  await expect(menu.locator('.item-menu__regular > p')).toHaveText([
+    'Collected by Alice Smith on 20/10/26',
+  ]);
+  await expect(menu).toContainText(
+    'Existing Event collection — page assignment pending',
+  );
+  await expect(menu).toContainText('Collected by Alice Smith on 21/10/26');
+  await expect(
+    menu.getByText('Regular collection', { exact: true }),
+  ).toHaveCount(1);
 });
 test('manual repeat rejection is a saved rejected result with the policy reason', async ({
   page,

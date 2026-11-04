@@ -5,7 +5,7 @@ import type { AdminClient } from './admin-model.ts';
 import type { AdminSession } from './xp-model.ts';
 import { useAdminAction } from './use-admin-action.ts';
 import { useAdminDraft } from './admin-route-data.ts';
-export function RepeatCollectorControl({
+export function DuplicateHandling({
   client,
   session,
   filters,
@@ -26,39 +26,78 @@ export function RepeatCollectorControl({
   const action = useAdminAction(onAccessLost);
   const policy = draft?.policy ?? filters?.repeatCollectorPolicy ?? 'separate';
   const dirty = !!filters && policy !== filters.repeatCollectorPolicy;
-  const stale = dirty && draft?.revision !== filters?.revision;
   useAdminDraft(dirty, action.busy);
   const choices = [
     {
       id: 'reject',
       name: appText.repeatCollectorReject,
-      help: appText.repeatCollectorRejectHelp,
     },
     {
       id: 'separate',
       name: appText.repeatCollectorSeparate,
-      help: appText.repeatCollectorSeparateHelp,
     },
     {
       id: 'merge',
       name: appText.repeatCollectorMerge,
-      help: appText.repeatCollectorMergeHelp,
     },
   ] as const;
+  const accept = (current: SubmissionFilters) => {
+    onSaved(current);
+    setDraft((saved) =>
+      saved ? { ...saved, revision: current.revision } : undefined,
+    );
+  };
   const reload = async (signal: AbortSignal) => {
     const current = (await client.queue('pending', undefined, signal)).filters;
-    if (!signal.aborted && current) {
-      onSaved(current);
-      setDraft((saved) =>
-        saved ? { ...saved, revision: current.revision } : undefined,
-      );
-    }
+    if (!signal.aborted && current) accept(current);
   };
   return (
-    <section className="admin-panel repeat-collector-panel">
-      <h2 id={id}>{appText.repeatCollectorTitle}</h2>
+    <section className="admin-panel submission-filter-panel duplicate-handling-panel">
+      <h2>{appText.duplicateHandlingTitle}</h2>
+      <h3 id={`${id}-regular`}>
+        {appText.webAdminQueueFilterOutRegularDuplicates}
+      </h3>
+      {session.role === 'admin' ? (
+        <button
+          type="button"
+          className="site-button admin-toggle"
+          role="switch"
+          aria-labelledby={`${id}-regular`}
+          aria-checked={filters?.filterCollected ?? false}
+          disabled={!filters || action.busy}
+          onClick={() => {
+            if (!filters) return;
+            void action.execute(async (signal) => {
+              const saved = await client.saveSubmissionFilters(
+                !filters.filterCollected,
+                filters.revision,
+                session.csrfToken,
+                signal,
+              );
+              if (!signal.aborted) accept(saved);
+            }, reload);
+          }}
+        >
+          {filters?.filterCollected
+            ? appText.webAdminQueueOn
+            : appText.webAdminQueueOff}
+        </button>
+      ) : (
+        <p>
+          {appText.webAdminQueueDuplicateFilterExplanation.beforeState}{' '}
+          <strong>
+            {filters
+              ? filters.filterCollected
+                ? appText.webAdminQueueDuplicateFilterExplanation.enabled
+                : appText.webAdminQueueDuplicateFilterExplanation.disabled
+              : appText.webAdminQueueDuplicateFilterExplanation.unavailable}
+          </strong>
+          {appText.webAdminQueueDuplicateFilterExplanation.afterState}
+        </p>
+      )}
+      <h3 id={`${id}-policy`}>{appText.repeatCollectorTitle}</h3>
       <select
-        aria-labelledby={id}
+        aria-labelledby={`${id}-policy`}
         value={policy}
         disabled={!filters || action.busy || session.role !== 'admin'}
         onChange={(event) =>
@@ -74,15 +113,13 @@ export function RepeatCollectorControl({
           </option>
         ))}
       </select>
-      <p>{choices.find((choice) => choice.id === policy)!.help}</p>
-      <p>{appText.repeatCollectorPrecedence}</p>
       {session.role !== 'admin' ? (
         <p>{appText.repeatCollectorReadOnly}</p>
       ) : (
         <div className="admin-actions">
           <button
             className="site-button"
-            disabled={!dirty || stale || action.busy}
+            disabled={!dirty || action.busy}
             onClick={() =>
               void action.execute(async (signal) => {
                 const saved = await client.saveSubmissionFilters(
@@ -102,16 +139,8 @@ export function RepeatCollectorControl({
           >
             {appText.repeatCollectorSave}
           </button>
-          <button
-            className="site-button"
-            disabled={action.busy || !filters}
-            onClick={() => void action.execute(reload)}
-          >
-            {appText.repeatCollectorReload}
-          </button>
         </div>
       )}
-      {stale && <p role="alert">{appText.repeatCollectorChanged}</p>}
       {action.error && <p role="alert">{action.error}</p>}
       {action.message && <p role="status">{action.message}</p>}
     </section>

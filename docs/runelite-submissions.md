@@ -144,8 +144,9 @@ Adding a mapping between deliveries also reuses the original receipt and proof;
 it does not silently match the saved submission. A supplied `itemName` participates
 in request-key conflict checks. Legacy requests without it retain their original hashes.
 
-The **Filter out regular duplicates** toggle on **Submissions**, between manual
-submission and the queue, checks approved **Regular** credits in that world mode.
+The **Filter out regular duplicates** toggle in **Duplicate handling** on
+**Submissions**, between manual submission and the queue, checks approved
+**Regular** credits in that world mode.
 New RuneLite claims return **201** with `status: "rejected"` and are stored with
 a reason explaining that the duplicate filter is on. Discord intake continues
 to reject these claims with **403**. The filter defaults to off and
@@ -160,7 +161,7 @@ expectedRevision }` using the `submission-filters-N` revision supplied by the
 queue or `GET` on that route. Changes are versioned and audited; stale writes
 return **409**.
 
-The separate **Repeat collections by username** policy can reject a genuine later
+The **Repeat collections by username** policy in the same section can reject a genuine later
 obtain by the same normalized collector. Matching uses the canonical item/world
 mode and the shared case/space/underscore normalization; any approved Event or
 Regular credit qualifies. Normal and Hardcore are independent. Pending, rejected
@@ -178,8 +179,11 @@ original receipt, even after policy changes.
 
 Separate and merged presentation choices preserve normal review/automatic rules.
 The default remains separate. Merging changes only public hover grouping: repeated
-collectors use **Collected 3x by Alice first on 01/10/26**, with expandable dates and
-collection types. A single obtain keeps the existing wording.
+Regular entries use **Collected 3x by Alice first on 01/10/26**, displaying only the
+first date. A single obtain keeps the existing wording. The current page's Event
+credit remains a separate **Collected by Alice on 01/10/26** entry; further obtains
+by that collector appear under the single **Regular collection** separator. An
+Event credit from another page appears as Regular here.
 
 Browser uploads are allowed from **https://kihiralove.github.io** only on the
 public RuneLite submission endpoint. Its unauthenticated `OPTIONS` preflight
