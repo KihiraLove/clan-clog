@@ -1,9 +1,65 @@
-## Change
+## Feature Description
 
-Describe the problem and resulting behavior.
+<!-- What does this feature do? Who is it for? Why is it needed? -->
 
-## Validation
+## Type of Change
 
-List the focused checks run and any remaining release acceptance. Follow AGENTS.md.
-For schema changes, describe setup/compatibility implications. Record provenance
-for catalog/assets changes and screenshots for material UI changes.
+- [x] New feature
+
+## Implementation Details
+
+<!-- Explain the technical approach and key decisions. -->
+
+### Architecture
+
+<!-- How does this fit into the existing system? -->
+
+### Key Files Changed
+
+| File | Change |
+|------|--------|
+|  |  |
+
+## API Changes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+|  |  |  |
+
+## Database Changes
+
+- [ ] No database changes
+- [ ] Migration included and tested
+
+## How to Test
+
+1.
+2.
+3.
+
+### Edge Cases Considered
+
+-
+-
+
+## Checklist
+
+- [ ] Code follows the project's style guidelines
+- [ ] Self-reviewed the code
+- [ ] Added unit tests for new functionality
+- [ ] Added integration tests where applicable
+- [ ] Existing tests pass locally
+- [ ] Updated documentation
+- [ ] Tested on mobile (if UI change)
+- [ ] No new warnings or console errors introduced
+- [ ] Backwards compatible (or migration plan documented)
+
+
+## Related Issues
+Closes:
+Related:
+## Screenshots / Demo
+
+## Deployment Notes
+
+<!-- Environment variables, dependencies, ordering? -->
