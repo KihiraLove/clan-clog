@@ -1,0 +1,10 @@
+Old School RuneScape chat badge artwork © Jagex Ltd. All rights reserved.
+
+Source: Jagex's official Chat badges support article, Old School section:
+https://support.runescape.com/hc/en-gb/articles/360001358698-Chat-badges
+
+These game assets remain the property of Jagex and are not relicensed under this
+project's MIT license. Their inclusion does not imply endorsement by Jagex.
+provenance.json records each original source URL and hash and its bundled WebP
+hash, dimensions and byte size. Conversion is lossless, with original artwork,
+native size and transparency retained.

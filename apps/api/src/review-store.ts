@@ -1,4 +1,10 @@
 import * as appText from '@clog/domain';
+import { isGameMode } from '@clog/domain';
+import { PgCollectorGameModes } from './collector-game-modes.js';
+import {
+  currentCollectorId,
+  currentCollectorGameMode,
+} from './collector-identities.js';
 /** Transactional Regular/Event credits, explicit corrections and private audit history. */
 import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -45,6 +51,8 @@ import type {
 } from './review-types.js';
 
 type Row = {
+  gameMode: import('@clog/domain').GameMode | null;
+  submittedGameMode: import('@clog/domain').GameMode | null;
   id: string;
   version: number;
   source: 'discord' | 'manual' | 'runelite';
@@ -78,11 +86,17 @@ const selection =
   'collection_type AS "collectionType",collection_reason AS "collectionReason",intake_scheduling AS "intakeScheduling",' +
   'event_page_id AS "eventPageId",event_page_assignment_pending AS "eventPageAssignmentPending",' +
   currentCollectorName +
-  ' AS "collectorName",collector_id::text AS "collectorId",original_collector_name AS "originalCollectorName",to_char(collected_on,\'YYYY-MM-DD\') AS "collectedOn",' +
+  ' AS "collectorName",' +
+  currentCollectorId +
+  ' AS "collectorId",' +
+  currentCollectorGameMode +
+  ' AS "gameMode",submitted_game_mode AS "submittedGameMode",original_collector_name AS "originalCollectorName",to_char(collected_on,\'YYYY-MM-DD\') AS "collectedOn",' +
   'date_source AS "dateSource",submitted_at AS "submittedAt",' +
   'proof_url AS "proofUrl",proof_image_id::text AS "proofImageId",chat_message AS "chatMessage",hardcore,status,' +
   'review_note AS "reviewNote",review_reason AS "reviewReason",admission_policy AS "admissionPolicy"';
 const view = (row: Row): ReviewSubmission => ({
+  gameMode: row.gameMode ?? null,
+  submittedGameMode: row.submittedGameMode ?? null,
   id: row.id,
   version: row.version,
   source: row.source,
@@ -250,6 +264,24 @@ export class PgReviewStore implements ReviewStore {
   userNameChangesSettings() {
     return new PgCollectorNames(this.pool).settings();
   }
+  collectorGameMode(id: string) {
+    return new PgCollectorGameModes(this.pool).get(id);
+  }
+  saveCollectorGameMode(
+    id: string,
+    fields: import('@clog/domain').CollectorGameModeChange,
+    key: string,
+    actorId: string,
+    actorName: string,
+  ) {
+    return new PgCollectorGameModes(this.pool).save(
+      id,
+      fields,
+      key,
+      actorId,
+      actorName,
+    );
+  }
   saveUserNameChangesSettings(
     enabled: boolean,
     revision: string,
@@ -264,8 +296,18 @@ export class PgReviewStore implements ReviewStore {
   collectors(query: string) {
     return new PgCollectorNames(this.pool).search(query);
   }
-  previewCollectorName(sourceId: string, newName: string, actorId: string) {
-    return new PgCollectorNames(this.pool).preview(sourceId, newName, actorId);
+  previewCollectorName(
+    sourceId: string,
+    newName: string,
+    actorId: string,
+    modeResolution?: import('@clog/domain').GameMode,
+  ) {
+    return new PgCollectorNames(this.pool).preview(
+      sourceId,
+      newName,
+      actorId,
+      modeResolution,
+    );
   }
   applyCollectorName(
     token: string,
@@ -489,6 +531,7 @@ export class PgReviewStore implements ReviewStore {
     )
       throw new ApiError(422, appText.eventPageInvalid);
     if (
+      (fields.gameMode !== undefined && !isGameMode(fields.gameMode)) ||
       !Number.isSafeInteger(fields.itemId) ||
       fields.itemId <= 0 ||
       typeof fields.collectorName !== 'string' ||
@@ -521,6 +564,9 @@ export class PgReviewStore implements ReviewStore {
         ...(fields.eventPageId === undefined
           ? []
           : [{ eventPageId: fields.eventPageId }]),
+        ...(fields.gameMode === undefined
+          ? []
+          : [{ gameMode: fields.gameMode }]),
       ]),
     );
     try {
@@ -616,14 +662,15 @@ export class PgReviewStore implements ReviewStore {
         const collectorId = await resolveCollector(
           client,
           fields.collectorName,
+          fields.gameMode,
         );
         const row = (
           await client.query<Row>(
             'INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,' +
               'collected_on,date_source,proof_url,hardcore,status,reviewed_at,' +
-              "reviewed_by,review_reason,proof_image_id,collection_type,collection_reason,event_page_id,collector_id,original_collector_name) VALUES($1,'manual',$2,$3,$4,$5,'admin'," +
+              "reviewed_by,review_reason,proof_image_id,collection_type,collection_reason,event_page_id,collector_id,original_collector_name,submitted_game_mode) VALUES($1,'manual',$2,$3,$4,$5,'admin'," +
               "$6,$7,$8,CASE WHEN $8<>'pending' THEN now() ELSE NULL END," +
-              "CASE WHEN $8<>'pending' THEN $9 ELSE NULL END,$10,$11,$12,$13,$14,$15,$4) RETURNING " +
+              "CASE WHEN $8<>'pending' THEN $9 ELSE NULL END,$10,$11,$12,$13,$14,$15,$4,$16) RETURNING " +
               selection,
             [
               id,
@@ -643,6 +690,7 @@ export class PgReviewStore implements ReviewStore {
               classification.collectionReason,
               classification.eventPageId,
               collectorId,
+              fields.gameMode ?? null,
             ],
           )
         ).rows[0]!;

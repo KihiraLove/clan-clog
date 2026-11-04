@@ -171,6 +171,39 @@ test('receipt collection types are validated without requiring them on legacy re
     );
   }
 });
+test('bot receipts preserve optional nullable canonical game modes and reject unsupported values', async () => {
+  const claim: Claim = {
+    interactionId: receipt.interactionId,
+    guildId,
+    actorDiscordId: userId,
+    rawItemText: 'Dragon axe',
+    collectorName: 'Collector',
+    hardcore: false,
+  };
+  for (const gameMode of [
+    undefined,
+    null,
+    'normal',
+    'unranked_group_ironman',
+  ]) {
+    const api = new TestBotApi('https://clog.example', token, async () =>
+      Response.json(
+        { ...receipt, ...(gameMode === undefined ? {} : { gameMode }) },
+        { status: 201 },
+      ),
+    );
+    assert.equal((await api.submit(claim, screenshot)).gameMode, gameMode);
+  }
+  for (const gameMode of ['unknown', 'group_ironman_5', ['ironman']]) {
+    const api = new TestBotApi('https://clog.example', token, async () =>
+      Response.json({ ...receipt, gameMode }, { status: 201 }),
+    );
+    await assert.rejects(
+      api.submit(claim, screenshot),
+      UnconfirmedSubmissionError,
+    );
+  }
+});
 function fakeCommand(
   options: {
     guild?: string | null;

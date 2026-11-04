@@ -4,6 +4,8 @@ import * as appText from '@clog/domain';
 import {
   collectorDisplayName,
   normalizePlayerName,
+  isGameMode,
+  type GameMode,
   type CollectorIdentity,
   type CollectorCounts,
   type CollectorNamePreview,
@@ -38,7 +40,7 @@ export async function readUserNameSettings(
 const uuid =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu;
 const fields =
-  'id::text,display_name AS name,version::text,history_version::text AS "historyVersion"';
+  'id::text,display_name AS name,version::text,history_version::text AS "historyVersion",game_mode AS "gameMode"';
 const conflict = () => new ApiError(409, appText.collectorNamesChanged);
 const same = (
   a: CollectorIdentity | null | undefined,
@@ -49,7 +51,8 @@ const same = (
     : a.id === b.id &&
       a.name === b.name &&
       a.version === b.version &&
-      a.historyVersion === b.historyVersion;
+      a.historyVersion === b.historyVersion &&
+      (a.gameMode ?? null) === (b.gameMode ?? null);
 async function readIdentity(client: pg.PoolClient, id: string) {
   return (
     await client.query<CollectorIdentity>(
@@ -117,7 +120,10 @@ export class PgCollectorNames {
     sourceId: string,
     rawName: string,
     actorId: string,
+    modeResolution?: GameMode,
   ): Promise<CollectorNamePreview> {
+    if (modeResolution !== undefined && !isGameMode(modeResolution))
+      throw new ApiError(422, appText.gameModeInvalid);
     if (!uuid.test(sourceId))
       throw new ApiError(404, appText.collectorNamesMissing);
     let newName: string;
@@ -156,7 +162,22 @@ export class PgCollectorNames {
         [sourceId],
       );
       for (const row of rows.rows) counts[row.status] = row.n;
+      const modeConflict =
+        current.gameMode != null &&
+        currentTarget?.gameMode != null &&
+        current.gameMode !== currentTarget.gameMode;
+      const gameMode = modeConflict
+        ? (modeResolution ?? null)
+        : (currentTarget?.gameMode ?? current.gameMode ?? null);
+      if (
+        !modeConflict &&
+        modeResolution !== undefined &&
+        modeResolution !== gameMode
+      )
+        throw conflict();
       const preview: CollectorNamePreview = {
+        gameMode,
+        modeResolutionRequired: modeConflict && modeResolution === undefined,
         token: randomUUID(),
         operation: currentTarget
           ? 'merge'
@@ -233,6 +254,13 @@ export class PgCollectorNames {
       const target = await targetIdentity(client, preview.newName, source.id);
       if (!same(source, preview.source) || !same(target, preview.target))
         throw conflict();
+      if (preview.modeResolutionRequired)
+        throw new ApiError(
+          422,
+          publicContext
+            ? appText.publicNamesStaffRequired
+            : appText.gameModeMergeConflict,
+        );
       if (publicContext) {
         const proof = publicContext.evidence,
           scope = [source.id, ...(target ? [target.id] : [])];
@@ -254,6 +282,10 @@ export class PgCollectorNames {
       if (preview.operation === 'merge') {
         if (!target || target.id === source.id) throw conflict();
         await client.query(
+          'UPDATE collectors SET version=version+1 WHERE merged_into=$1',
+          [target.id],
+        );
+        await client.query(
           'UPDATE collectors SET merged_into=$2,version=version+1 WHERE merged_into=$1',
           [source.id, target.id],
         );
@@ -262,8 +294,8 @@ export class PgCollectorNames {
           [source.id, target.id],
         );
         await client.query(
-          'UPDATE collectors SET history_version=history_version+1 WHERE id=$1',
-          [target.id],
+          'UPDATE collectors SET history_version=history_version+1,version=version+1,game_mode=$2,game_mode_version=game_mode_version+1,game_mode_reviewed=game_mode_reviewed OR(SELECT game_mode_reviewed FROM collectors WHERE id=$3) WHERE id=$1',
+          [target.id, preview.gameMode ?? null, source.id],
         );
       } else {
         if (target) throw conflict();
@@ -277,6 +309,7 @@ export class PgCollectorNames {
         );
       }
       const result: CollectorNameResult = {
+        gameMode: preview.gameMode ?? source.gameMode ?? null,
         operationId: randomUUID(),
         operation: preview.operation,
         sourceId: source.id,
@@ -286,7 +319,7 @@ export class PgCollectorNames {
         counts: preview.counts,
       };
       await client.query(
-        'INSERT INTO collector_name_audit(operation_id,actor_id,actor_name,operation,source_id,target_id,original_name,target_name,affected_counts) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        'INSERT INTO collector_name_audit(operation_id,actor_id,actor_name,operation,source_id,target_id,original_name,target_name,affected_counts,source_game_mode,target_game_mode,resolved_game_mode) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
         [
           result.operationId,
           actorId,
@@ -297,8 +330,23 @@ export class PgCollectorNames {
           result.originalName,
           result.newName,
           JSON.stringify(result.counts),
+          source.gameMode ?? null,
+          target?.gameMode ?? null,
+          result.gameMode,
         ],
       );
+      if (result.operation === 'merge')
+        await client.query(
+          "INSERT INTO collector_game_mode_audit(operation_id,collector_id,actor_id,actor_name,old_mode,new_mode,origin) VALUES($1,$2,$3,$4,$5,$6,'merge')",
+          [
+            result.operationId,
+            result.targetId,
+            actorId,
+            actorName,
+            target?.gameMode ?? null,
+            result.gameMode,
+          ],
+        );
       await client.query(
         'INSERT INTO collector_name_requests(actor_id,request_key,payload_hash,response) VALUES($1,$2,$3,$4)',
         [actorId, key, hash, JSON.stringify(result)],

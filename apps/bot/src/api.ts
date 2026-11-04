@@ -5,6 +5,7 @@ import {
   parseSubmissionFilters,
   safeFailure,
   WorkloadError,
+  isGameMode,
 } from '@clog/domain';
 import { downloadScreenshot, type ScreenshotAttachment } from './screenshot.js';
 export interface Candidate {
@@ -12,6 +13,7 @@ export interface Candidate {
   name: string;
 }
 export interface Claim {
+  gameMode?: import('@clog/domain').GameMode;
   interactionId: string;
   guildId: string;
   actorDiscordId: string;
@@ -21,6 +23,7 @@ export interface Claim {
   hardcore: boolean;
 }
 export interface Receipt {
+  gameMode?: import('@clog/domain').GameMode | null;
   rejectionReason?: string;
   admissionPolicy?: import('@clog/domain').SubmissionFilters;
   collectionType?: 'regular' | 'event' | null;
@@ -109,6 +112,9 @@ function parseReceipt(value: unknown, interactionId: string): Receipt {
     !/^\d{4}-\d{2}-\d{2}$/u.test(value.collectedOn) ||
     !['collector', 'submission_default'].includes(String(value.dateSource)) ||
     typeof value.hardcore !== 'boolean' ||
+    (value.gameMode !== undefined &&
+      value.gameMode !== null &&
+      !isGameMode(value.gameMode)) ||
     !['resolved', 'needs_match'].includes(String(value.resolution)) ||
     !(
       value.itemId === null ||

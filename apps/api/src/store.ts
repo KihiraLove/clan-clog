@@ -1,4 +1,5 @@
 import * as appText from '@clog/domain';
+import { collectorGameMode } from './collector-identities.js';
 import { classifyIntake } from './event-pages.js';
 import { insertImage, screenshotPath } from './proof-store.js';
 /** Parameterized PostgreSQL persistence; public projections explicitly select safe fields. */
@@ -454,12 +455,18 @@ export class PgStore implements BackendStore {
       // waits for the winner, after which readReceipt observes the committed receipt.
       await client.query('SAVEPOINT discord_image');
       await insertImage(client, input.image);
+      const collectorId = await resolveCollector(
+        client,
+        input.collectorName,
+        input.gameMode,
+      );
+      receipt.gameMode = await collectorGameMode(client, collectorId);
       const inserted = await client.query(
         `INSERT INTO submissions (
           id, discord_interaction_id, discord_user_id, discord_guild_id,
           raw_item_text, item_id, collector_name, collected_on, date_source,
-          proof_url, hardcore, intake_payload_hash, intake_receipt, submitted_at, intake_scheduling, collection_type, collection_reason, proof_image_id,event_page_id,collector_id,original_collector_name
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$7)
+          proof_url, hardcore, intake_payload_hash, intake_receipt, submitted_at, intake_scheduling, collection_type, collection_reason, proof_image_id,event_page_id,collector_id,original_collector_name,submitted_game_mode
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$7,$21)
         ON CONFLICT (discord_interaction_id) DO NOTHING RETURNING id`,
         [
           receipt.submissionId,
@@ -481,7 +488,8 @@ export class PgStore implements BackendStore {
           classification.collectionReason,
           input.image.id,
           classification.eventPageId,
-          await resolveCollector(client, input.collectorName),
+          collectorId,
+          input.gameMode ?? null,
         ],
       );
       if (inserted.rowCount !== 1) {
@@ -498,6 +506,8 @@ export class PgStore implements BackendStore {
       }
       if (repeated) {
         const before = {
+          gameMode: receipt.gameMode ?? null,
+          submittedGameMode: input.gameMode ?? null,
           id: receipt.submissionId,
           version: 1,
           source: 'discord',
@@ -652,7 +662,7 @@ export class PgStore implements BackendStore {
   ): Promise<PublicCredit[]> {
     const rows = (
       await client.query<PublicCredit>(
-        `SELECT c.submission_id AS "submissionId", c.item_id AS "itemId", c.collector_name AS "collectorName", to_char(c.collected_on, 'YYYY-MM-DD') AS "collectedOn", c.hardcore,c.collection_type AS "collectionType",c.event_page_id AS "eventPageId",c.event_page_assignment_pending AS "eventPageAssignmentPending" FROM collection_credits c JOIN items i ON i.id=c.item_id WHERE i.active ORDER BY c.item_id,c.hardcore,c.collected_on,c.submission_id`,
+        `SELECT c.submission_id AS "submissionId", c.item_id AS "itemId", c.collector_name AS "collectorName",c.game_mode AS "gameMode", to_char(c.collected_on, 'YYYY-MM-DD') AS "collectedOn", c.hardcore,c.collection_type AS "collectionType",c.event_page_id AS "eventPageId",c.event_page_assignment_pending AS "eventPageAssignmentPending" FROM collection_credits c JOIN items i ON i.id=c.item_id WHERE i.active ORDER BY c.item_id,c.hardcore,c.collected_on,c.submission_id`,
       )
     ).rows;
     return rows;

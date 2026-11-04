@@ -3,7 +3,8 @@ import * as appText from '@clog/domain';
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { highlightCss, type HighlightColour } from '@clog/domain';
 import { createPortal } from 'react-dom';
-import { creditLine, type Credit, type Item } from './model.ts';
+import { type Credit, type Item } from './model.ts';
+import { CreditLine } from './CreditLine.tsx';
 import { MergedHistory } from './MergedHistory.tsx';
 
 export interface OpenItem {
@@ -139,7 +140,9 @@ export function ItemMenu({
             <div className="item-menu__event">
               <strong>{appText.webItemMenuFirstEventCollection}</strong>
               {eventCredits.map((credit) => (
-                <p key={credit.submissionId}>{creditLine(credit)}</p>
+                <p key={credit.submissionId}>
+                  <CreditLine credit={credit} />
+                </p>
               ))}
             </div>
           )}
@@ -150,7 +153,9 @@ export function ItemMenu({
                 <MergedHistory credits={regularCredits} />
               ) : (
                 regularCredits.map((credit) => (
-                  <p key={credit.submissionId}>{creditLine(credit)}</p>
+                  <p key={credit.submissionId}>
+                    <CreditLine credit={credit} />
+                  </p>
                 ))
               )}
             </div>
@@ -160,7 +165,9 @@ export function ItemMenu({
             .map((credit) => (
               <div key={credit.submissionId}>
                 <strong>{appText.eventPageLegacyLabel}</strong>
-                <p>{creditLine(credit)}</p>
+                <p>
+                  <CreditLine credit={credit} />
+                </p>
               </div>
             ))}
         </>

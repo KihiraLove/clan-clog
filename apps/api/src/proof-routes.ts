@@ -1,4 +1,5 @@
 import * as appText from '@clog/domain';
+import { isGameMode } from '@clog/domain';
 /** Public RuneLite intake and staff uploads share bounded multipart PNG handling. */
 import { randomUUID } from 'node:crypto';
 import multipart from '@fastify/multipart';
@@ -46,6 +47,7 @@ function manualFields(json: string): ManualSubmissionInput {
           'collectionType',
           'eventPageId',
           'collectorName',
+          'gameMode',
           'collectedOn',
           'hardcore',
           'approve',
@@ -53,6 +55,7 @@ function manualFields(json: string): ManualSubmissionInput {
           'reason',
         ].includes(k),
     ) ||
+    (row.gameMode !== undefined && !isGameMode(row.gameMode)) ||
     !Number.isSafeInteger(row.itemId) ||
     Number(row.itemId) < 1 ||
     Number(row.itemId) > 2147483647 ||
@@ -134,7 +137,7 @@ export function proofRoutes(
         const { fields, file } = await parts(
           req,
           ['username', 'clanName', 'itemId', 'worldType'],
-          ['chatMessage', 'itemName', 'eventPageId'],
+          ['chatMessage', 'itemName', 'eventPageId', 'gameMode'],
           false,
         );
         if (
@@ -150,7 +153,12 @@ export function proofRoutes(
             appText.apiProofRoutesInvalidUsernameClanNameOrGameItemId,
           );
         const world = runeLiteWorld(fields.worldType!);
+        if (fields.gameMode !== undefined && !isGameMode(fields.gameMode))
+          throw new ApiError(422, appText.gameModeInvalid);
         const submission = {
+          ...(fields.gameMode === undefined
+            ? {}
+            : { gameMode: fields.gameMode as import('@clog/domain').GameMode }),
           username: fields.username!,
           clanName: fields.clanName!,
           itemId: Number(fields.itemId),

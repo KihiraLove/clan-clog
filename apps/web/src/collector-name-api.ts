@@ -7,6 +7,7 @@ import type {
   UserNameChangeSettings,
 } from '@clog/domain';
 import * as appText from '@clog/domain';
+import { parseGameMode, type GameMode } from '@clog/domain';
 import { AdminRequestError } from './admin-api.ts';
 import { object, list, text } from './xp-model.ts';
 const uuid =
@@ -25,6 +26,9 @@ function collector(value: unknown): CollectorIdentity {
   const r = object(value);
   return {
     id: id(r.id),
+    ...(r.gameMode === undefined
+      ? {}
+      : { gameMode: parseGameMode(r.gameMode) }),
     name: text(r.name),
     version: version(r.version),
     historyVersion: version(r.historyVersion),
@@ -52,11 +56,19 @@ export function parseCollectorPreview(value: unknown): CollectorNamePreview {
   if (
     !['rename', 'merge', 'noop'].includes(text(r.operation)) ||
     (r.operation === 'merge') !== (target !== null) ||
-    target?.id === source.id
+    target?.id === source.id ||
+    (r.modeResolutionRequired !== undefined &&
+      typeof r.modeResolutionRequired !== 'boolean')
   )
     throw Error(appText.collectorNamesUnavailable);
   return {
     token: id(r.token),
+    ...(r.gameMode === undefined
+      ? {}
+      : { gameMode: parseGameMode(r.gameMode) }),
+    ...(r.modeResolutionRequired === undefined
+      ? {}
+      : { modeResolutionRequired: r.modeResolutionRequired === true }),
     operation: r.operation as CollectorNamePreview['operation'],
     source,
     target,
@@ -127,12 +139,17 @@ export async function preview(
   newName: string,
   csrf: string,
   signal: AbortSignal,
+  modeResolution?: GameMode,
 ) {
   const result = parseCollectorPreview(
     await request('/collector-name-changes/preview', signal, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-      body: JSON.stringify({ sourceId, newName }),
+      body: JSON.stringify({
+        sourceId,
+        newName,
+        ...(modeResolution === undefined ? {} : { modeResolution }),
+      }),
     }),
   );
   if (result.source.id !== sourceId)
@@ -164,6 +181,7 @@ export async function apply(
     r.targetId !== (preview.target?.id ?? preview.source.id) ||
     r.originalName !== preview.source.name ||
     r.newName !== preview.newName ||
+    (preview.gameMode !== undefined && r.gameMode !== preview.gameMode) ||
     Object.keys(savedCounts).some(
       (k) =>
         savedCounts[k as keyof CollectorCounts] !==
@@ -173,6 +191,9 @@ export async function apply(
     throw Error(appText.collectorNamesUncertain);
   return {
     operationId: id(r.operationId),
+    ...(r.gameMode === undefined
+      ? {}
+      : { gameMode: parseGameMode(r.gameMode) }),
     operation: preview.operation,
     sourceId: id(r.sourceId),
     targetId: id(r.targetId),

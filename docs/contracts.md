@@ -203,6 +203,52 @@ Equal dates still represent separate obtains. No stored credit is collapsed.
 
 ## Collector identities and name changes
 
+### Collector game modes
+
+Migration 009 adds nullable `collectors.game_mode`, its own version and reviewed
+flag, immutable `submissions.submitted_game_mode`, profile audit/receipt storage
+and current-mode public projections. Existing profiles remain unassigned; no
+Normal values are inferred. Public/private projection revisions change when a
+mode changes. Historical claims, hashes and receipt/audit JSON remain intact.
+
+The canonical `gameMode` values are `normal`, `ironman`, `ultimate_ironman`,
+`hardcore_ironman`, `group_ironman`, `hardcore_group_ironman` and
+`unranked_group_ironman`. Responses use `gameMode: null` for unassigned. Intake may
+omit the field; explicit null, arrays, aliases and team-size variants are invalid.
+Valid supplied input can atomically initialize an unreviewed unknown profile.
+Subsequent input never overwrites an assigned or reviewed value; its original
+value is retained as private `submittedGameMode` for comparison with the current
+profile. An explicitly reviewed Unassigned value stays unassigned until staff
+changes it. Game mode is independent of world classification and duplicate keys.
+
+| Method | Route                                     | Contract                                                                                                                                                                                      |
+| ------ | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/admin/submissions/:id/game-mode` | Staff with current Submissions access; current `collectorId`, `collectorName`, nullable `gameMode` and profile `revision`.                                                                    |
+| PUT    | `/api/v1/admin/submissions/:id/game-mode` | Same access plus Origin/CSRF and UUID `Idempotency-Key`; `{ collectorId, expectedRevision, gameMode }`, allowing explicit null for staff unassignment. Returns the profile and `operationId`. |
+
+Mode saves do not mutate or decide a submission. They use their own collector
+revision; concurrent edits or renamed/merged identities return 409. Identity,
+profile revision, actor/old/new/time audit and request result commit atomically.
+Same actor/key/payload recovers the original result after later profile/name
+changes, without applying again; a different payload conflicts. The review
+client retains uncertain requests across dismissal within the current session.
+
+Collector search and name previews include nullable `gameMode`. Previews include
+the surviving `gameMode` and `modeResolutionRequired`. A merge with different
+assigned modes cannot apply until an administrator obtains a new preview with a
+canonical `modeResolution`, then explicitly confirms that preview. A lone
+assignment is carried and matching assignments are retained. The chosen mode and
+both prior modes are audited. Public WOM changes cannot resolve a conflict.
+
+Optional `gameMode` enters new intake fingerprints only when supplied. Omitted
+legacy payloads retain their previous hash layout and saved receipts are never
+rewritten. Receipt recovery happens before profile initialization; duplicate
+delivery cannot reapply an obsolete mode. Review/detail and public credit reads
+resolve the current surviving collector's mode. Individual corrections change
+only their claim's collector assignment and do not edit either profile's mode.
+
+### Collector name operations
+
 Collector identity is independent of staff accounts and WOM. Migration 007 adds
 the registry, immutable original-name provenance, preview/request/audit tables and
 indexed history references. The migration runner backfills existing submissions

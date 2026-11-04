@@ -5,6 +5,7 @@ import {
   formatCollectionDate,
   validateCollectionDate,
   parseRepeatCollectorPolicy,
+  parseGameMode,
 } from '@clog/domain';
 
 export const categories = [
@@ -39,6 +40,7 @@ export interface Catalog {
   pages: Page[];
 }
 export interface Credit {
+  gameMode?: import('@clog/domain').GameMode | null;
   eventPageId?: string | null;
   eventPageAssignmentPending?: boolean;
   collectionType?: import('@clog/domain').CollectionType;
@@ -182,6 +184,9 @@ export function parseCollections(value: unknown): Collections {
     )
       throw new Error(appText.webModelInvalidCollectionType);
     credits.push({
+      ...(credit.gameMode === undefined
+        ? {}
+        : { gameMode: parseGameMode(credit.gameMode) }),
       submissionId: text(credit.submissionId),
       itemId: id(credit.itemId),
       collectorName: text(credit.collectorName),

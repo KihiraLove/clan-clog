@@ -70,7 +70,11 @@ test(
       return { id, submission };
     };
     const existing = await seed('Legacy');
-    const oldRows = (await owner.query('SELECT * FROM submissions')).rows,
+    const oldRows = (
+        await owner.query(
+          "SELECT to_jsonb(s)-'submitted_game_mode' AS data FROM submissions s",
+        )
+      ).rows,
       oldLedger = (
         await owner.query('SELECT * FROM schema_migrations ORDER BY name')
       ).rows;
@@ -128,7 +132,11 @@ test(
       '008 upgrades populated history without rewriting submissions or released checksums; public changes default off',
       async () => {
         assert.deepEqual(
-          (await owner.query('SELECT * FROM submissions')).rows,
+          (
+            await owner.query(
+              "SELECT to_jsonb(s)-'submitted_game_mode' AS data FROM submissions s",
+            )
+          ).rows,
           oldRows,
         );
         assert.deepEqual(
@@ -290,7 +298,11 @@ test(
           });
         }
         assert.deepEqual(
-          (await owner.query('SELECT * FROM submissions')).rows,
+          (
+            await owner.query(
+              "SELECT to_jsonb(s)-'submitted_game_mode' AS data FROM submissions s",
+            )
+          ).rows,
           oldRows,
         );
         kind = 'verified';
@@ -309,7 +321,11 @@ test(
           existing.id,
         );
         assert.deepEqual(
-          (await owner.query('SELECT * FROM submissions')).rows,
+          (
+            await owner.query(
+              "SELECT to_jsonb(s)-'submitted_game_mode' AS data FROM submissions s",
+            )
+          ).rows,
           oldRows,
         );
         await settings(false);
