@@ -1,5 +1,7 @@
 /** REVIEW-01 private response types. Public credits never expose these fields. */
 export interface ReviewSubmission {
+  collectorId?: string;
+  originalCollectorName?: string;
   admissionPolicy?: import('@clog/domain').SubmissionFilters;
   eventPageId?: string | null;
   eventPageAssignmentPending?: boolean;
@@ -80,6 +82,21 @@ export interface ReviewAudit {
   after: ReviewSubmission;
 }
 export interface ReviewStore {
+  collectors?(query: string): Promise<{
+    collectors: import('@clog/domain').CollectorIdentity[];
+    hasMore: boolean;
+  }>;
+  previewCollectorName?(
+    sourceId: string,
+    newName: string,
+    actorId: string,
+  ): Promise<import('@clog/domain').CollectorNamePreview>;
+  applyCollectorName?(
+    token: string,
+    key: string,
+    actorId: string,
+    actorName: string,
+  ): Promise<import('@clog/domain').CollectorNameResult>;
   eventPageAssignments?(): Promise<
     import('@clog/domain').EventPageAssignmentReview
   >;

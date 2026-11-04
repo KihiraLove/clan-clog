@@ -185,6 +185,19 @@ credit remains a separate **Collected by Alice on 01/10/26** entry; further obta
 by that collector appear under the single **Regular collection** separator. An
 Event credit from another page appears as Regular here.
 
+Collector display names follow the collection log's current identity registry.
+An administrator can rename or explicitly merge complete collector histories in
+**Name Changes** on **Submissions**; this does not rename staff or WOM accounts.
+Original submitted usernames and chat proof remain available privately, and old
+request receipts remain exact. Future obtains under the current name use the
+surviving collector's combined approved history for repeat rejection.
+
+Retired names are not permanent aliases: a genuinely new obtain under an old
+name starts a separate collector, allowing for recycled player names. Staff should
+verify late arrivals before merging them or correcting the individual claim. An
+original request retried with its original key still returns its original saved
+receipt; name changes do not change the independent five-second observer window.
+
 Browser uploads are allowed from **https://kihiralove.github.io** only on the
 public RuneLite submission endpoint. Its unauthenticated `OPTIONS` preflight
 allows `POST` with `Content-Type`, `Idempotency-Key`, `X-Clan-API-Key` and

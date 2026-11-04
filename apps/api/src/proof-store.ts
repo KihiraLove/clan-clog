@@ -193,6 +193,7 @@ export class PgProofStore implements ProofStore {
       // Catalog writes take this gate before scheduling/item locks. Hold a
       // shared gate so lookup and frozen page membership use the same catalog.
       await client.query('SELECT pg_advisory_xact_lock_shared(74261005)');
+      await lockCollectorNames(client);
       const schedulingEnabled = await lockScheduling(client, world.hardcore);
       // Settings and key rotation cannot race validation, approval or a replay.
       const rules = await readRuneLiteSettings(client, true);
@@ -317,7 +318,7 @@ export class PgProofStore implements ProofStore {
       const id = randomUUID();
       const row = (
         await client.query<{ submitted_at: Date; collected_on: string }>(
-          "INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,collected_on,date_source,proof_url,proof_image_id,submitted_clan_name,game_item_id,hardcore,submitted_world_types,chat_message,submitted_at,intake_scheduling,collection_type,collection_reason,event_page_id) VALUES($1,'runelite',$2,$3,$4,($11::timestamptz AT TIME ZONE 'UTC')::date,'submission_default','',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING submitted_at,to_char(collected_on,'YYYY-MM-DD') AS collected_on",
+          "INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,collected_on,date_source,proof_url,proof_image_id,submitted_clan_name,game_item_id,hardcore,submitted_world_types,chat_message,submitted_at,intake_scheduling,collection_type,collection_reason,event_page_id,collector_id,original_collector_name) VALUES($1,'runelite',$2,$3,$4,($11::timestamptz AT TIME ZONE 'UTC')::date,'submission_default','',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$4) RETURNING submitted_at,to_char(collected_on,'YYYY-MM-DD') AS collected_on",
           [
             id,
             rawItemText,
@@ -334,6 +335,7 @@ export class PgProofStore implements ProofStore {
             classification.collectionType,
             classification.collectionReason,
             classification.eventPageId,
+            await resolveCollector(client, fields.username),
           ],
         )
       ).rows[0]!;
@@ -465,3 +467,7 @@ export class PgProofStore implements ProofStore {
     }
   }
 }
+import {
+  lockCollectorNames,
+  resolveCollector,
+} from './collector-identities.js';

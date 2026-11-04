@@ -44,8 +44,14 @@ export async function isRepeatCollector(
   if (filters.repeatCollectorPolicy !== 'reject' || itemId === null)
     return false;
   const key = normalizePlayerName(collectorName);
+  const existing = await client.query(
+    "SELECT 1 FROM collectors current JOIN collectors original ON original.id=current.id OR original.merged_into=current.id JOIN submissions s ON s.collector_id=original.id WHERE current.merged_into IS NULL AND current.normalized_name=$1 AND s.item_id=$2 AND s.hardcore=$3 AND s.status='approved' AND ($4::uuid IS NULL OR s.id<>$4) LIMIT 1",
+    [key, itemId, hardcore, excludeId ?? null],
+  );
+  if (existing.rowCount) return true;
+  // Compatibility for owner-created fixtures/imports without a registered identity.
   const rows = await client.query<{ name: string }>(
-    "SELECT collector_name AS name FROM submissions WHERE item_id=$1 AND hardcore=$2 AND status='approved' AND ($3::uuid IS NULL OR id<>$3)",
+    "SELECT collector_name AS name FROM submissions WHERE collector_id IS NULL AND item_id=$1 AND hardcore=$2 AND status='approved' AND ($3::uuid IS NULL OR id<>$3)",
     [itemId, hardcore, excludeId ?? null],
   );
   return rows.rows.some((row) => normalizePlayerName(row.name) === key);
