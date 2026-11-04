@@ -14,9 +14,8 @@ import type { AdminSession } from './xp-model.ts';
 import { formatUtcTime } from './format-time.ts';
 import { SubmissionEditor } from './SubmissionEditor.tsx';
 import { ManualSubmissionForm } from './ManualSubmissionForm.tsx';
-import { RepeatCollectorControl } from './RepeatCollectorControl.tsx';
+import { DuplicateHandling } from './DuplicateHandling.tsx';
 import { usePreparedAdminData } from './admin-route-data.ts';
-import { useAdminAction } from './use-admin-action.ts';
 import type { SubmissionFilters } from '@clog/domain';
 export function AdminQueue({
   client,
@@ -59,7 +58,6 @@ export function AdminQueue({
   const [filters, setFilters] = useState<SubmissionFilters | undefined>(
     initial?.queue?.filters,
   );
-  const filterAction = useAdminAction(onAccessLost);
   // Paging/filtering keeps the prepared catalog; explicit refresh and writes reload it.
   const catalogCache = useRef(
     initial?.catalog
@@ -163,59 +161,7 @@ export function AdminQueue({
           }}
         />
       )}
-      <section className="admin-panel submission-filter-panel">
-        <h2 id="submission-filter-title">
-          {appText.webAdminQueueFilterOutRegularDuplicates}
-        </h2>
-        {session.role === 'admin' ? (
-          <button
-            type="button"
-            className="site-button admin-toggle"
-            role="switch"
-            aria-labelledby="submission-filter-title"
-            aria-checked={filters?.filterCollected ?? false}
-            disabled={!filters || filterAction.busy}
-            onClick={() => {
-              if (!filters || session.role !== 'admin') return;
-              const checked = !filters.filterCollected;
-              void filterAction.execute(
-                async (signal) => {
-                  const saved = await client.saveSubmissionFilters(
-                    checked,
-                    filters.revision,
-                    session.csrfToken,
-                    signal,
-                  );
-                  if (!signal.aborted) setFilters(saved);
-                },
-                async (signal) => {
-                  const current = await client.queue(view, cursor, signal);
-                  if (!signal.aborted && current.filters)
-                    setFilters(current.filters);
-                },
-              );
-            }}
-          >
-            {filters?.filterCollected
-              ? appText.webAdminQueueOn
-              : appText.webAdminQueueOff}
-          </button>
-        ) : (
-          <p>
-            {appText.webAdminQueueDuplicateFilterExplanation.beforeState}{' '}
-            <strong>
-              {filters
-                ? filters.filterCollected
-                  ? appText.webAdminQueueDuplicateFilterExplanation.enabled
-                  : appText.webAdminQueueDuplicateFilterExplanation.disabled
-                : appText.webAdminQueueDuplicateFilterExplanation.unavailable}
-            </strong>
-            {appText.webAdminQueueDuplicateFilterExplanation.afterState}
-          </p>
-        )}
-        {filterAction.error && <p role="alert">{filterAction.error}</p>}
-      </section>
-      <RepeatCollectorControl
+      <DuplicateHandling
         client={client}
         session={session}
         filters={filters}

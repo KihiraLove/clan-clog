@@ -70,10 +70,11 @@ the same world mode when on. When off, Regular collections follow the repeat
 collector policy below. Re-enabling it preserves existing history. Staff approval and
 corrections enforce the same rules. Revoke a credit to remove that entry only.
 
-**Repeat collections by username** is a separate section directly below that
-filter. The administrator chooses **Automatically reject repeat collections**,
+Both controls are in **Duplicate handling** on **Submissions**. The Regular filter
+toggle saves immediately. Under **Repeat collections by username**, the
+administrator chooses **Automatically reject repeat collections**,
 **Show each obtain separately** (the default), or **Merge obtains by username**,
-then saves the choice. Moderators can read the policy. Failed saves retain the
+then selects **Save**. Moderators can read the settings. Failed saves retain the
 draft; after a conflict, review the reloaded settings before saving again.
 
 Repeats match the canonical item, world mode and normalized collector name, using
@@ -92,14 +93,17 @@ history remains intact when the policy changes, and old delivery retries keep th
 original receipt. A normal correction to an existing credit's date or equivalent
 name spelling preserves it.
 
-Merged hover history shows one group per normalized username. Multiple obtains use
+The hover menu keeps the current page's Event credit first, using
+**Collected by Alice on 01/10/26**. Additional obtains by that collector appear
+under the single **Regular collection** separator. Merge mode groups those Regular
+obtains by normalized username. Multiple obtains use
 **Collected 3x by Alice first on 01/10/26**, using the earliest collection date and
 its display spelling; a single obtain keeps **Collected by Alice on 01/10/26**.
-Expand **Collection history** for every date and Event/Regular label, including
-repeated dates. Groups with the current page's Event credit appear first. An Event
-obtain from another page appears as Regular in the current page's history, while
-the obtain remains a single record. Revocation and corrections update group counts
-and dates; item completion and actual obtain totals retain their canonical meaning.
+Only the first date is displayed for a merged group; equal dates still count as
+separate obtains. An Event obtain from another page appears as Regular in the
+current page's menu, while the obtain remains a single record. Revocation and
+corrections update group counts and dates; item completion and actual obtain totals
+retain their canonical meaning.
 
 With the regular duplicate filter off, a later Event-eligible obtain becomes
 Regular when the selected page already has an approved Event collection for that
