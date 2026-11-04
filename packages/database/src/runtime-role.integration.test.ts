@@ -9,6 +9,9 @@ import { PgDiscordSettingsStore } from './discord-settings.js';
 
 // Independent contract: never calculate the expected privileges from the implementation.
 const operations = new Map<string, string[]>();
+operations.set('collector_name_settings', ['SELECT', 'UPDATE']);
+operations.set('collector_name_settings_audit', ['SELECT', 'INSERT']);
+operations.set('collector_name_wom_verifications', ['SELECT', 'INSERT']);
 for (const [privileges, names] of [
   ['', 'schema_migrations catalog_taxonomy_updates catalog_bootstrap_state'],
   [

@@ -14,6 +14,51 @@ export function collectorNameRoutes(
     role?: 'admin' | 'moderator';
   }>,
 ) {
+  app.get(
+    '/api/v1/admin/collector-name-settings',
+    {
+      preHandler: async (r) => {
+        await authorize(r);
+      },
+    },
+    async () => {
+      if (!store.userNameChangesSettings)
+        throw new ApiError(503, appText.userNameChangesUnavailable);
+      return store.userNameChangesSettings();
+    },
+  );
+  app.put<{ Body: { enabled: boolean; expectedRevision: string } }>(
+    '/api/v1/admin/collector-name-settings',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['enabled', 'expectedRevision'],
+          properties: {
+            enabled: { type: 'boolean' },
+            expectedRevision: {
+              type: 'string',
+              pattern: '^collector-name-settings-[1-9][0-9]*$',
+            },
+          },
+        },
+      },
+      preHandler: async (r) => {
+        await owner(r, true);
+      },
+    },
+    async (r) => {
+      const actor = await owner(r, true);
+      if (!store.saveUserNameChangesSettings)
+        throw new ApiError(503, appText.userNameChangesUnavailable);
+      return store.saveUserNameChangesSettings(
+        r.body.enabled,
+        r.body.expectedRevision,
+        actor.id,
+      );
+    },
+  );
   const owner = async (r: FastifyRequest, write = false) => {
     const actor = await authorize(r, write);
     if (actor.role !== 'admin')

@@ -28,6 +28,7 @@ test(
           '005_page_event_credits.sql',
           '006_repeat_collector_policy.sql',
           '007_collector_identities.sql',
+          '008_public_collector_names.sql',
         ],
       );
       // Roll back fixtures; migrations persist in the disposable test database.

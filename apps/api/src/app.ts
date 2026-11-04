@@ -1,6 +1,7 @@
 import * as appText from '@clog/domain';
 /** Public projections plus optional configured admin auth; unavailable services fail closed. */
 import { proofRoutes } from './proof-routes.js';
+import { publicNameRoutes } from './public-name-routes.js';
 import { discordSettingsRoutes } from './discord-settings-routes.js';
 import { runeLiteSettingsRoutes } from './runelite-settings-routes.js';
 import { schedulingRoutes } from './scheduling-routes.js';
@@ -45,6 +46,8 @@ import { matchesEtag } from './projection-cache.js';
 import type { XpStore } from './xp-types.js';
 import { ApiError, type Settings } from './types.js';
 interface Options {
+  publicNameChanges?:
+    import('./public-collector-names.js').PublicNameChangesService | undefined;
   accessControl?: import('./access-control.js').AccessControlStore | undefined;
   discordSettings?:
     | import('@clog/database/dist/discord-settings.js').DiscordSettingsStore
@@ -329,6 +332,7 @@ export function createApp(
       options.botConfiguration ?? options.bot!,
       options.proofs,
     );
+  publicNameRoutes(app, options.publicNameChanges, options.auth?.origin);
   const requireAdmin =
     store && options.auth
       ? authRoutes(

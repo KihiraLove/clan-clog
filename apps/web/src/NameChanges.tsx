@@ -11,6 +11,7 @@ import { AdminRequestError } from './admin-api.ts';
 import { classifyAccessFailure } from './admin-session.ts';
 import { useAdminAction } from './use-admin-action.ts';
 import { useAdminDraft } from './admin-route-data.ts';
+import { UserNameChangesSetting } from './UserNameChangesSetting.tsx';
 export function NameChanges({
   client,
   session,
@@ -208,6 +209,11 @@ export function NameChanges({
   return (
     <section className="admin-panel name-changes-panel">
       <h2>{appText.collectorNamesTitle}</h2>
+      <UserNameChangesSetting
+        client={client}
+        session={session}
+        onAccessLost={onAccessLost}
+      />
       {session.role !== 'admin' ? (
         <p>{appText.collectorNamesAdminOnly}</p>
       ) : (

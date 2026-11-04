@@ -1846,15 +1846,51 @@ html:has(.submission-review-dialog[open]) {
 }
 .public-navigation {
   grid-column: 2;
+  align-self: start;
+  min-height: 40px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   width: min(292px, 100%);
 }
-.submission-help-button {
+.public-actions {
   grid-column: 3;
   justify-self: end;
   width: 108px;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: 8px;
+}
+.public-actions > button {
+  width: 100%;
+  min-height: 40px;
+}
+.public-name-dialog {
+  width: min(440px, calc(100% - 32px));
+}
+.public-name-dialog label {
+  display: grid;
+  gap: 6px;
+}
+.public-name-dialog fieldset {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.public-name-success {
+  margin: 0;
+}
+.user-name-setting {
+  margin-bottom: 16px;
+}
+.user-name-setting > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+html:has(.public-name-dialog[open]) {
+  overflow: hidden;
 }
 .public-navigation a {
   display: grid;
@@ -1979,7 +2015,7 @@ html:has(.submission-help-dialog[open]) {
     justify-self: center;
     min-height: 40px;
   }
-  .submission-help-button {
+  .public-actions {
     grid-column: 1;
     grid-row: 2;
     min-height: 40px;
