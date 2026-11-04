@@ -23,8 +23,6 @@ test('merged history uses exact shared normalization, preserves repeated dates a
       submissionId: 'z',
       collectorName: 'ALICE__SMITH',
       collectedOn: '2026-10-03',
-      collectionType: 'event',
-      eventPageId: 'a',
     },
     seed,
     {
@@ -43,9 +41,9 @@ test('merged history uses exact shared normalization, preserves repeated dates a
     },
   ];
   const before = structuredClone(credits),
-    groups = collectorHistory(credits, 'a');
-  const alice = groups[0]!;
-  assert.equal(alice.event, true);
+    groups = collectorHistory(credits);
+  const alice = groups.find((g) => g.count === 3)!;
+  assert.equal(groups[0]!.collectorName, 'Bob');
   assert.equal(alice.count, 3);
   assert.equal(alice.collectorName, 'Alice Smith');
   assert.equal(alice.firstOn, '2026-10-01');
@@ -58,34 +56,12 @@ test('merged history uses exact shared normalization, preserves repeated dates a
     'Collected 3x by Alice Smith first on 01/10/26',
   );
   assert.equal(groups.length, 4);
-  const legacy = collectorHistory(
-    [
-      seed,
-      {
-        ...seed,
-        submissionId: 'legacy',
-        collectionType: 'event',
-        eventPageId: null,
-        eventPageAssignmentPending: true,
-        collectedOn: '2026-10-20',
-      },
-    ],
-    'a',
-  );
-  assert.equal(legacy.length, 1);
-  assert.equal(legacy[0]!.legacy, true);
-  assert.equal(legacy[0]!.event, false);
   assert.equal(credits.length, 6);
   assert.deepEqual(credits, before);
   assert.equal(
-    collectorHistory(credits, 'b').every((g) => !g.event),
-    true,
-  );
-  assert.equal(
-    collectorHistory(
-      credits.filter((c) => c.submissionId !== 'z'),
-      'a',
-    ).find((g) => g.credits.some((c) => c.submissionId === 'a'))!.count,
+    collectorHistory(credits.filter((c) => c.submissionId !== 'z')).find((g) =>
+      g.credits.some((c) => c.submissionId === 'a'),
+    )!.count,
     2,
   );
   for (const spelling of [
