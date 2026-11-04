@@ -29,6 +29,7 @@ test(
           '006_repeat_collector_policy.sql',
           '007_collector_identities.sql',
           '008_public_collector_names.sql',
+          '009_collector_game_modes.sql',
         ],
       );
       // Roll back fixtures; migrations persist in the disposable test database.

@@ -1,5 +1,38 @@
 # RuneLite submissions and private proof
 
+## Collector game modes
+
+RuneLite multipart, Discord submission JSON and manual submission JSON accept an
+optional canonical `gameMode`: `normal`, `ironman`, `ultimate_ironman`,
+`hardcore_ironman`, `group_ironman`, `hardcore_group_ironman` or
+`unranked_group_ironman`. Omit it when unknown; do not send null or infer Normal
+from missing information. For example, an UGIM collector sends
+`gameMode=unranked_group_ironman`. Current mode is username-level, shared across
+all items and collection worlds, and returned as nullable `gameMode`. The private
+review also retains the original `submittedGameMode`.
+
+Intake can initialize an unreviewed unknown profile once. A different later
+submission remains visible as provenance and cannot overwrite the profile,
+especially a staff correction. Mode is excluded from collector/duplicate keys.
+It has no effect on `HARDCORE_MAIN`, Event eligibility, review decisions or obtain
+totals. Changing a saved request's supplied mode conflicts; replaying an original
+receipt never restores an obsolete profile value. Omitted legacy inputs retain
+their exact fingerprint layout.
+
+The shared multipart limit is eight text fields and nine total parts (one file),
+covering all optional `itemName`, `eventPageId` and `gameMode` fields together with
+the existing text fields. File size/count, field byte limits, authentication,
+duplicate-field rejection and Origin/CSRF rules remain enforced.
+
+The companion client reads personal modes from the account varbit, including
+UGIM. For another player's broadcast it uses only a recognized helmet attached
+to that recipient in the original message. Missing, conflicting or unrelated
+icons omit the field; the observer's account mode is never used for another
+collector. Pending evidence replacements and upload retries retain the captured
+mode. [RuneLite's account-varbit mapping](https://github.com/runelite/runelite/blob/master/runelite-api/src/main/java/net/runelite/api/Varbits.java)
+and [official icon identifiers](https://static.runelite.net/runelite-api/apidocs/net/runelite/api/IconID.html)
+define these mappings. Live broadcast formatting needs in-game verification.
+
 `POST /api/v1/runelite/submissions` accepts `multipart/form-data` with exactly
 these fields (their order does not matter):
 
@@ -12,6 +45,7 @@ these fields (their order does not matter):
 | `worldType`   | World type identifier or JSON array of identifiers              |
 | `chatMessage` | Required full chat message, nonempty, up to 8192 UTF-8 bytes    |
 | `eventPageId` | Optional stable catalog page ID for an Event claim              |
+| `gameMode`    | Optional canonical collector account mode; omitted when unknown |
 | `screenshot`  | Optional PNG file, MIME `image/png`, up to 10 MiB               |
 
 ```bash
@@ -19,7 +53,7 @@ curl --fail-with-body https://your-clan.example/api/v1/runelite/submissions \
   -H 'X-Clan-API-Key: YOUR_CLAN_SHARED_KEY' \
   -H 'Idempotency-Key: 00000000-0000-4000-8000-000000000001' \
   -F 'username=Collector' -F 'clanName=Clan name' -F 'itemId=4151' \
-  -F 'itemName=Abyssal whip' -F 'worldType=["MEMBERS"]' \
+  -F 'itemName=Abyssal whip' -F 'worldType=["MEMBERS"]' -F 'gameMode=ironman' \
   -F 'chatMessage=Collector received a drop: Abyssal whip'
 ```
 
@@ -38,7 +72,7 @@ do not guess. A supplied page must contain the item and be eligible at intake.
 Unrelated or ineligible targets return 422. Review uses the saved evidence after
 schedule changes, and one obtain grants Event credit to only one page. An occupied
 Event slot on another page does not force Regular fallback. Hardcore remains Regular.
-The multipart limit permits all seven text fields plus the optional PNG. Exact
+The multipart limit permits all eight text fields plus the optional PNG. Exact
 retries preserve the original target, status and receipt, including delayed proof.
 
 Staff see **Chat message** in the private review panel, alongside any optional

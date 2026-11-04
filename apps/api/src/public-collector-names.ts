@@ -90,7 +90,11 @@ export class PgPublicNameChanges implements PublicNameChangesService {
           ? appText.publicNamesWomFirst
           : appText.publicNamesStaffRequired,
       );
-    if (!preview || preview.operation === 'noop')
+    if (
+      !preview ||
+      preview.operation === 'noop' ||
+      preview.modeResolutionRequired
+    )
       throw new ApiError(422, appText.publicNamesStaffRequired);
     const changed = await this.names.apply(
       preview.token,

@@ -2,6 +2,9 @@ import { useEffect, useId, useRef, useState } from 'react';
 import * as appText from '@clog/domain';
 import {
   collectorDisplayName,
+  gameModes,
+  gameModeLabel,
+  type GameMode,
   type CollectorIdentity,
   type CollectorNamePreview,
 } from '@clog/domain';
@@ -46,6 +49,7 @@ export function NameChanges({
     [stale, setStale] = useState(false);
   const action = useAdminAction(onAccessLost),
     locked = action.busy || !!pending;
+  const [modeResolution, setModeResolution] = useState<GameMode | ''>('');
   useAdminDraft(
     !!source &&
       !!newName &&
@@ -137,10 +141,16 @@ export function NameChanges({
   } catch {
     /* Disabled until valid. */
   }
-  const loadPreview = () =>
+  const loadPreview = (mode?: GameMode) =>
     void action.execute(async (signal) => {
       const api = await client.collectorNameClient!(),
-        next = await api.preview(source, newName, session.csrfToken, signal);
+        next = await api.preview(
+          source,
+          newName,
+          session.csrfToken,
+          signal,
+          mode,
+        );
       if (signal.aborted) return;
       if (next.operation === 'noop') {
         action.setMessage(appText.collectorNamesNoop);
@@ -149,12 +159,15 @@ export function NameChanges({
         return;
       }
       setPreview(next);
+      setModeResolution(
+        next.modeResolutionRequired ? '' : (next.gameMode ?? ''),
+      );
       setStale(false);
       setOpen(true);
     });
   const confirm = () =>
     void action.execute(async (signal) => {
-      if (!preview || stale) return;
+      if (!preview || stale || preview.modeResolutionRequired) return;
       const request = pending ?? { preview, key: crypto.randomUUID() };
       setPending(request);
       try {
@@ -317,8 +330,8 @@ export function NameChanges({
               onKeyDown={(event) => {
                 if (event.key !== 'Tab') return;
                 const buttons = Array.from(
-                    event.currentTarget.querySelectorAll<HTMLButtonElement>(
-                      'button:not(:disabled)',
+                    event.currentTarget.querySelectorAll<HTMLElement>(
+                      'button:not(:disabled),select:not(:disabled)',
                     ),
                   ),
                   first = buttons[0],
@@ -345,6 +358,54 @@ export function NameChanges({
                   )}
                 </p>
                 {action.error && <p role="alert">{action.error}</p>}
+                {preview.operation === 'merge' &&
+                  preview.source.gameMode != null &&
+                  preview.target?.gameMode != null &&
+                  preview.source.gameMode !== preview.target.gameMode && (
+                    <div className="merge-mode-resolution">
+                      <p>{appText.gameModeMergeConflict}</p>
+                      <p>
+                        {appText.gameModeMergeComparison(
+                          preview.source.name,
+                          gameModeLabel(preview.source.gameMode),
+                          preview.target.name,
+                          gameModeLabel(preview.target.gameMode),
+                        )}
+                      </p>
+                      <label>
+                        {appText.gameModeMergeResolution}
+                        <select
+                          value={modeResolution}
+                          disabled={action.busy || !!pending}
+                          onChange={(event) =>
+                            setModeResolution(
+                              event.target.value as GameMode | '',
+                            )
+                          }
+                        >
+                          <option value="">{appText.gameModeChoose}</option>
+                          {gameModes.map((mode) => (
+                            <option key={mode} value={mode}>
+                              {gameModeLabel(mode)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {(preview.modeResolutionRequired ||
+                        modeResolution !== preview.gameMode) && (
+                        <button
+                          className="site-button"
+                          type="button"
+                          disabled={!modeResolution || action.busy}
+                          onClick={() => {
+                            if (modeResolution) loadPreview(modeResolution);
+                          }}
+                        >
+                          {appText.gameModeMergePreview}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 <div className="admin-actions">
                   <button
                     ref={cancel}
@@ -360,7 +421,7 @@ export function NameChanges({
                       type="button"
                       className="site-button"
                       disabled={action.busy}
-                      onClick={loadPreview}
+                      onClick={() => loadPreview()}
                     >
                       {appText.collectorNamesRefreshPreview}
                     </button>
@@ -368,7 +429,12 @@ export function NameChanges({
                     <button
                       type="button"
                       className="site-button"
-                      disabled={action.busy}
+                      disabled={
+                        action.busy ||
+                        preview.modeResolutionRequired === true ||
+                        (preview.gameMode != null &&
+                          modeResolution !== preview.gameMode)
+                      }
                       onClick={confirm}
                     >
                       {pending

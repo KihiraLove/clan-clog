@@ -56,6 +56,8 @@ export function manualSubmissionReceipt(
     (screenshot && !safeScreenshotPath(result.screenshotPath)) ||
     result.itemId !== fields.itemId ||
     result.hardcore !== fields.hardcore ||
+    (fields.gameMode !== undefined &&
+      result.submittedGameMode !== fields.gameMode) ||
     (result.originalCollectorName ?? result.collectorName) !==
       fields.collectorName.trim() ||
     normalizePlayerName(result.collectorName) !==

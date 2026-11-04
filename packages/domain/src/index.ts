@@ -199,3 +199,5 @@ export {
   type HighlightUpdate,
 } from './highlight-colour.js';
 export * from './collector-names.js';
+export * from './game-modes.js';
+export * from './game-mode-display.js';

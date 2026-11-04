@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import * as appText from '@clog/domain';
+import { gameModes, type GameMode } from '@clog/domain';
 import { ApiError } from './types.js';
 import type { ReviewRouteStore } from './route-services.js';
 export function collectorNameRoutes(
@@ -85,7 +86,9 @@ export function collectorNameRoutes(
       return store.collectors(r.query.search ?? '');
     },
   );
-  app.post<{ Body: { sourceId: string; newName: string } }>(
+  app.post<{
+    Body: { sourceId: string; newName: string; modeResolution?: GameMode };
+  }>(
     '/api/v1/admin/collector-name-changes/preview',
     {
       schema: {
@@ -96,6 +99,7 @@ export function collectorNameRoutes(
           properties: {
             sourceId: { type: 'string', format: 'uuid' },
             newName: { type: 'string', minLength: 1, maxLength: 200 },
+            modeResolution: { type: 'string', enum: [...gameModes] },
           },
         },
       },
@@ -111,6 +115,7 @@ export function collectorNameRoutes(
         r.body.sourceId,
         r.body.newName,
         actor.id,
+        r.body.modeResolution,
       );
     },
   );

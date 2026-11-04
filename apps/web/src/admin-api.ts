@@ -134,6 +134,9 @@ export class LiveAdminClient implements AdminClient {
   async collectorNameClient() {
     return import('./collector-name-api.ts');
   }
+  async collectorModeClient() {
+    return import('./collector-mode-api.ts');
+  }
   async catalogUpdateClient() {
     return import('./catalog-update-api.ts');
   }

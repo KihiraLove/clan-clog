@@ -1,4 +1,6 @@
 import * as appText from '@clog/domain';
+import { isGameMode } from '@clog/domain';
+import { collectorGameMode } from './collector-identities.js';
 /** Screenshot metadata, automatic review, audit and RuneLite receipts commit together. */
 import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -59,6 +61,8 @@ export function runeLiteWorld(value: unknown) {
   };
 }
 function validateSubmission(fields: RuneLiteFields, rules: RuneLiteRules) {
+  if (fields.gameMode !== undefined && !isGameMode(fields.gameMode))
+    throw new ApiError(422, appText.gameModeInvalid);
   validateRuneLiteItemName(fields.itemName);
   if (
     fields.chatMessage === undefined ||
@@ -87,6 +91,7 @@ export async function insertImage(
   );
 }
 export interface RuneLiteFields {
+  gameMode?: import('@clog/domain').GameMode;
   eventPageId?: string;
   username: string;
   clanName: string;
@@ -97,6 +102,7 @@ export interface RuneLiteFields {
   chatMessage?: string;
 }
 export interface RuneLiteReceipt {
+  gameMode?: import('@clog/domain').GameMode | null;
   rejectionReason?: string;
   admissionPolicy?: import('@clog/domain').SubmissionFilters;
   eventPageId?: string | null;
@@ -184,6 +190,9 @@ export class PgProofStore implements ProofStore {
           ...(fields.eventPageId === undefined
             ? []
             : [{ eventPageId: fields.eventPageId }]),
+          ...(fields.gameMode === undefined
+            ? []
+            : [{ gameMode: fields.gameMode }]),
         ]),
       )
       .digest('hex');
@@ -316,9 +325,15 @@ export class PgProofStore implements ProofStore {
       if (image) await insertImage(client, image);
       const rawItemText = runeLiteItemName(fields, item?.name);
       const id = randomUUID();
+      const collectorId = await resolveCollector(
+        client,
+        fields.username,
+        fields.gameMode,
+      );
+      const mode = await collectorGameMode(client, collectorId);
       const row = (
         await client.query<{ submitted_at: Date; collected_on: string }>(
-          "INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,collected_on,date_source,proof_url,proof_image_id,submitted_clan_name,game_item_id,hardcore,submitted_world_types,chat_message,submitted_at,intake_scheduling,collection_type,collection_reason,event_page_id,collector_id,original_collector_name) VALUES($1,'runelite',$2,$3,$4,($11::timestamptz AT TIME ZONE 'UTC')::date,'submission_default','',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$4) RETURNING submitted_at,to_char(collected_on,'YYYY-MM-DD') AS collected_on",
+          "INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,collected_on,date_source,proof_url,proof_image_id,submitted_clan_name,game_item_id,hardcore,submitted_world_types,chat_message,submitted_at,intake_scheduling,collection_type,collection_reason,event_page_id,collector_id,original_collector_name,submitted_game_mode) VALUES($1,'runelite',$2,$3,$4,($11::timestamptz AT TIME ZONE 'UTC')::date,'submission_default','',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$4,$17) RETURNING submitted_at,to_char(collected_on,'YYYY-MM-DD') AS collected_on",
           [
             id,
             rawItemText,
@@ -335,7 +350,8 @@ export class PgProofStore implements ProofStore {
             classification.collectionType,
             classification.collectionReason,
             classification.eventPageId,
-            await resolveCollector(client, fields.username),
+            collectorId,
+            fields.gameMode ?? null,
           ],
         )
       ).rows[0]!;
@@ -380,6 +396,8 @@ export class PgProofStore implements ProofStore {
           await client.query('RELEASE SAVEPOINT automatic_approval');
         }
         const before = {
+          gameMode: mode,
+          submittedGameMode: fields.gameMode ?? null,
           id,
           version: 1,
           source: 'runelite',
@@ -428,6 +446,7 @@ export class PgProofStore implements ProofStore {
         );
       }
       const receipt: RuneLiteReceipt = {
+        gameMode: mode,
         ...(rejection
           ? { rejectionReason: rejection, admissionPolicy: filters }
           : {}),

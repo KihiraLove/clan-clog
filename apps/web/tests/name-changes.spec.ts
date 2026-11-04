@@ -53,6 +53,7 @@ async function fixture(page: Page) {
       const fields = route.request().postDataJSON() as {
           sourceId: string;
           newName: string;
+          modeResolution?: import('@clog/domain').GameMode;
         },
         source = people.get(fields.sourceId)!;
       const target =
@@ -62,6 +63,13 @@ async function fixture(page: Page) {
             normalizePlayerName(r.name) === normalizePlayerName(fields.newName),
         ) ?? null;
       const value: CollectorNamePreview = {
+        modeResolutionRequired:
+          source.gameMode != null &&
+          target?.gameMode != null &&
+          source.gameMode !== target.gameMode &&
+          fields.modeResolution === undefined,
+        gameMode:
+          fields.modeResolution ?? target?.gameMode ?? source.gameMode ?? null,
         token: crypto.randomUUID(),
         operation: target
           ? 'merge'
@@ -97,6 +105,7 @@ async function fixture(page: Page) {
         });
       }
       const result: CollectorNameResult = {
+        gameMode: p.gameMode ?? null,
         operationId: crypto.randomUUID(),
         operation: p.operation as 'rename' | 'merge',
         sourceId: p.source.id,
@@ -106,6 +115,7 @@ async function fixture(page: Page) {
         counts: p.counts,
       };
       if (result.operation === 'merge') {
+        people.get(result.targetId)!.gameMode = result.gameMode ?? null;
         people.delete(result.sourceId);
         aliases.set(result.sourceId, result.targetId);
       } else people.get(result.sourceId)!.name = result.newName;
@@ -160,6 +170,33 @@ async function select(page: Page, name: string) {
   await panel.getByLabel('New name', { exact: true }).fill(name);
   return panel;
 }
+test('conflicting collector modes require a selected preview before the exact merge confirmation can apply', async ({
+  page,
+}) => {
+  const { state } = await fixture(page);
+  state.people.get(alice)!.gameMode = 'ironman';
+  state.people.get(bob)!.gameMode = 'ultimate_ironman';
+  await page.goto('/admin/submissions');
+  const panel = await select(page, 'Bob');
+  await panel.getByRole('button', { name: 'Change name', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Name Changes' }),
+    merge = dialog.getByRole('button', { name: 'Merge users', exact: true });
+  await expect(merge).toBeDisabled();
+  await expect(dialog.locator('.collector-name-confirmation')).toHaveText(
+    'Are you sure you want to merge user Alice to existing Bob?\nThis action cannot be reversed.',
+  );
+  await dialog
+    .getByRole('combobox', { name: 'Game mode after merging' })
+    .selectOption('group_ironman');
+  await dialog
+    .getByRole('button', { name: 'Preview selected game mode', exact: true })
+    .click();
+  await expect(merge).toBeEnabled();
+  await merge.click();
+  await expect(dialog).toHaveCount(0);
+  expect(state.people.get(bob)!.gameMode).toBe('group_ironman');
+  expect(state.requests).toHaveLength(1);
+});
 test('expired permission removes the name-change draft without applying it', async ({
   page,
 }) => {

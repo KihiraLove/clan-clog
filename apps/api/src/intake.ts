@@ -1,4 +1,5 @@
 import * as appText from '@clog/domain';
+import { isGameMode } from '@clog/domain';
 /** Dedicated service-token boundary for Discord bot intake; no admin authority. */
 import multipart from '@fastify/multipart';
 import { screenshotParts, screenshotLimits } from './screenshot-multipart.js';
@@ -32,6 +33,7 @@ export function botSubmission(json: string): BotSubmissionInput {
           'collectorName',
           'hardcore',
           'eventPageId',
+          'gameMode',
         ].includes(key),
     ) ||
     !['interactionId', 'guildId', 'actorDiscordId'].every(
@@ -43,6 +45,7 @@ export function botSubmission(json: string): BotSubmissionInput {
     typeof input.collectorName !== 'string' ||
     !input.collectorName.trim() ||
     input.collectorName.length > 80 ||
+    (input.gameMode !== undefined && !isGameMode(input.gameMode)) ||
     (input.hardcore !== undefined && typeof input.hardcore !== 'boolean') ||
     (input.eventPageId !== undefined &&
       (typeof input.eventPageId !== 'string' ||
@@ -86,6 +89,7 @@ export function claimHash(input: BotSubmissionInput): string {
         ...(input.eventPageId === undefined
           ? []
           : [{ eventPageId: input.eventPageId }]),
+        ...(input.gameMode === undefined ? [] : [{ gameMode: input.gameMode }]),
       ]),
     )
     .digest('hex');

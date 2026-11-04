@@ -5,6 +5,16 @@ import { test } from 'node:test';
 import sharp from 'sharp';
 
 const root = new URL('../', import.meta.url);
+test('all six official OSRS helmet assets retain their pinned native transparent lossless bytes',async()=>{
+ const directory=new URL('apps/web/public/game-modes/',root),provenance=JSON.parse(await readFile(new URL('provenance.json',directory),'utf8'));
+ const modes=['ironman','ultimate_ironman','hardcore_ironman','group_ironman','hardcore_group_ironman','unranked_group_ironman'];
+ assert.equal(provenance.sourcePage,'https://support.runescape.com/hc/en-gb/articles/360001358698-Chat-badges');assert.equal(provenance.assets.length,6);
+ assert.deepEqual(provenance.assets.map(asset=>asset.gameMode).sort(),modes.sort());
+ for(const asset of provenance.assets){
+  assert.equal(asset.file,asset.gameMode+'.webp');assert.match(asset.sourceUrl,/^https:\/\/support\.runescape\.com\/hc\/article_attachments\/[0-9]+$/u);assert.match(asset.sourceSha256,/^[a-f0-9]{64}$/u);
+  const bytes=await readFile(new URL(asset.file,directory)),meta=await sharp(bytes).metadata();assert.equal(createHash('sha256').update(bytes).digest('hex'),asset.sha256);assert.equal(bytes.length,asset.bytes);assert.equal(bytes.toString('ascii',8,16),'WEBPVP8L');assert.equal(meta.width,asset.width);assert.equal(meta.height,asset.height);assert.equal(meta.hasAlpha,true);assert.ok(meta.width<=16&&meta.height<=16);
+ }
+});
 test('the shared default item icon preserves the exact supplied lossless transparent artwork', async () => {
   const provenance = JSON.parse(
     await readFile(new URL('catalog/default-icon.json', root), 'utf8'),

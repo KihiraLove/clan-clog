@@ -17,6 +17,7 @@ export interface CatalogData {
   pages: { id: string; name: string; category: string; itemIds: number[] }[];
 }
 export interface PublicCredit {
+  gameMode?: import('@clog/domain').GameMode | null;
   eventPageId?: string | null;
   eventPageAssignmentPending?: boolean;
   collectionType?: import('@clog/domain').CollectionType;
@@ -50,6 +51,7 @@ export interface StoredSession extends AccountSessionIdentity {
   expiresAt: Date;
 }
 export interface BotSubmissionInput {
+  gameMode?: import('@clog/domain').GameMode;
   eventPageId?: string;
   interactionId: string;
   guildId: string;
@@ -63,6 +65,7 @@ export interface BotSubmissionInput {
   hardcore: boolean;
 }
 export interface BotReceipt {
+  gameMode?: import('@clog/domain').GameMode | null;
   rejectionReason?: string;
   admissionPolicy?: import('@clog/domain').SubmissionFilters;
   eventPageId?: string | null;

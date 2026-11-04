@@ -18,6 +18,12 @@ are no longer accepted.
   as WebP; upstream PNGs are converted in memory.
 - [Skill icon provenance](../apps/web/public/skills/provenance.json) and bundled
   license record the RuneLite skill artwork.
+- [Helmet provenance](../apps/web/public/game-modes/provenance.json) and its
+  [copyright record](../apps/web/public/game-modes/LICENSE.txt) identify the six
+  official OSRS chat badges from Jagex's support article. Lossless WebP copies
+  retain their native size and transparency; no team-size markers are added.
+  Normal and unassigned collectors have no helmet. These assets are served
+  locally under `/game-modes/`; their record includes source and delivered hashes.
 - [Font license](../apps/web/public/fonts/LICENSE.txt) applies to the bundled font.
 - [GitHub mark license](../apps/web/public/brand/github-mark.LICENSE.txt) applies
   to the local Octicons mark.
