@@ -17,14 +17,14 @@
 ### Key Files Changed
 
 | File | Change |
-|------|--------|
-|  |  |
+| ---- | ------ |
+|      |        |
 
 ## API Changes
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
-|  |  |  |
+| ------ | -------- | ----------- |
+|        |          |             |
 
 ## Database Changes
 
@@ -54,10 +54,11 @@
 - [ ] No new warnings or console errors introduced
 - [ ] Backwards compatible (or migration plan documented)
 
-
 ## Related Issues
+
 Closes:
 Related:
+
 ## Screenshots / Demo
 
 ## Deployment Notes
