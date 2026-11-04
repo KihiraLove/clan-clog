@@ -5,13 +5,80 @@
   font-display: swap;
 }
 :root {
+  /* Page and shared surfaces. Keep roles separate even when initial values match. */
   --site-background: #171612;
   --site-background-highlight: #29271e;
+  --surface-panel: #29261e;
+  --surface-inset: #211e17;
+  --surface-field: #1d1b15;
+  --surface-tooltip: #282820;
+  --text-body: #c9c2b2;
+  --text-muted: #b4aa95;
+  --text-subtle: #a99d82;
+  --text-heading: #dec77c;
+  --text-link: #e2bc77;
+  --text-link-hover: #f3d890;
+  --text-field: #e3d5b8;
+  --text-label: #c8bda2;
+  --border-panel: #594c34;
+  --border-subtle: #514936;
+  --border-field: #6b5b3f;
+  --border-dialog: #796544;
+  --focus-ring: #f1c45e;
+  --accent: #c2a062;
+  /* Shared control states, including navigation and staff filters. */
+  --control-background: #353024;
+  --control-border: #706448;
+  --control-text: #c9c2b2;
+  --control-hover-background: #49402d;
+  --control-hover-text: #f3d890;
+  --control-selected-background: #51422a;
+  --control-selected-border: #d8bb72;
+  --control-selected-text: #ffe1a1;
+  --control-positive-background: #39442c;
+  --control-positive-border: #82985f;
+  --control-positive-text: #d7e9bd;
+  --control-positive-hover: #465434;
+  --control-danger-background: #4a2c21;
+  --control-danger-border: #a3644c;
+  --control-danger-text: #ffcab7;
+  --control-danger-hover: #64392d;
+  --control-danger-hover-border: #d28b72;
+  --control-disabled-opacity: 0.5;
+  /* Feedback roles are shared by public notices, staff forms and badges. */
+  --feedback-error: #f1a38c;
+  --feedback-success: #b4d496;
+  --feedback-warning: #f3dc83;
+  /* Game-specific palette; native frame dimensions and sprites stay local. */
+  --game-text: #ff981f;
+  --game-text-bright: #ffff00;
+  --game-text-complete: #0dc10d;
+  --game-border: #585040;
+  --game-tab-background: #443f33;
+  --game-tab-selected: #514a3d;
+  --game-row-background: #574e43;
+  --game-row-alternate: #473d32;
+  /* Typography, shared rhythm and elevation; not every pixel is a token. */
+  --font-body: system-ui, sans-serif;
+  --font-display: RuneScape, serif;
+  --font-size-fine: 10px;
+  --font-size-small: 11px;
+  --font-size-body: 12px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --shadow-panel: inset 0 0 0 3px #1f1d16;
+  --shadow-dialog: 0 8px 30px #0007;
+  --shadow-tooltip: inset 0 0 0 1px #706a55, 2px 3px 5px #0008;
+  --shadow-game-text: 1px 1px #000;
+  --dialog-backdrop: #000b;
   --site-shell-width: 1336px;
   --site-gutter: 24px;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-body);
   color-scheme: dark;
-  color: #c9c2b2;
+  color: var(--text-body);
   background: var(--site-background);
   font-synthesis: none;
 }
@@ -46,12 +113,8 @@ select {
 button {
   color: inherit;
 }
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid #f1c45e;
+:where(button, a, input, select, textarea, [tabindex='0']):focus-visible {
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 .site-shell {
@@ -59,23 +122,72 @@ textarea:focus-visible {
   margin: 0 auto;
   padding: 0 var(--site-gutter);
 }
+/* Shared primitives. Prefer a class/variant over a route-dependent override. */
+:where(button, input, select, textarea):disabled,
+[aria-disabled='true'] {
+  opacity: var(--control-disabled-opacity);
+  cursor: not-allowed;
+}
+:where(button)[aria-busy='true'] {
+  cursor: wait;
+}
+:where(a):hover {
+  color: var(--text-link-hover);
+}
+:where(input, select, textarea)[aria-invalid='true'] {
+  border-color: var(--feedback-error);
+}
+html:has(.site-dialog[open]) {
+  overflow: hidden;
+}
+.site-dialog {
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: var(--dialog-padding, var(--space-xl));
+  border: 1px solid var(--border-dialog);
+  color: var(--text-body);
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-dialog);
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+.site-dialog::backdrop {
+  background: var(--dialog-backdrop);
+}
+.site-tooltip {
+  position: fixed;
+  width: max-content;
+  background: var(--surface-tooltip);
+  box-shadow: var(--shadow-tooltip);
+  font-family: var(--font-display);
+  text-shadow: var(--shadow-game-text);
+  overflow-wrap: anywhere;
+}
+.collection-outline-defs {
+  position: absolute;
+}
 .site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  border-bottom: 1px solid #3b382b;
-  padding: 30px 0;
+  gap: var(--space-lg);
+  padding: 18px 0 12px;
+  flex-wrap: nowrap;
+  border: 0;
+  min-height: 120px;
 }
 .clan-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
   text-decoration: none;
   color: inherit;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-md);
 }
 .brand-mark {
-  font-family: RuneScape, serif;
+  font-family: var(--font-display);
   font-size: 38px;
   color: #dcb35e;
   width: 43px;
@@ -88,66 +200,68 @@ textarea:focus-visible {
 }
 .clan-name {
   display: block;
-  font-family: RuneScape, serif;
-  font-size: 32px;
+  font-family: var(--font-display);
+  font-size: 43px;
   line-height: 1;
-  color: #e6c77d;
+  color: var(--text-heading);
+  letter-spacing: 4px;
 }
 .clan-subtitle {
   display: block;
   margin-top: 4px;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #938e7f;
+  letter-spacing: 2px;
+  text-transform: none;
+  color: var(--text-heading);
+  font: 22px/1.2 var(--font-display);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .mode-label {
-  font-size: 11px;
+  font-size: var(--font-size-small);
   color: #aaa393;
 }
 main {
-  padding: 34px 0 0;
+  padding: 0;
 }
 .site-button {
-  border: 1px solid #706448;
-  background: #353024;
+  border: 1px solid var(--control-border);
+  background: var(--control-background);
   padding: 9px 13px;
-  font-size: 12px;
+  font-size: var(--font-size-body);
   white-space: nowrap;
+  display: inline-block;
+  text-decoration: none;
+  color: var(--control-text);
 }
-.site-button:hover {
-  background: #49402d;
-  color: #f3d890;
+.site-button:where(:hover, :active):not(:disabled, [aria-disabled='true']) {
+  background: var(--control-hover-background);
+  color: var(--control-hover-text);
 }
 .view-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   margin: 0 0 14px;
-  font-size: 12px;
+  font-size: var(--font-size-body);
   color: #a09a8b;
 }
 .view-controls [role='group'] {
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 .view-controls button {
   background: transparent;
   border: 1px solid #423e31;
   padding: 6px 9px;
-  font-size: 11px;
+  font-size: var(--font-size-small);
   color: #a69e8b;
-}
-.view-controls button[aria-pressed='true'] {
-  color: #e4c77f;
-  background: #302b20;
-  border-color: #70603d;
 }
 .log-viewport {
   overflow-x: auto;
   padding: 4px;
   scrollbar-color: #706247 #211f18;
+  width: 100%;
 }
 .log-sizing {
   margin: 0 auto;
@@ -167,11 +281,9 @@ main {
   box-shadow:
     inset 0 0 0 1px #77705a,
     0 8px 30px #0007;
-  font:
-    16px/1 RuneScape,
-    serif;
-  text-shadow: 1px 1px #000;
-  color: #ff981f;
+  font: 16px/1 var(--font-display);
+  text-shadow: var(--shadow-game-text);
+  color: var(--game-text);
 }
 .game-window button {
   text-shadow: inherit;
@@ -224,11 +336,11 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border: 1px solid #585040;
+  border: 1px solid var(--game-border);
   border-bottom: none;
   border-radius: 5px 5px 0 0;
-  background: #443f33;
-  color: #ff981f;
+  background: var(--game-tab-background);
+  color: var(--game-text);
   font-size: 16px;
   padding: 2px 0;
 }
@@ -236,19 +348,19 @@ main {
   height: 0;
 }
 .game-tabs button[aria-selected='true'] {
-  background: #514a3d;
-  border-top-color: #585040;
+  background: var(--game-tab-selected);
+  border-top-color: var(--game-border);
 }
 .game-tabs button:hover,
 .game-search:hover {
-  color: #ffff00;
+  color: var(--game-text-bright);
 }
 .game-body {
   height: 256px;
   display: grid;
   grid-template-columns: 198px minmax(0, 1fr);
   margin: 0 1px;
-  border: 1px solid #585040;
+  border: 1px solid var(--game-border);
   border-top: none;
   background: #4c4436;
 }
@@ -256,22 +368,22 @@ main {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-right: 3px solid #585040;
+  border-right: 3px solid var(--game-border);
 }
 .game-scroll {
   scrollbar-width: auto;
-  scrollbar-color: #8b7c55 #585040;
+  scrollbar-color: #8b7c55 var(--game-border);
 }
 .game-scroll::-webkit-scrollbar {
   width: 15px;
 }
 .game-scroll::-webkit-scrollbar-track {
   background: #221f17;
-  border: 1px solid #585040;
+  border: 1px solid var(--game-border);
 }
 .game-scroll::-webkit-scrollbar-thumb {
   background: #817451;
-  border: 2px solid #585040;
+  border: 2px solid var(--game-border);
   box-shadow: inset 1px 1px #b4a172;
 }
 .page-list {
@@ -286,15 +398,15 @@ main {
   line-height: 15px;
   padding: 0 2px;
   border: 0;
-  background: #574e43;
+  background: var(--game-row-background);
   white-space: nowrap;
-  color: #ff981f;
+  color: var(--game-text);
 }
-.page-list button:nth-child(even) {
-  background: #473d32;
+:where(.page-list) button:nth-child(even) {
+  background: var(--game-row-alternate);
 }
 .page-list button[aria-current='page'] {
-  box-shadow: inset 0 0 0 1px #585040;
+  box-shadow: inset 0 0 0 1px var(--game-border);
 }
 .page-list button:hover {
   box-shadow: inset 0 0 0 1px #958b74;
@@ -324,14 +436,14 @@ main {
   height: 46px;
   flex-shrink: 0;
   padding: 3px 6px;
-  border-bottom: 1px solid #585040;
+  border-bottom: 1px solid var(--game-border);
 }
 .page-heading h3 {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   margin: 0 0 3px;
-  color: #ff981f;
+  color: var(--game-text);
   font: inherit;
   font-size: 17px;
   line-height: 17px;
@@ -346,13 +458,14 @@ main {
   color: #ff0000;
 }
 .count-partial {
-  color: #ffff00;
+  color: var(--game-text-bright);
 }
-.complete {
-  color: #0dc10d !important;
+.complete,
+.page-list button.complete {
+  color: var(--game-text-complete);
 }
 .page-list button.uncollected {
-  color: #ff981f;
+  color: var(--game-text);
 }
 .item-area {
   overflow-y: scroll;
@@ -380,7 +493,7 @@ main {
 .item-slot img {
   max-width: 32px;
   max-height: 32px;
-  image-rendering: pixelated;
+  image-rendering: auto;
   filter: grayscale(1) brightness(0.46);
   opacity: 0.8;
 }
@@ -392,10 +505,8 @@ main {
   position: absolute;
   top: 1px;
   left: 1px;
-  color: #ffff00;
-  font:
-    min(11px, calc(60px / var(--count-digits))) / 1 RuneScape,
-    serif;
+  color: var(--game-text-bright);
+  font: min(11px, calc(60px / var(--count-digits))) / 1 var(--font-display);
   text-shadow:
     -1px 0 #000,
     1px 0 #000,
@@ -431,7 +542,7 @@ main {
 }
 .log-state h3 {
   margin: 0 0 10px;
-  color: #ffff00;
+  color: var(--game-text-bright);
   font: inherit;
   line-height: 1.2;
 }
@@ -440,7 +551,7 @@ main {
   line-height: 1.35;
 }
 .game-button {
-  background: #514936;
+  background: var(--border-subtle);
   border: 1px solid #97835b;
   color: #ffb641;
   padding: 5px 7px;
@@ -450,18 +561,20 @@ main {
 }
 .log-help {
   text-align: center;
-  font-size: 11px;
-  color: #958f7d;
-  margin: 17px 0 0;
+  color: var(--text-heading);
+  margin: 50px 0;
+  font: 38px/1.25 var(--font-display);
+  letter-spacing: 2px;
+  display: grid;
 }
 .reopen {
   padding: 70px 0;
   text-align: center;
 }
 .refresh-error {
-  font-size: 12px;
+  font-size: var(--font-size-body);
   line-height: 1.6;
-  color: #dfb36b;
+  color: var(--feedback-warning);
 }
 .refresh-error button {
   background: none;
@@ -471,24 +584,14 @@ main {
 }
 /* Body-level portal: viewport coordinates avoid clipping inside the scaled item grid. */
 .item-menu {
-  position: fixed;
   z-index: 100;
-  width: max-content;
   max-width: min(440px, calc(100vw - 16px));
   max-height: min(320px, calc(100vh - 16px));
   overflow-y: auto;
-  background: #282820;
   border: 2px solid #0c0c0a;
-  box-shadow:
-    inset 0 0 0 1px #706a55,
-    2px 3px 5px #0008;
   padding: 1px;
-  font:
-    16px/1.3 RuneScape,
-    serif;
+  font: 16px/1.3 var(--font-display);
   color: #fff;
-  text-shadow: 1px 1px #000;
-  overflow-wrap: anywhere;
 }
 .item-menu__heading {
   background: #514e43;
@@ -546,8 +649,8 @@ main {
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  font-size: 10px;
+  gap: var(--space-sm);
+  font-size: var(--font-size-fine);
   color: #797363;
 }
 .site-footer p {
@@ -580,49 +683,15 @@ main {
 .skip-link:focus {
   top: 12px;
 }
-@media (max-width: 600px) {
-  .site-header {
-    padding: 22px 0;
-  }
-  .clan-name {
-    font-size: 28px;
-  }
-  .mode-label {
-    max-width: 80px;
-    text-align: right;
-    line-height: 1.5;
-  }
-  main {
-    padding-top: 22px;
-  }
-  .view-controls {
-    align-items: flex-start;
-  }
-  .view-controls > span {
-    padding-top: 7px;
-  }
-  .log-sizing {
-    margin-left: 0;
-  }
-  .site-footer {
-    margin-top: 30px;
-    line-height: 1.6;
-  }
-}
-
-.site-header {
-  flex-wrap: wrap;
-  gap: 16px;
-}
 /* Site navigation and XP layouts share the outer shell, outside the five in-game tabs. */
 .site-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 .site-nav a {
   color: #bdb293;
-  font-size: 12px;
+  font-size: var(--font-size-body);
   text-decoration: none;
   padding: 9px 11px;
   border: 1px solid transparent;
@@ -634,10 +703,10 @@ main {
   background: #302a1d;
 }
 .xp-eyebrow {
-  color: #d6b064 !important;
+  color: #d6b064;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  font-size: 10px !important;
+  font-size: var(--font-size-fine);
 }
 .skill-panel {
   background: #4c4435 url('/ui/panel.webp');
@@ -649,10 +718,8 @@ main {
   padding: 12px 10px 8px;
 }
 .skill-panel__title {
-  font:
-    24px/1 RuneScape,
-    serif;
-  color: #ff981f;
+  font: 24px/1 var(--font-display);
+  color: var(--game-text);
   text-shadow: 1px 2px #000;
   text-align: center;
   padding: 5px 0 13px;
@@ -669,7 +736,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-xs);
   min-width: 0;
   min-height: 48px;
   padding: 5px 3px;
@@ -696,19 +763,15 @@ main {
 .xp-amount__body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
   min-width: 0;
 }
 .skill-cell__name {
-  font:
-    12px/1 RuneScape,
-    serif;
+  font: 12px/1 var(--font-display);
   color: #dccba7;
 }
 .xp-amount__number {
-  font:
-    18px/1 RuneScape,
-    serif;
+  font: 18px/1 var(--font-display);
   color: #fff000;
   overflow-wrap: anywhere;
 }
@@ -725,38 +788,26 @@ main {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  font:
-    18px/1 RuneScape,
-    serif;
-  color: #ff981f;
+  font: 18px/1 var(--font-display);
+  color: var(--game-text);
   border-top: 1px solid #28241b;
   padding: 11px 4px 2px;
   text-shadow: 1px 2px #000;
 }
 .skill-panel__hint {
-  color: #c2b597 !important;
-  font-size: 10px !important;
+  color: #c2b597;
+  font-size: var(--font-size-fine);
   text-align: center;
   margin-bottom: 2px;
 }
 .xp-tooltip {
-  position: fixed;
   z-index: 1000;
   pointer-events: none;
-  width: max-content;
   max-width: min(320px, calc(100vw - 24px));
-  background: #383329;
   border: 2px solid #050505;
-  box-shadow:
-    0 0 0 1px #756b53,
-    3px 4px 0 #0006;
   padding: 9px 11px;
   color: #fff000;
-  font:
-    21px/1.3 RuneScape,
-    serif;
-  text-shadow: 1px 1px #000;
-  overflow-wrap: anywhere;
+  font: 21px/1.3 var(--font-display);
 }
 .xp-tooltip strong,
 .xp-tooltip span,
@@ -764,7 +815,7 @@ main {
   display: block;
 }
 .xp-tooltip strong {
-  color: #ff981f;
+  color: var(--game-text);
   font-size: 19px;
   margin-bottom: 3px;
 }
@@ -780,13 +831,13 @@ main {
 .xp-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 .xp-table caption {
   text-align: left;
   color: #cfb481;
   padding: 12px 0;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 .xp-table th,
 .xp-table td {
@@ -805,7 +856,7 @@ main {
 }
 .xp-table thead th {
   color: #bcaa83;
-  font-size: 11px;
+  font-size: var(--font-size-small);
 }
 .xp-table thead button {
   color: inherit;
@@ -823,54 +874,17 @@ main {
   margin-top: 16px;
   border-top: 1px solid #584a32;
 }
-.site-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 /* A boundary or missing prerequisite is never represented as an active request. */
-.site-button[aria-busy='true'] {
-  cursor: wait;
-}
 .admin-action-explanation {
   margin: 5px 0;
   max-width: 65ch;
-}
-@media (max-width: 740px) {
-  .skill-panel {
-    width: 310px;
-    max-width: 100%;
-    margin: 0 auto;
-  }
-  .site-nav {
-    order: 3;
-    width: 100%;
-  }
-  .site-header {
-    gap: 10px;
-  }
-}
-@media (max-width: 360px) {
-  .skill-cell {
-    gap: 2px;
-  }
-  .skill-cell img {
-    width: 20px;
-  }
-  .xp-amount__number {
-    font-size: 16px;
-  }
-  .site-nav a {
-    padding: 8px;
-  }
 }
 
 /* Admin forms, queues and catalog editors; narrow-screen overrides follow this section. */
 .admin-page h1 {
   margin: 8px 0;
-  color: #efd08c;
-  font:
-    36px/1.1 RuneScape,
-    serif;
+  color: var(--text-heading);
+  font: 36px/1.1 var(--font-display);
   text-shadow: 1px 2px #000;
 }
 .admin-heading,
@@ -882,14 +896,14 @@ main {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-md);
 }
 .admin-heading {
   margin: 27px 0 20px;
 }
 .admin-account {
   color: #b4a98d;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 .admin-navigation {
   display: flex;
@@ -905,45 +919,40 @@ main {
   background: #252219;
   color: #c6b38b;
   text-decoration: none;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
-.admin-navigation a[aria-current='page'],
 .admin-navigation a:hover {
-  color: #f1d192;
-  background: #3b3020;
-  border-color: #9c7b46;
+  color: var(--control-hover-text);
+  background: var(--control-hover-background);
+  border-color: var(--control-border);
 }
 .admin-panel {
   min-width: 0;
-  padding: 21px;
+  padding: var(--space-xl);
   margin-bottom: 20px;
-  border: 1px solid #594c34;
-  background: #29261e;
-  box-shadow: inset 0 0 0 3px #1f1d16;
+  border: 1px solid var(--border-panel);
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-panel);
   overflow-wrap: anywhere;
 }
 .admin-panel h2 {
   margin: 0 0 12px;
-  font:
-    29px/1.1 RuneScape,
-    serif;
-  color: #e9c37d;
-  text-shadow: 1px 1px #000;
+  font: 29px/1.1 var(--font-display);
+  color: var(--text-heading);
+  text-shadow: var(--shadow-game-text);
 }
-.admin-panel p,
-.admin-page > p {
-  font-size: 12px;
+:where(.admin-panel, .site-dialog, .competition-import) p,
+:where(.admin-page) > p {
+  font-size: var(--font-size-body);
   line-height: 1.6;
-  color: #b4aa95;
+  color: var(--text-muted);
 }
-.admin-panel a {
-  color: #e2bc77;
+:where(a) {
+  color: var(--text-link);
   text-underline-offset: 3px;
-  font-size: 12px;
 }
-.admin-panel .site-button {
-  display: inline-block;
-  text-decoration: none;
+:where(.admin-panel, .site-dialog) a {
+  font-size: var(--font-size-body);
 }
 .admin-section-heading {
   align-items: start;
@@ -966,33 +975,28 @@ main {
 .admin-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-.admin-filters button[aria-pressed='true'] {
-  background: #51422a;
-  border-color: #c5a167;
-  color: #ffe1a1;
+  gap: var(--space-sm);
 }
 .admin-note {
   display: block;
-  color: #a99d82 !important;
-  font-size: 11px !important;
+  color: var(--text-subtle);
+  font-size: var(--font-size-small);
   line-height: 1.6;
   margin: 9px 0;
 }
 .admin-error {
-  color: #f1a38c !important;
-  font-size: 12px;
+  color: var(--feedback-error);
+  font-size: var(--font-size-body);
   line-height: 1.6;
 }
 .admin-success {
-  color: #b4d496 !important;
+  color: var(--feedback-success);
 }
 .admin-warning {
-  color: #f3dc83 !important;
+  color: var(--feedback-warning);
 }
 .discord-connection-status {
-  font-size: 12px;
+  font-size: var(--font-size-body);
   line-height: 1.6;
 }
 .admin-empty {
@@ -1003,18 +1007,18 @@ main {
   display: inline-block;
   color: #c7b790;
   border: 1px solid #6b5838;
-  font-size: 10px;
+  font-size: var(--font-size-fine);
   padding: 4px 6px;
   text-transform: capitalize;
 }
 .admin-badge--approved {
-  border-color: #77804b;
-  color: #c3d49a;
+  border-color: var(--control-positive-border);
+  color: var(--feedback-success);
 }
 .admin-badge--rejected,
 .admin-badge--revoked {
-  border-color: #915d44;
-  color: #deb198;
+  border-color: var(--control-danger-border);
+  color: var(--feedback-error);
 }
 .submission-list {
   list-style: none;
@@ -1040,12 +1044,12 @@ main {
   left: 12px;
   margin: 0;
   padding: 8px 12px;
-  background: #29261e;
-  border: 1px solid #594c34;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-panel);
 }
 .submission-card {
-  border: 1px solid #514936;
-  background: #211e17;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-inset);
   padding: 0;
   min-width: 0;
 }
@@ -1073,8 +1077,8 @@ main {
 .submission-card__summary time {
   display: block;
   margin-top: 4px;
-  font-size: 12px;
-  color: #b4aa95;
+  font-size: var(--font-size-body);
+  color: var(--text-muted);
 }
 .submission-card__open > .admin-badge {
   position: absolute;
@@ -1093,7 +1097,7 @@ main {
 .submission-card__item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 0;
 }
 .submission-card__item > div {
@@ -1110,7 +1114,7 @@ main {
   color: #e2c894;
 }
 .submission-card__item > div span {
-  font-size: 11px;
+  font-size: var(--font-size-small);
   color: #928774;
   margin-top: 4px;
 }
@@ -1133,11 +1137,11 @@ main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 13px 18px;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 .submission-facts dt {
   color: #9d9074;
-  font-size: 10px;
+  font-size: var(--font-size-fine);
   margin-bottom: 4px;
 }
 .submission-facts dd {
@@ -1148,7 +1152,7 @@ main {
 .admin-pagination {
   border-top: 1px solid #4d412d;
   padding-top: 16px;
-  font-size: 11px;
+  font-size: var(--font-size-small);
 }
 .admin-fieldset {
   border: 0;
@@ -1158,21 +1162,20 @@ main {
 }
 .admin-fieldset legend {
   color: #cfb989;
-  font-size: 12px;
+  font-size: var(--font-size-body);
   padding: 0;
   margin-bottom: 15px;
 }
-.admin-fieldset label,
+:where(.admin-fieldset) label,
 .admin-field-label {
   display: block;
   margin: 12px 0;
-  color: #c8bda2;
-  font-size: 12px;
+  color: var(--text-label);
+  font-size: var(--font-size-body);
 }
-.admin-panel input:not([type='checkbox']),
-.admin-panel select,
-.admin-panel textarea,
-.admin-panel .catalog-choice-list,
+:where(.admin-panel, .site-dialog)
+  :where(input:not([type='checkbox'], [type='color']), select, textarea),
+:where(.admin-panel) .catalog-choice-list,
 .admin-input {
   display: block;
   width: 100%;
@@ -1180,9 +1183,9 @@ main {
   max-width: 100%;
   padding: 9px 10px;
   margin-top: 7px;
-  border: 1px solid #6b5b3f;
-  background: #1d1b15;
-  color: #e3d5b8;
+  border: 1px solid var(--border-field);
+  background: var(--surface-field);
+  color: var(--text-field);
   font: inherit;
 }
 .admin-input {
@@ -1191,13 +1194,13 @@ main {
 .admin-panel .catalog-choice-list {
   height: 160px;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 .admin-panel .catalog-picker {
   min-width: 0;
   padding: 0;
   border: 0;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 .catalog-choice-list .admin-checkbox {
   margin: 0;
@@ -1208,21 +1211,21 @@ main {
   padding: 0;
   margin-bottom: 7px;
 }
-.admin-panel textarea {
+:where(.admin-panel, .site-dialog) textarea {
   resize: vertical;
 }
-.admin-panel input[type='checkbox'],
+:where(.admin-panel, .site-dialog) input[type='checkbox'],
 .admin-check {
-  accent-color: #c2a062;
+  accent-color: var(--accent);
   width: 16px;
   height: 16px;
   flex-shrink: 0;
 }
 .admin-checkbox {
-  display: flex !important;
+  display: flex;
   align-items: start;
   gap: 9px;
-  font-size: 12px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
   color: #c4b69a;
   margin: 15px 0;
@@ -1237,9 +1240,7 @@ main {
 }
 .admin-choice-fieldset {
   min-width: 0;
-  font:
-    12px/1.5 system-ui,
-    sans-serif;
+  font: 12px/1.5 var(--font-body);
   color: #cfb989;
 }
 .admin-form-grid {
@@ -1258,43 +1259,16 @@ main {
 .admin-toggle {
   min-width: 64px;
 }
-.admin-toggle[aria-checked='true'] {
-  border-color: #82985f;
-  background: #39442c;
-  color: #d7e9bd;
-}
 .admin-panel option {
   padding: 5px 3px;
 }
-.site-button--approve {
-  border-color: #82985f;
-  background: #39442c;
-}
 .site-button--danger {
-  border-color: #a3644c;
-  background: #4a2c21;
-}
-.site-button--danger:hover {
-  border-color: #d28b72;
-  background: #64392d;
-  color: #ffcab7;
-}
-html:has(.submission-review-dialog[open]) {
-  overflow: hidden;
+  border-color: var(--control-danger-border);
+  background: var(--control-danger-background);
 }
 .submission-review-dialog {
   width: min(1120px, calc(100% - 32px));
-  max-width: none;
-  max-height: calc(100dvh - 32px);
-  padding: 0;
-  border: 1px solid #796544;
-  color: inherit;
-  background: #29261e;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-.submission-review-dialog::backdrop {
-  background: #000b;
+  --dialog-padding: 0;
 }
 .submission-review-dialog .admin-panel {
   position: relative;
@@ -1305,9 +1279,9 @@ html:has(.submission-review-dialog[open]) {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #29261e;
+  background: var(--surface-panel);
   padding-right: 44px;
-  border-bottom: 1px solid #594c34;
+  border-bottom: 1px solid var(--border-panel);
 }
 .review-close,
 .catalog-close {
@@ -1323,7 +1297,7 @@ html:has(.submission-review-dialog[open]) {
 .submission-review-layout {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  gap: 24px;
+  gap: var(--space-xl);
 }
 .submission-review-layout > * {
   min-width: 0;
@@ -1339,7 +1313,7 @@ html:has(.submission-review-dialog[open]) {
   border-top: 1px solid #51422d;
   margin-top: 22px;
   padding-top: 17px;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 .admin-audit summary {
   cursor: pointer;
@@ -1362,7 +1336,7 @@ html:has(.submission-review-dialog[open]) {
 .admin-table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 .admin-table th,
 .admin-table td {
@@ -1383,9 +1357,6 @@ html:has(.submission-review-dialog[open]) {
   gap: 20px;
   align-items: start;
 }
-.catalog-workspace--editing {
-  grid-template-columns: minmax(0, 1fr) 320px;
-}
 .catalog-log-wrap {
   min-width: 0;
 }
@@ -1402,7 +1373,7 @@ html:has(.submission-review-dialog[open]) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 2px solid #585040;
+  border-bottom: 2px solid var(--game-border);
 }
 .catalog-titlebar h2 {
   font: inherit;
@@ -1420,13 +1391,13 @@ html:has(.submission-review-dialog[open]) {
 .catalog-tab {
   display: flex;
   min-width: 0;
-  border: 1px solid #585040;
+  border: 1px solid var(--game-border);
   border-bottom: 0;
   border-radius: 6px 6px 0 0;
-  background: #443f33;
+  background: var(--game-tab-background);
 }
 .catalog-tab:has([aria-selected='true']) {
-  background: #514a3d;
+  background: var(--game-tab-selected);
 }
 .catalog-tab button[role='tab'] {
   flex: 1;
@@ -1458,10 +1429,10 @@ html:has(.submission-review-dialog[open]) {
   display: flex;
   align-items: center;
   min-height: 30px;
-  background: #574e43;
+  background: var(--game-row-background);
 }
 .catalog-page-row:nth-child(even) {
-  background: #473d32;
+  background: var(--game-row-alternate);
 }
 .catalog-page-list .catalog-page-name {
   flex: 1;
@@ -1475,9 +1446,6 @@ html:has(.submission-review-dialog[open]) {
   text-overflow: ellipsis;
   overflow: hidden;
   font-size: 22px;
-}
-.catalog-page-list .catalog-page-row .catalog-page-name {
-  background: transparent;
 }
 .catalog-log .catalog-grip,
 .catalog-log .catalog-gear {
@@ -1505,13 +1473,13 @@ html:has(.submission-review-dialog[open]) {
 }
 .catalog-log .catalog-grip:hover,
 .catalog-log .catalog-gear:hover {
-  border-color: #585040;
-  color: #ff981f;
+  border-color: var(--game-border);
+  color: var(--game-text);
 }
 .catalog-log .catalog-add {
-  border: 1px solid #585040;
-  background: #473d32;
-  color: #ff981f;
+  border: 1px solid var(--game-border);
+  background: var(--game-row-alternate);
+  color: var(--game-text);
   padding: 6px;
   text-align: left;
   font: inherit;
@@ -1520,7 +1488,7 @@ html:has(.submission-review-dialog[open]) {
   white-space: normal;
 }
 .catalog-log .catalog-add:hover {
-  color: #ffff00;
+  color: var(--game-text-bright);
 }
 .catalog-log .item-area {
   padding: 10px 8px;
@@ -1597,7 +1565,7 @@ html:has(.submission-review-dialog[open]) {
 }
 .catalog-add-menu {
   display: grid;
-  gap: 12px;
+  gap: var(--space-md);
 }
 .catalog-inspector input {
   max-width: 100%;
@@ -1619,9 +1587,9 @@ html:has(.submission-review-dialog[open]) {
   gap: 10px;
   width: 100%;
   padding: 8px;
-  border: 1px solid #585040;
-  background: #473d32;
-  color: #ff981f;
+  border: 1px solid var(--game-border);
+  background: var(--game-row-alternate);
+  color: var(--game-text);
   text-align: left;
 }
 .catalog-existing-item img {
@@ -1634,9 +1602,6 @@ html:has(.submission-review-dialog[open]) {
   display: block;
   color: #c7baa0;
 }
-.catalog-existing-item:disabled {
-  opacity: 0.5;
-}
 .catalog-memberships {
   list-style: none;
   padding: 0;
@@ -1645,7 +1610,7 @@ html:has(.submission-review-dialog[open]) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   margin-bottom: 8px;
 }
 .catalog-delete {
@@ -1653,12 +1618,1120 @@ html:has(.submission-review-dialog[open]) {
 }
 .catalog-position-controls {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   margin: 12px 0;
 }
+.item-creator,
+.item-creator > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.hardcore-release-setting {
+  margin: 16px 0 24px;
+}
+.icon-picker__preview {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: #b9ab8d;
+  font-size: var(--font-size-small);
+}
+.icon-picker__preview img {
+  width: 64px;
+  height: 64px;
+  padding: 5px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: #453e30 url('/ui/panel.webp');
+  border: 1px solid #756447;
+}
+.admin-created {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  background: #2c3020;
+  border: 1px solid #6f784c;
+  padding: 13px;
+  margin: 14px 0;
+}
+.admin-created > div {
+  min-width: 0;
+}
+.admin-created strong {
+  font-size: 13px;
+  color: #d5dfb0;
+}
+.admin-created p {
+  margin: 6px 0;
+}
+.order-grip {
+  color: #8d7e60;
+  font-size: 17px;
+}
+
+/* Shared header and public navigation across normal, hardcore and XP views. */
+.site-header-controls {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  flex-shrink: 0;
+  gap: var(--space-md);
+}
+.site-header-world {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  min-height: 86px;
+}
+.site-header-link {
+  display: grid;
+  place-items: center;
+  width: 108px;
+  min-height: 40px;
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+}
+.site-header-link__icon {
+  display: none;
+}
+.collector-name {
+  display: inline;
+}
+.collector-helmet {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  max-width: 16px;
+  max-height: 16px;
+  margin-right: 3px;
+  vertical-align: -1px;
+  image-rendering: pixelated;
+}
+.collector-mode-editor {
+  border-top: 1px solid var(--border-dialog);
+  border-bottom: 1px solid var(--border-dialog);
+  padding: 12px 0;
+  margin: 12px 0;
+}
+.collector-mode-editor > label {
+  display: grid;
+  gap: 6px;
+  max-width: 360px;
+}
+.public-navigation-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 292px minmax(0, 1fr);
+  column-gap: var(--space-md);
+  min-height: 40px;
+}
+.public-navigation {
+  grid-column: 2;
+  align-self: start;
+  min-height: 40px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  width: min(292px, 100%);
+}
+.public-actions {
+  grid-column: 3;
+  justify-self: end;
+  width: 108px;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: var(--space-sm);
+}
+.public-actions > button {
+  width: 100%;
+  min-height: 40px;
+}
+.public-name-dialog {
+  width: min(440px, calc(100% - 32px));
+}
+.public-name-dialog label {
+  display: grid;
+  gap: 6px;
+}
+.public-name-dialog fieldset {
+  display: grid;
+  gap: var(--space-lg);
+  margin-bottom: 16px;
+}
+.public-name-success {
+  margin: 0;
+}
+.user-name-setting {
+  margin-bottom: 16px;
+}
+.user-name-setting > label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.public-navigation a {
+  display: grid;
+  place-items: center;
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+}
+.public-navigation a[aria-current='page'] {
+  box-shadow: inset 0 -2px var(--control-selected-border);
+}
+.public-navigation--hidden {
+  visibility: hidden;
+}
+.submission-help-dialog {
+  width: min(760px, calc(100% - 32px));
+  --dialog-padding: 0;
+  overflow: hidden;
+}
+.submission-help-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.submission-help-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-panel);
+}
+.submission-help-heading h2 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--text-heading);
+}
+.submission-help-heading button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex-shrink: 0;
+  font-size: 24px;
+}
+.submission-help-body {
+  padding: 8px 20px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.submission-help-body:focus-visible {
+  outline-offset: -4px;
+}
+.help-markdown {
+  color: var(--text-body);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.help-markdown :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-body);
+  font-weight: 700;
+  text-shadow: none;
+  margin: 1em 0 0.6em;
+  color: var(--text-heading);
+  line-height: 1.3;
+}
+.help-markdown :is(h1, h2) {
+  font-size: 21px;
+}
+.help-markdown a {
+  color: var(--text-link-hover);
+  font-size: inherit;
+  text-underline-offset: 3px;
+}
+.help-markdown p {
+  font-size: inherit;
+  color: inherit;
+  line-height: inherit;
+  margin: 1em 0;
+}
+.help-markdown :is(pre, blockquote) {
+  background: var(--surface-field);
+  padding: 12px;
+  margin-inline: 0;
+}
+.help-markdown pre {
+  overflow-x: auto;
+}
+.help-markdown blockquote {
+  border-left: 3px solid var(--border-dialog);
+}
+.submission-help-settings section {
+  max-height: 360px;
+  overflow: auto;
+}
+.submission-help-settings > p {
+  margin: 0;
+  font-size: var(--font-size-body);
+}
+#xp-main > .event-tracker {
+  margin-top: 50px;
+}
+.clan-logo,
+.clan-logo-preview {
+  width: 112px;
+  height: 80px;
+  object-fit: contain;
+}
+.clan-brand > div {
+  min-width: 0;
+}
+.clan-brand .clan-logo {
+  flex-shrink: 0;
+}
+.clan-brand .clan-name,
+.clan-brand .clan-subtitle {
+  overflow-wrap: anywhere;
+}
+.hardcore-toggle {
+  border: 0;
+  background: transparent;
+  padding: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.hardcore-toggle img {
+  display: block;
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.hardcore-toggle--active img {
+  filter: sepia(1) saturate(6) hue-rotate(310deg);
+}
+.log-help > span,
+.log-caption-sizer::before,
+.log-caption-sizer::after {
+  grid-area: 1 / 1;
+}
+.log-caption-sizer {
+  display: grid;
+  visibility: hidden;
+}
+.log-caption-sizer::before {
+  content: attr(data-normal);
+}
+.log-caption-sizer::after {
+  content: attr(data-hardcore);
+}
+/* Browser interpolation smooths enlarged sprite edges; this is not an xBR shader. */
+/* Alpha dilation minus the original silhouette gives a contour, never a slot-sized box. */
+.item-slot--event img {
+  filter: url('#event-outline');
+}
+.item-slot--hardcore img {
+  filter: url('#hardcore-outline');
+}
+.event-tracker {
+  margin: 100px auto 0;
+}
+.admin-page .event-tracker {
+  margin: 0 auto;
+}
+.event-tracker > h1 {
+  font: 38px/1.25 var(--font-display);
+  text-align: center;
+  letter-spacing: 2px;
+  color: var(--text-heading);
+  margin: 0 0 50px;
+}
+.event-tracker__layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 260px) 470px minmax(320px, 480px);
+  gap: 0;
+  max-width: 1210px;
+  margin: 0 auto;
+  align-items: start;
+}
+.event-sidebar {
+  border: 5px solid #343328;
+  border-right: 0;
+  border-radius: 5px 0 0 5px;
+  background: #191812;
+  min-width: 0;
+}
+.event-choice {
+  display: block;
+  width: 100%;
+  min-height: 51px;
+  padding: 10px 12px;
+  border: 2px solid #090a08;
+  border-radius: 3px;
+  background: #191812;
+  color: #ece9df;
+  font: 25px/1.15 var(--font-display);
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.event-choice[aria-current='true'] {
+  background: #504d3d;
+  color: #fffdf3;
+}
+.event-choice:hover {
+  background: #403b2b;
+}
+.event-list {
+  max-height: 410px;
+  overflow-y: auto;
+  scrollbar-color: #77715a #222219;
+  scrollbar-width: thin;
+}
+.event-list p {
+  padding: 16px;
+  font-size: 13px;
+  color: #bcb298;
+}
+.event-skills {
+  min-width: 0;
+}
+.event-skills .skill-panel {
+  width: 100%;
+  max-width: none;
+  padding: 12px;
+  border: 6px ridge #6e6957;
+  background: #403c2e;
+  box-shadow: inset 0 0 0 2px #26251f;
+}
+.event-skills .skill-grid {
+  gap: var(--space-xs);
+}
+.event-skills .skill-cell {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 49px;
+  gap: 2px;
+  padding: 6px 4px;
+  border: 2px ridge #77715c;
+  background: linear-gradient(135deg, #716a54, #56513f);
+  color: var(--game-text-bright);
+}
+.event-skills .skill-cell img {
+  flex-shrink: 0;
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  image-rendering: auto;
+}
+.event-skills .skill-cell__name {
+  display: none;
+}
+.event-skills .xp-amount__number {
+  font: 24px/1 var(--font-display);
+  color: var(--game-text-bright);
+  white-space: nowrap;
+  text-shadow: var(--shadow-game-text);
+}
+.event-skills .skill-panel__total {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  min-height: 58px;
+  padding: 8px;
+  margin-top: 8px;
+  background: #090a07;
+  border: 2px inset #7a735b;
+  color: #d7ccac;
+  font: 20px/1.1 var(--font-display);
+}
+.event-source {
+  min-height: 62px;
+  margin-top: 16px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.event-source strong,
+.event-source a {
+  display: block;
+}
+.event-source a {
+  color: var(--text-heading);
+}
+.event-source p {
+  margin: 0;
+  color: #a99f82;
+}
+.discord-settings form {
+  display: grid;
+  gap: 1rem;
+}
+.discord-settings fieldset {
+  border: 1px solid var(--border-subtle);
+  padding: 1rem;
+  min-width: 0;
+}
+.discord-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.discord-settings-grid label {
+  display: grid;
+  gap: 0.4rem;
+}
+.discord-settings-grid input {
+  width: 100%;
+}
+.admin-credential-form {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 28rem;
+}
+.admin-credential-form input {
+  width: 100%;
+  min-width: 0;
+}
+.admin-credential-form .admin-note {
+  margin: 0 0 0.25rem;
+}
+.admin-credential-form button {
+  justify-self: start;
+  margin-top: 0.5rem;
+}
+.admin-account-list {
+  margin-top: 1.5rem;
+}
+
+.submission-chat-proof p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.submission-proof img {
+  display: block;
+  max-width: 100%;
+  width: 18rem;
+  max-height: 12rem;
+  object-fit: contain;
+  margin-bottom: 0.5rem;
+}
+
+.clan-api-key-settings {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border-panel);
+  padding-top: 1rem;
+}
+.clan-api-key-settings form {
+  margin-block: 0.75rem;
+}
+.clan-api-key-value {
+  font-family: monospace;
+}
+.runelite-review-settings p {
+  overflow-wrap: anywhere;
+}
+.runelite-world-policy {
+  margin-block: 1rem;
+}
+.runelite-world-policy label {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+.scheduling-panel p,
+.schedule-card h4 {
+  overflow-wrap: anywhere;
+}
+.schedule-page-list {
+  max-height: 18rem;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  padding: 0.5rem 1rem;
+}
+.schedule-list {
+  display: grid;
+  gap: 0.6rem;
+}
+.schedule-card,
+.schedule-delete-confirm {
+  border: 1px solid var(--border-subtle);
+  padding: 1rem;
+}
+.schedule-card h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+.schedule-card {
+  background: #453b2c;
+  padding: 12px 14px;
+}
+.schedule-card__heading,
+.schedule-card__times {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+.schedule-card__heading h4 {
+  flex: 1;
+  min-width: 0;
+}
+.schedule-card__times {
+  justify-content: start;
+}
+.schedule-card p {
+  margin: 8px 0;
+}
+.schedule-card .admin-actions {
+  margin: 8px 0 0;
+}
+.schedule-datetime-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 6px 0 14px;
+}
+.scheduling-panel .schedule-datetime-row input {
+  width: 250px;
+  max-width: 100%;
+  margin: 0;
+}
+.scheduling-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+.scheduling-toggle h3 {
+  margin-bottom: 0;
+}
+.schedule-delete-confirm {
+  width: min(32rem, calc(100vw - 32px));
+  --dialog-padding: var(--space-lg);
+}
+.unknown-metric-dialog {
+  width: min(42rem, calc(100vw - 2rem));
+}
+.unknown-metric-dialog .admin-section-heading {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.unknown-metric-dialog .admin-section-heading h3 {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.unknown-metric-dialog .admin-section-heading button {
+  flex: 0 0 auto;
+}
+.metric-definition-fields {
+  border-top: 1px solid var(--border-dialog);
+  padding-top: 16px;
+}
+.metric-definition-fields legend {
+  overflow-wrap: anywhere;
+}
+.metric-page-choices {
+  max-height: 12rem;
+  overflow: auto;
+}
+.unknown-metric-dialog .admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+.schedule-utc {
+  color: #b9ab8f;
+  font-size: 0.9em;
+}
+.clan-logo-preview .clan-logo {
+  display: block;
+}
+.clan-logo-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--surface-field);
+  border: 1px solid var(--border-panel);
+}
+
+.highlight-picker {
+  margin: 18px 0;
+  border: 1px solid #655d45;
+}
+.highlight-picker__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-md);
+}
+.highlight-picker__controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.highlight-picker__controls input[type='number'] {
+  width: 82px;
+}
+.highlight-picker__controls input.highlight-picker__hex {
+  width: 112px;
+}
+.highlight-picker__preview input[type='color'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.highlight-picker__preview input:disabled {
+  cursor: default;
+}
+.highlight-picker__preview {
+  position: relative;
+  margin-top: 7px;
+  width: 38px;
+  height: 38px;
+  background: repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%) 0 / 12px 12px;
+  border: 1px solid #655d45;
+}
+.highlight-picker__preview:focus-within {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.highlight-picker__preview > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.site-copy-fields {
+  border: 1px solid var(--border-subtle);
+  margin: 20px 0;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.site-copy-fields label {
+  display: grid;
+  gap: 7px;
+}
+.site-copy-fields input {
+  width: 100%;
+  min-width: 0;
+}
+.footer-support {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xl);
+}
+.footer-support img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.github-support,
+.project-support {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 180px;
+  min-height: 37px;
+  padding: 7px 10px;
+  border-radius: 11px;
+  background: #fff;
+  color: #181717;
+  text-decoration: none;
+  font:
+    700 12px/1.2 Arial,
+    sans-serif;
+}
+.github-support:hover,
+.project-support:hover {
+  filter: brightness(1.1);
+}
+.project-support {
+  background: #73a4f1;
+}
+.project-support__logo {
+  flex-shrink: 0;
+}
+.admin-delete-confirm {
+  border: 1px solid #9e714c;
+  padding: 16px;
+  margin-top: 16px;
+}
+.admin-account-list li {
+  padding: 12px 0;
+}
+
+.log-help,
+.event-tracker h1,
+.event-tracker p,
+.admin-delete-confirm p {
+  overflow-wrap: anywhere;
+}
+/* Competitions accompany the log while preserving its established frame proportions. */
+.public-log-layout {
+  --log-frame-height: calc(314px * var(--log-scale));
+  /* Expand into the left gutter, up to 30%, without moving the log frame. */
+  --activity-expansion: clamp(
+    0px,
+    calc((100vw - var(--site-shell-width)) / 2),
+    72px
+  );
+  margin-left: calc(-1 * var(--activity-expansion));
+  display: grid;
+  grid-template-columns: calc(240px + var(--activity-expansion)) minmax(
+      0,
+      1008px
+    );
+  column-gap: var(--space-lg);
+}
+.public-log-layout > .log-help {
+  grid-column: 1 / -1;
+  margin-left: var(--activity-expansion);
+}
+.public-log-layout > .log-viewport {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+}
+.public-log-layout > .refresh-error {
+  grid-column: 2;
+}
+.activity-competitions {
+  grid-column: 1;
+  grid-row: 2;
+  /* Use the renderer's frame height, excluding viewport padding and its scrollbar. */
+  height: var(--log-frame-height);
+  margin: 4px 0;
+  display: flex;
+  flex-direction: column;
+  border: 4px solid #343328;
+  border-radius: 5px;
+  background: #191812;
+  padding: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+.activity-competitions > :not(ol) {
+  flex-shrink: 0;
+}
+.activity-competitions h2 {
+  font: 25px/1.2 var(--font-display);
+  color: var(--text-heading);
+  margin: 0 0 10px;
+}
+.activity-timezone {
+  font-size: var(--font-size-small);
+  color: #b8aa83;
+  overflow-wrap: anywhere;
+}
+.activity-competitions ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  /* Keep link focus outlines inside the scrollport. */
+  padding-inline: 4px;
+}
+.activity-competition {
+  padding: 12px 0;
+  border-top: 1px solid #54482d;
+  overflow-wrap: anywhere;
+}
+.activity-competition a {
+  display: block;
+  color: #ece9df;
+  font: 23px/1.2 var(--font-display);
+}
+.activity-competition small {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--font-size-small);
+  line-height: 1.7;
+}
+.activity-competition--finished small {
+  color: var(--feedback-error);
+}
+.activity-competition .activity-range {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.35em;
+}
+.activity-range > * {
+  white-space: nowrap;
+}
+.activity-competition--running small {
+  color: var(--feedback-success);
+}
+.activity-competition--future small {
+  color: var(--feedback-warning);
+}
+.xp-podium {
+  padding: 12px;
+  text-align: center;
+  min-width: 0;
+}
+.xp-podium h2 {
+  color: var(--text-heading);
+  font: 28px/1.2 var(--font-display);
+  margin: 0;
+}
+.xp-podium > p {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.xp-podium__places {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  list-style: none;
+  padding: 0;
+  margin: 28px 0 0;
+  gap: var(--space-xs);
+}
+.xp-podium__place {
+  min-width: 0;
+}
+.xp-podium__place--1 {
+  grid-column: 2;
+  grid-row: 1;
+}
+.xp-podium__place--2 {
+  grid-column: 1;
+  grid-row: 1;
+}
+.xp-podium__place--3 {
+  grid-column: 3;
+  grid-row: 1;
+}
+.xp-podium__name {
+  display: block;
+  color: #ece9df;
+  font: 20px/1.15 var(--font-display);
+  overflow-wrap: anywhere;
+  margin-bottom: 8px;
+}
+.xp-podium__step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 32px/1 var(--font-display);
+  color: #191812;
+  background: #d7bd6d;
+  height: 100px;
+  border: 2px solid #54482d;
+}
+.xp-podium__place--2 .xp-podium__step {
+  height: 72px;
+  background: #b6b7ab;
+}
+.xp-podium__place--3 .xp-podium__step {
+  height: 48px;
+  background: #bd9470;
+}
+.competition-import {
+  margin-bottom: 24px;
+}
+.competition-metrics,
+.competition-breakdown {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.competition-breakdown ul {
+  padding-left: 20px;
+}
+.activity-competition .competition-metrics {
+  margin: 6px 0;
+}
+.competition-import .site-button {
+  min-height: 44px;
+}
+.competition-import input,
+.competition-import select {
+  max-width: 100%;
+  min-width: 0;
+}
+.competition-import .admin-fieldset {
+  max-width: 42rem;
+}
+.competition-import small {
+  color: #b8aa83;
+}
+/* Route preparation leaves the current document's layout and editable forms intact. */
+.admin-route-status {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 100;
+  width: min(380px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #a89970;
+  border-radius: 6px;
+  color: #f5e5bf;
+  background: #28241e;
+  box-shadow: 0 3px 16px #0008;
+}
+.admin-route-status p {
+  margin: 0 0 8px;
+}
+.admin-route-shell {
+  min-height: 22rem;
+}
+.access-control-settings fieldset {
+  max-width: 36rem;
+}
+.access-control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.catalog-update-dialog {
+  width: min(62rem, calc(100vw - 2rem));
+}
+.catalog-update-notice {
+  margin: 12px 0;
+}
+.catalog-update-dialog p,
+.catalog-update-dialog h3 {
+  overflow-wrap: anywhere;
+}
+.catalog-update-dialog .admin-actions button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.catalog-update-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.catalog-update-table th,
+.catalog-update-table td {
+  border-bottom: 1px solid var(--border-dialog);
+  padding: 12px 8px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.catalog-update-table th:last-child,
+.catalog-update-table td:last-child {
+  width: 3.5rem;
+  text-align: center;
+}
+.catalog-update-table h3 {
+  margin-top: 0;
+}
+.catalog-update-table ul {
+  padding-left: 18px;
+}
+.catalog-update-table input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+}
+.catalog-update-table select {
+  width: 100%;
+  min-width: 0;
+}
+.catalog-update-icons {
+  margin: 20px 0;
+}
+.submission-review-dialog.collector-name-dialog {
+  width: min(600px, calc(100vw - 24px));
+}
+.collector-name-confirmation {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.site-button[aria-pressed='true'],
+.site-button[aria-checked='true'],
+.public-navigation a[aria-current='page'],
+.admin-navigation a[aria-current='page'],
+.view-controls button[aria-pressed='true'],
+.admin-filters button[aria-pressed='true'] {
+  border-color: var(--control-selected-border);
+  background: var(--control-selected-background);
+  color: var(--control-selected-text);
+}
+.site-button--approve,
+.admin-toggle[aria-checked='true'] {
+  border-color: var(--control-positive-border);
+  background: var(--control-positive-background);
+  color: var(--control-positive-text);
+}
+.site-button--approve:where(:hover, :active):not(:disabled),
+.admin-toggle[aria-checked='true']:where(:hover, :active):not(:disabled) {
+  background: var(--control-positive-hover);
+  color: var(--control-positive-text);
+}
+.site-button--danger:where(:hover, :active):not(:disabled) {
+  border-color: var(--control-danger-hover-border);
+  background: var(--control-danger-hover);
+  color: var(--control-danger-text);
+}
+/* Responsive layouts. Game-frame sizes and measured runtime scaling remain independent. */
+@media (max-width: 600px) {
+  .mode-label {
+    max-width: 80px;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .view-controls {
+    align-items: flex-start;
+  }
+  .view-controls > span {
+    padding-top: 7px;
+  }
+  .log-sizing {
+    margin-left: 0;
+  }
+  .site-footer {
+    margin-top: 30px;
+    line-height: 1.6;
+  }
+}
+@media (max-width: 740px) {
+  .skill-panel {
+    width: 310px;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  .site-nav {
+    order: 3;
+    width: 100%;
+  }
+}
+@media (max-width: 360px) {
+  .skill-cell {
+    gap: 2px;
+  }
+  .skill-cell img {
+    width: 20px;
+  }
+  .xp-amount__number {
+    font-size: 16px;
+  }
+  .site-nav a {
+    padding: 8px;
+  }
+}
 @media (max-width: 1050px) {
-  .catalog-workspace,
-  .catalog-workspace--editing {
+  .catalog-workspace {
     grid-template-columns: minmax(0, 1fr);
   }
   .catalog-inspector {
@@ -1707,54 +2780,6 @@ html:has(.submission-review-dialog[open]) {
     line-height: 16px;
   }
 }
-.item-creator,
-.item-creator > form {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.hardcore-release-setting {
-  margin: 16px 0 24px;
-}
-.icon-picker__preview {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  color: #b9ab8d;
-  font-size: 11px;
-}
-.icon-picker__preview img {
-  width: 64px;
-  height: 64px;
-  padding: 5px;
-  object-fit: contain;
-  image-rendering: pixelated;
-  background: #453e30 url('/ui/panel.webp');
-  border: 1px solid #756447;
-}
-.admin-created {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  background: #2c3020;
-  border: 1px solid #6f784c;
-  padding: 13px;
-  margin: 14px 0;
-}
-.admin-created > div {
-  min-width: 0;
-}
-.admin-created strong {
-  font-size: 13px;
-  color: #d5dfb0;
-}
-.admin-created p {
-  margin: 6px 0;
-}
-.order-grip {
-  color: #8d7e60;
-  font-size: 17px;
-}
 
 @media (max-width: 740px) {
   .admin-form-grid {
@@ -1762,14 +2787,14 @@ html:has(.submission-review-dialog[open]) {
   }
   .submission-review-layout {
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
+    gap: var(--space-md);
   }
   .submission-review-dialog {
     width: calc(100% - 16px);
     max-height: calc(100dvh - 16px);
   }
   .submission-card__open {
-    gap: 8px;
+    gap: var(--space-sm);
     padding: 12px;
   }
   .submission-card__summary {
@@ -1794,243 +2819,21 @@ html:has(.submission-review-dialog[open]) {
     grid-template-columns: minmax(0, 1fr);
   }
   .submission-card__item {
-    gap: 8px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
   }
   .admin-navigation {
-    gap: 4px;
+    gap: var(--space-xs);
   }
   .admin-navigation a {
-    font-size: 11px;
+    font-size: var(--font-size-small);
     padding: 8px;
   }
-}
-
-/* Shared header and public navigation across normal, hardcore and XP views. */
-.site-header {
-  border: 0;
-  padding: 18px 0 12px;
-  min-height: 120px;
-  flex-wrap: nowrap;
-}
-.site-header-controls {
-  display: flex;
-  align-items: center;
-  align-self: flex-start;
-  flex-shrink: 0;
-  gap: 12px;
-}
-.site-header-world {
-  display: grid;
-  place-items: center;
-  width: 86px;
-  min-height: 86px;
-}
-.site-header-link {
-  display: grid;
-  place-items: center;
-  width: 108px;
-  min-height: 40px;
-  color: inherit;
-  text-align: center;
-  text-decoration: none;
-}
-.site-header-link__icon {
-  display: none;
-}
-.collector-name {
-  display: inline;
-}
-.collector-helmet {
-  display: inline-block;
-  width: auto;
-  height: auto;
-  max-width: 16px;
-  max-height: 16px;
-  margin-right: 3px;
-  vertical-align: -1px;
-  image-rendering: pixelated;
-}
-.collector-mode-editor {
-  border-top: 1px solid #796544;
-  border-bottom: 1px solid #796544;
-  padding: 12px 0;
-  margin: 12px 0;
-}
-.collector-mode-editor > label {
-  display: grid;
-  gap: 6px;
-  max-width: 360px;
-}
-.public-navigation-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 292px minmax(0, 1fr);
-  column-gap: 12px;
-  min-height: 40px;
-}
-.public-navigation {
-  grid-column: 2;
-  align-self: start;
-  min-height: 40px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  width: min(292px, 100%);
-}
-.public-actions {
-  grid-column: 3;
-  justify-self: end;
-  width: 108px;
-  display: flex;
-  flex-direction: column;
-  align-self: start;
-  gap: 8px;
-}
-.public-actions > button {
-  width: 100%;
-  min-height: 40px;
-}
-.public-name-dialog {
-  width: min(440px, calc(100% - 32px));
-}
-.public-name-dialog label {
-  display: grid;
-  gap: 6px;
-}
-.public-name-dialog fieldset {
-  display: grid;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-.public-name-success {
-  margin: 0;
-}
-.user-name-setting {
-  margin-bottom: 16px;
-}
-.user-name-setting > label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-html:has(.public-name-dialog[open]) {
-  overflow: hidden;
-}
-.public-navigation a {
-  display: grid;
-  place-items: center;
-  color: inherit;
-  text-align: center;
-  text-decoration: none;
-}
-.public-navigation a[aria-current='page'] {
-  border-color: #d8bb72;
-  color: #f3d890;
-  box-shadow: inset 0 -2px #d8bb72;
-}
-.public-navigation--hidden {
-  visibility: hidden;
-}
-html:has(.submission-help-dialog[open]) {
-  overflow: hidden;
-}
-.submission-help-dialog {
-  width: min(760px, calc(100% - 32px));
-  max-width: none;
-  max-height: calc(100dvh - 32px);
-  padding: 0;
-  color: inherit;
-  background: #29261e;
-  border: 1px solid #796544;
-  overflow: hidden;
-}
-.submission-help-dialog[open] {
-  display: flex;
-  flex-direction: column;
-}
-.submission-help-dialog::backdrop {
-  background: #000b;
-}
-.submission-help-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px;
-  border-bottom: 1px solid #594c34;
-}
-.submission-help-heading h2 {
-  margin: 0;
-  font-size: 22px;
-  color: #dec77c;
-}
-.submission-help-heading button {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  flex-shrink: 0;
-  font-size: 24px;
-}
-.submission-help-body {
-  padding: 8px 20px 20px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-.submission-help-body:focus-visible {
-  outline: 2px solid #f1c45e;
-  outline-offset: -4px;
-}
-.help-markdown {
-  color: #c9c2b2;
-  font-size: 14px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-.help-markdown :is(h1, h2, h3, h4, h5, h6) {
-  font-family: system-ui, sans-serif;
-  font-weight: 700;
-  text-shadow: none;
-  margin: 1em 0 0.6em;
-  color: #dec77c;
-  line-height: 1.3;
-}
-.help-markdown :is(h1, h2) {
-  font-size: 21px;
-}
-.help-markdown a {
-  color: #f3d890;
-  font-size: inherit;
-  text-underline-offset: 3px;
-}
-.help-markdown p {
-  font-size: inherit;
-  color: inherit;
-  line-height: inherit;
-  margin: 1em 0;
-}
-.help-markdown :is(pre, blockquote) {
-  background: #1d1b15;
-  padding: 12px;
-  margin-inline: 0;
-}
-.help-markdown pre {
-  overflow-x: auto;
-}
-.help-markdown blockquote {
-  border-left: 3px solid #796544;
-}
-.submission-help-settings section {
-  max-height: 360px;
-  overflow: auto;
-}
-.submission-help-settings > p {
-  margin: 0;
-  font-size: 12px;
 }
 @media (max-width: 600px) {
   .public-navigation-bar {
     grid-template-columns: minmax(0, 1fr);
-    row-gap: 8px;
+    row-gap: var(--space-sm);
     min-height: 88px;
   }
   .public-navigation {
@@ -2045,250 +2848,6 @@ html:has(.submission-help-dialog[open]) {
     min-height: 40px;
   }
 }
-#xp-main > .event-tracker {
-  margin-top: 50px;
-}
-.clan-logo,
-.clan-logo-preview {
-  width: 112px;
-  height: 80px;
-  object-fit: contain;
-}
-.clan-brand {
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-}
-.clan-brand > div {
-  min-width: 0;
-}
-.clan-brand .clan-logo {
-  flex-shrink: 0;
-}
-.clan-brand .clan-name,
-.clan-brand .clan-subtitle {
-  overflow-wrap: anywhere;
-}
-.clan-name {
-  font-size: 43px;
-  letter-spacing: 4px;
-  color: #dec77c;
-}
-.clan-subtitle {
-  font:
-    22px/1.2 RuneScape,
-    serif;
-  letter-spacing: 2px;
-  text-transform: none;
-  color: #dec77c;
-}
-main {
-  padding-top: 0;
-}
-.hardcore-toggle {
-  border: 0;
-  background: transparent;
-  padding: 8px;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-.hardcore-toggle img {
-  display: block;
-  width: 70px;
-  height: 70px;
-  object-fit: contain;
-  image-rendering: pixelated;
-}
-.hardcore-toggle--active img {
-  filter: sepia(1) saturate(6) hue-rotate(310deg);
-}
-.log-viewport {
-  width: 100%;
-  padding: 4px;
-}
-.log-help {
-  text-align: center;
-  font:
-    38px/1.25 RuneScape,
-    serif;
-  color: #dec77c;
-  letter-spacing: 2px;
-  margin: 50px 0;
-  display: grid;
-}
-.log-help > span,
-.log-caption-sizer::before,
-.log-caption-sizer::after {
-  grid-area: 1 / 1;
-}
-.log-caption-sizer {
-  display: grid;
-  visibility: hidden;
-}
-.log-caption-sizer::before {
-  content: attr(data-normal);
-}
-.log-caption-sizer::after {
-  content: attr(data-hardcore);
-}
-/* Browser interpolation smooths enlarged sprite edges; this is not an xBR shader. */
-.item-slot img {
-  image-rendering: auto;
-}
-/* Alpha dilation minus the original silhouette gives a contour, never a slot-sized box. */
-.item-slot--event img {
-  filter: url('#event-outline');
-}
-.item-slot--hardcore img {
-  filter: url('#hardcore-outline');
-}
-.event-tracker {
-  margin: 100px auto 0;
-}
-.admin-page .event-tracker {
-  margin: 0 auto;
-}
-.event-tracker > h1 {
-  font:
-    38px/1.25 RuneScape,
-    serif;
-  text-align: center;
-  letter-spacing: 2px;
-  color: #dec77c;
-  margin: 0 0 50px;
-}
-.event-tracker__layout {
-  display: grid;
-  grid-template-columns: minmax(190px, 300px) minmax(0, 470px);
-  gap: 0;
-  max-width: 770px;
-  margin: 0 auto;
-  align-items: start;
-}
-.event-sidebar {
-  border: 5px solid #343328;
-  border-right: 0;
-  border-radius: 5px 0 0 5px;
-  background: #191812;
-  min-width: 0;
-}
-.event-choice {
-  display: block;
-  width: 100%;
-  min-height: 51px;
-  padding: 10px 12px;
-  border: 2px solid #090a08;
-  border-radius: 3px;
-  background: #191812;
-  color: #ece9df;
-  font:
-    25px/1.15 RuneScape,
-    serif;
-  overflow-wrap: anywhere;
-  text-align: center;
-}
-.event-choice[aria-current='true'] {
-  background: #504d3d;
-  color: #fffdf3;
-}
-.event-choice:hover {
-  background: #403b2b;
-}
-.event-list {
-  max-height: 410px;
-  overflow-y: auto;
-  scrollbar-color: #77715a #222219;
-  scrollbar-width: thin;
-}
-.event-list p {
-  padding: 16px;
-  font-size: 13px;
-  color: #bcb298;
-}
-.event-skills {
-  min-width: 0;
-}
-.event-skills .skill-panel {
-  width: 100%;
-  max-width: none;
-  padding: 12px;
-  border: 6px ridge #6e6957;
-  background: #403c2e;
-  box-shadow: inset 0 0 0 2px #26251f;
-}
-.event-skills .skill-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-}
-.event-skills .skill-cell {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-width: 0;
-  min-height: 49px;
-  gap: 2px;
-  padding: 6px 4px;
-  border: 2px ridge #77715c;
-  background: linear-gradient(135deg, #716a54, #56513f);
-  color: #ffff00;
-}
-.event-skills .skill-cell img {
-  flex-shrink: 0;
-  width: 25px;
-  height: 25px;
-  object-fit: contain;
-  image-rendering: auto;
-}
-.event-skills .skill-cell__name {
-  display: none;
-}
-.event-skills .xp-amount__body {
-  min-width: 0;
-}
-.event-skills .xp-amount__number {
-  font:
-    24px/1 RuneScape,
-    serif;
-  color: #ffff00;
-  white-space: nowrap;
-  text-shadow: 1px 1px #000;
-}
-.event-skills .skill-panel__total {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-  min-height: 58px;
-  padding: 8px;
-  margin-top: 8px;
-  background: #090a07;
-  border: 2px inset #7a735b;
-  color: #d7ccac;
-  font:
-    20px/1.1 RuneScape,
-    serif;
-}
-.event-source {
-  min-height: 62px;
-  margin-top: 16px;
-  text-align: center;
-  font-size: 13px;
-  line-height: 1.6;
-}
-.event-source strong,
-.event-source a {
-  display: block;
-}
-.event-source a {
-  color: #dec77c;
-}
-.event-source p {
-  margin: 0;
-  color: #a99f82;
-}
 @media (max-width: 740px) {
   :root {
     --site-gutter: 12px;
@@ -2296,10 +2855,10 @@ main {
   .site-header {
     min-height: 96px;
     padding-top: 10px;
-    gap: 12px;
+    gap: var(--space-md);
   }
   .site-header-controls {
-    gap: 8px;
+    gap: var(--space-sm);
   }
   .site-header-world {
     width: 58px;
@@ -2329,9 +2888,6 @@ main {
   .log-help {
     font-size: 29px;
     margin-bottom: 25px;
-  }
-  .event-tracker__layout {
-    grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr);
   }
   .event-choice {
     font-size: 19px;
@@ -2373,7 +2929,7 @@ main {
 }
 @media (max-width: 380px) {
   .site-header {
-    gap: 8px;
+    gap: var(--space-sm);
   }
   .site-header-world {
     width: 41px;
@@ -2400,569 +2956,14 @@ main {
     width: 35px;
     height: 35px;
   }
-  .event-tracker__layout {
-    grid-template-columns: 94px minmax(0, 1fr);
-  }
   .event-skills .xp-amount__number {
     font-size: 15px;
   }
-}
-.discord-settings form {
-  display: grid;
-  gap: 1rem;
-}
-.discord-settings fieldset {
-  border: 1px solid #514936;
-  padding: 1rem;
-  min-width: 0;
-}
-.discord-settings-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-.discord-settings-grid label {
-  display: grid;
-  gap: 0.4rem;
-}
-.discord-settings-grid input {
-  width: 100%;
 }
 @media (max-width: 640px) {
   .discord-settings-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-.admin-credential-form {
-  display: grid;
-  gap: 0.65rem;
-  max-width: 28rem;
-}
-.admin-credential-form input {
-  width: 100%;
-  min-width: 0;
-}
-.admin-credential-form .admin-note {
-  margin: 0 0 0.25rem;
-}
-.admin-credential-form button {
-  justify-self: start;
-  margin-top: 0.5rem;
-}
-.admin-account-list {
-  margin-top: 1.5rem;
-}
-
-.submission-chat-proof p {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.submission-proof img {
-  display: block;
-  max-width: 100%;
-  width: 18rem;
-  max-height: 12rem;
-  object-fit: contain;
-  margin-bottom: 0.5rem;
-}
-
-.clan-api-key-settings {
-  margin-top: 1.5rem;
-  border-top: 1px solid var(--admin-border, #605849);
-  padding-top: 1rem;
-}
-.clan-api-key-settings form {
-  margin-block: 0.75rem;
-}
-.clan-api-key-value {
-  font-family: monospace;
-}
-.runelite-review-settings p {
-  overflow-wrap: anywhere;
-}
-.runelite-world-policy {
-  margin-block: 1rem;
-}
-.runelite-world-policy label {
-  display: block;
-  margin-bottom: 0.4rem;
-}
-.scheduling-panel p,
-.schedule-card h4 {
-  overflow-wrap: anywhere;
-}
-.schedule-page-list {
-  max-height: 18rem;
-  overflow: auto;
-  border: 1px solid #5b5240;
-  padding: 0.5rem 1rem;
-}
-.schedule-list {
-  display: grid;
-  gap: 0.6rem;
-}
-.schedule-card,
-.schedule-delete-confirm {
-  border: 1px solid #5b5240;
-  padding: 1rem;
-}
-.schedule-card h4 {
-  margin: 0;
-  font-size: 1rem;
-}
-.schedule-card {
-  background: #453b2c;
-  padding: 12px 14px;
-}
-.schedule-card__heading,
-.schedule-card__times {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-}
-.schedule-card__heading h4 {
-  flex: 1;
-  min-width: 0;
-}
-.schedule-card__times {
-  justify-content: start;
-}
-.schedule-card p {
-  margin: 8px 0;
-}
-.schedule-card .admin-actions {
-  margin: 8px 0 0;
-}
-.schedule-datetime-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin: 6px 0 14px;
-}
-.scheduling-panel .schedule-datetime-row input {
-  width: 250px;
-  max-width: 100%;
-  margin: 0;
-}
-.scheduling-toggle {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-.scheduling-toggle h3 {
-  margin-bottom: 0;
-}
-.schedule-delete-confirm {
-  max-width: min(32rem, calc(100vw - 2rem));
-  color: #e3d5b8;
-  background: #29271e;
-}
-.schedule-delete-confirm::backdrop {
-  background: #0009;
-}
-.unknown-metric-dialog {
-  width: min(42rem, calc(100vw - 2rem));
-  max-height: calc(100dvh - 2rem);
-  overflow: auto;
-  box-sizing: border-box;
-  padding: 24px;
-  color: #e3d5b8;
-  background: #29271e;
-  border: 1px solid #756747;
-}
-.unknown-metric-dialog::backdrop {
-  background: #000b;
-}
-.unknown-metric-dialog .admin-section-heading {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.unknown-metric-dialog .admin-section-heading h3 {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.unknown-metric-dialog .admin-section-heading button {
-  flex: 0 0 auto;
-}
-html:has(.unknown-metric-dialog[open]) {
-  overflow: hidden;
-}
-.metric-definition-fields {
-  border-top: 1px solid #756747;
-  padding-top: 16px;
-}
-.metric-definition-fields legend {
-  overflow-wrap: anywhere;
-}
-.metric-page-choices {
-  max-height: 12rem;
-  overflow: auto;
-}
-.unknown-metric-dialog .admin-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.schedule-utc {
-  color: #b9ab8f;
-  font-size: 0.9em;
-}
-.clan-logo-preview .clan-logo {
-  display: block;
-}
-.clan-logo-placeholder {
-  width: 100%;
-  height: 100%;
-  background: #1d1b15;
-  border: 1px solid #594c34;
-}
-
-.highlight-picker {
-  margin: 18px 0;
-  border: 1px solid #655d45;
-}
-.highlight-picker__controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 12px;
-}
-.highlight-picker__controls label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.highlight-picker__controls input[type='number'] {
-  width: 82px;
-}
-.highlight-picker__controls input.highlight-picker__hex {
-  width: 112px;
-}
-.highlight-picker__preview input[type='color'] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.highlight-picker__preview input:disabled {
-  cursor: default;
-}
-.highlight-picker__preview {
-  position: relative;
-  margin-top: 7px;
-  width: 38px;
-  height: 38px;
-  background: repeating-conic-gradient(#aaa 0% 25%, #eee 0% 50%) 0 / 12px 12px;
-  border: 1px solid #655d45;
-}
-.highlight-picker__preview:focus-within {
-  outline: 2px solid #e3e3e3;
-  outline-offset: 2px;
-}
-.highlight-picker__preview > span {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.site-copy-fields {
-  border: 1px solid #5b5240;
-  margin: 20px 0;
-  padding: 16px;
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-.site-copy-fields label {
-  display: grid;
-  gap: 7px;
-}
-.site-copy-fields input {
-  width: 100%;
-  min-width: 0;
-}
-.footer-support {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-}
-.footer-support img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-.github-support,
-.project-support {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: 180px;
-  min-height: 37px;
-  padding: 7px 10px;
-  border-radius: 11px;
-  background: #fff;
-  color: #181717 !important;
-  text-decoration: none;
-  font:
-    700 12px/1.2 Arial,
-    sans-serif;
-}
-.github-support:hover,
-.project-support:hover {
-  filter: brightness(1.1);
-}
-.project-support {
-  background: #73a4f1;
-}
-.project-support__logo {
-  flex-shrink: 0;
-}
-.admin-delete-confirm {
-  border: 1px solid #9e714c;
-  padding: 16px;
-  margin-top: 16px;
-}
-.admin-account-list li {
-  padding: 12px 0;
-}
-.clan-subtitle {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.log-help,
-.event-tracker h1,
-.event-tracker p,
-.admin-delete-confirm p {
-  overflow-wrap: anywhere;
-}
-/* Competitions accompany the log while preserving its established frame proportions. */
-.public-log-layout {
-  --log-frame-height: calc(314px * var(--log-scale));
-  /* Expand into the left gutter, up to 30%, without moving the log frame. */
-  --activity-expansion: clamp(
-    0px,
-    calc((100vw - var(--site-shell-width)) / 2),
-    72px
-  );
-  margin-left: calc(-1 * var(--activity-expansion));
-  display: grid;
-  grid-template-columns: calc(240px + var(--activity-expansion)) minmax(
-      0,
-      1008px
-    );
-  column-gap: 16px;
-}
-.public-log-layout > .log-help {
-  grid-column: 1 / -1;
-  margin-left: var(--activity-expansion);
-}
-.public-log-layout > .log-viewport {
-  grid-column: 2;
-  grid-row: 2;
-  min-width: 0;
-}
-.public-log-layout > .refresh-error {
-  grid-column: 2;
-}
-.activity-competitions {
-  grid-column: 1;
-  grid-row: 2;
-  /* Use the renderer's frame height, excluding viewport padding and its scrollbar. */
-  height: var(--log-frame-height);
-  margin: 4px 0;
-  display: flex;
-  flex-direction: column;
-  border: 4px solid #343328;
-  border-radius: 5px;
-  background: #191812;
-  padding: 12px;
-  min-width: 0;
-  min-height: 0;
-}
-.activity-competitions > :not(ol) {
-  flex-shrink: 0;
-}
-.activity-competitions h2 {
-  font:
-    25px/1.2 RuneScape,
-    serif;
-  color: #dec77c;
-  margin: 0 0 10px;
-}
-.activity-timezone {
-  font-size: 11px;
-  color: #b8aa83;
-  overflow-wrap: anywhere;
-}
-.activity-competitions ol {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  /* Keep link focus outlines inside the scrollport. */
-  padding-inline: 4px;
-}
-.activity-competition {
-  padding: 12px 0;
-  border-top: 1px solid #54482d;
-  overflow-wrap: anywhere;
-}
-.activity-competition a {
-  display: block;
-  color: #ece9df;
-  font:
-    23px/1.2 RuneScape,
-    serif;
-}
-.activity-competition small {
-  display: block;
-  margin-top: 6px;
-  font-size: 11px;
-  line-height: 1.7;
-}
-.activity-competition--finished small {
-  color: #ff9898;
-}
-.activity-competition .activity-range {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: 0.35em;
-}
-.activity-range > * {
-  white-space: nowrap;
-}
-.activity-competition--running small {
-  color: #a4e5a4;
-}
-.activity-competition--future small {
-  color: #f3dc83;
-}
-.event-tracker__layout {
-  grid-template-columns: minmax(160px, 260px) 470px minmax(320px, 480px);
-  max-width: 1210px;
-  gap: 0;
-}
-.xp-podium {
-  padding: 12px;
-  text-align: center;
-  min-width: 0;
-}
-.xp-podium h2 {
-  color: #dec77c;
-  font:
-    28px/1.2 RuneScape,
-    serif;
-  margin: 0;
-}
-.xp-podium > p {
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-.xp-podium__places {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: end;
-  list-style: none;
-  padding: 0;
-  margin: 28px 0 0;
-  gap: 4px;
-}
-.xp-podium__place {
-  min-width: 0;
-}
-.xp-podium__place--1 {
-  grid-column: 2;
-  grid-row: 1;
-}
-.xp-podium__place--2 {
-  grid-column: 1;
-  grid-row: 1;
-}
-.xp-podium__place--3 {
-  grid-column: 3;
-  grid-row: 1;
-}
-.xp-podium__name {
-  display: block;
-  color: #ece9df;
-  font:
-    20px/1.15 RuneScape,
-    serif;
-  overflow-wrap: anywhere;
-  margin-bottom: 8px;
-}
-.xp-podium__step {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font:
-    32px/1 RuneScape,
-    serif;
-  color: #191812;
-  background: #d7bd6d;
-  height: 100px;
-  border: 2px solid #54482d;
-}
-.xp-podium__place--2 .xp-podium__step {
-  height: 72px;
-  background: #b6b7ab;
-}
-.xp-podium__place--3 .xp-podium__step {
-  height: 48px;
-  background: #bd9470;
-}
-.competition-import {
-  margin-bottom: 24px;
-}
-.competition-metrics,
-.competition-breakdown {
-  overflow-wrap: anywhere;
-  font-size: 13px;
-  line-height: 1.5;
-}
-.competition-breakdown ul {
-  padding-left: 20px;
-}
-.activity-competition .competition-metrics {
-  margin: 6px 0;
-}
-.competition-import p {
-  font-size: 12px;
-  line-height: 1.6;
-  color: #b4aa95;
-}
-.competition-import .site-button {
-  min-height: 44px;
-}
-.competition-import input,
-.competition-import select {
-  max-width: 100%;
-  min-width: 0;
-}
-.competition-import .admin-fieldset {
-  max-width: 42rem;
-}
-.competition-import small {
-  color: #b8aa83;
 }
 @media (max-width: 1050px) {
   .event-tracker__layout {
@@ -2977,7 +2978,7 @@ html:has(.unknown-metric-dialog[open]) {
   .public-log-layout {
     margin-left: 0;
     grid-template-columns: minmax(0, 1fr);
-    row-gap: 16px;
+    row-gap: var(--space-lg);
   }
   .public-log-layout > .log-viewport,
   .public-log-layout > .refresh-error,
@@ -2992,7 +2993,7 @@ html:has(.unknown-metric-dialog[open]) {
   .activity-competitions ol {
     flex: none;
     display: flex;
-    gap: 16px;
+    gap: var(--space-lg);
     overflow-x: auto;
     max-height: 220px;
   }
@@ -3010,101 +3011,6 @@ html:has(.unknown-metric-dialog[open]) {
     grid-template-columns: 94px minmax(0, 1fr);
   }
 }
-/* Route preparation leaves the current document's layout and editable forms intact. */
-.admin-route-status {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 100;
-  width: min(380px, calc(100vw - 32px));
-  box-sizing: border-box;
-  padding: 12px;
-  border: 1px solid #a89970;
-  border-radius: 6px;
-  color: #f5e5bf;
-  background: #28241e;
-  box-shadow: 0 3px 16px #0008;
-}
-.admin-route-status p {
-  margin: 0 0 8px;
-}
-.admin-route-shell {
-  min-height: 22rem;
-}
-.access-control-settings fieldset {
-  max-width: 36rem;
-}
-.access-control-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.5rem 0;
-}
-
-.catalog-update-dialog {
-  width: min(62rem, calc(100vw - 2rem));
-  max-height: calc(100dvh - 2rem);
-  overflow: auto;
-  box-sizing: border-box;
-  padding: 24px;
-  color: #e3d5b8;
-  background: #29271e;
-  border: 1px solid #756747;
-}
-.catalog-update-dialog::backdrop {
-  background: #000b;
-}
-.catalog-update-notice {
-  margin: 12px 0;
-}
-.catalog-update-dialog p,
-.catalog-update-dialog h3 {
-  overflow-wrap: anywhere;
-}
-.catalog-update-dialog .admin-actions button {
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-html:has(.catalog-update-dialog[open]) {
-  overflow: hidden;
-}
-.catalog-update-table {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-}
-.catalog-update-table th,
-.catalog-update-table td {
-  border-bottom: 1px solid #756747;
-  padding: 12px 8px;
-  text-align: left;
-  vertical-align: top;
-  overflow-wrap: anywhere;
-}
-.catalog-update-table th:last-child,
-.catalog-update-table td:last-child {
-  width: 3.5rem;
-  text-align: center;
-}
-.catalog-update-table h3 {
-  margin-top: 0;
-}
-.catalog-update-table ul {
-  padding-left: 18px;
-}
-.catalog-update-table input[type='checkbox'] {
-  width: 20px;
-  height: 20px;
-}
-.catalog-update-table select {
-  width: 100%;
-  min-width: 0;
-}
-.catalog-update-icons {
-  margin: 20px 0;
-}
 @media (max-width: 480px) {
   .catalog-update-dialog {
     padding: 14px;
@@ -3117,11 +3023,4 @@ html:has(.catalog-update-dialog[open]) {
   .catalog-update-table td:last-child {
     width: 2.5rem;
   }
-}
-.submission-review-dialog.collector-name-dialog {
-  width: min(600px, calc(100vw - 24px));
-}
-.collector-name-confirmation {
-  white-space: pre-line;
-  overflow-wrap: anywhere;
 }

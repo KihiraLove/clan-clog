@@ -97,7 +97,7 @@ export function ItemMenu({
       id={`item-menu-${open.item.id}`}
       role="tooltip"
       tabIndex={0}
-      className={`item-menu${open.hardcore ? ' item-menu--hardcore' : ''}`}
+      className={`site-tooltip item-menu${open.hardcore ? ' item-menu--hardcore' : ''}`}
       style={
         {
           '--event-highlight': highlightCss(highlights.event),

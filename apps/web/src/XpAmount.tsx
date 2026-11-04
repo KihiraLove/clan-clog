@@ -47,7 +47,7 @@ function ExactTooltip({
   }, [anchor, xp]);
   return createPortal(
     <div
-      className="xp-tooltip"
+      className="site-tooltip xp-tooltip"
       id={id}
       role="tooltip"
       ref={ref}
