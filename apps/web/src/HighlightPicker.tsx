@@ -106,7 +106,7 @@ export function HighlightPicker({
         </label>
       </div>
       {!colour && (
-        <p role="alert">
+        <p role="alert" className="admin-error">
           {appText.webHighlightPickerUseASixDigitHexColourAndAlphaFrom0}
         </p>
       )}

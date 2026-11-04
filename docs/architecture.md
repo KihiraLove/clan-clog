@@ -43,6 +43,35 @@ load code and data together and clear private state on access loss. Production
 builds exclude tests and fixture data. Item icons, fonts, UI art, logos and
 uploads are served locally; the browser never fetches WOM results directly.
 
+## Web styling
+
+`apps/web/src/style.css`, imported once by `main.tsx`, owns the public site and
+staff UI. Its root block defines semantic custom properties for surfaces, text,
+borders, control states, feedback, typography, spacing and elevation. Change a
+shared role there instead of introducing a route-specific copy of its value.
+Keep roles distinct even when their initial colours match. `--game-*` roles
+preserve the collection log's game palette separately from ordinary form controls.
+
+Reuse `.site-button` (with `--approve` or `--danger` variants), `.admin-panel`,
+`.admin-fieldset`, `.admin-input`, `.admin-checkbox`, `.admin-note`,
+`.admin-error`, `.admin-warning`, `.admin-success` and `.admin-badge` for shared
+controls, panels and feedback. Every native modal uses `.site-dialog` plus a
+feature class for its width and layout; `--dialog-padding` adjusts its content
+inset. Body portals use `.site-tooltip` plus `.item-menu` or `.xp-tooltip`.
+These primitives inherit root tokens without depending on the active route,
+an ancestor panel or lazy-load order. Base selectors use `:where()` so explicit
+component and state classes can override them without `!important`.
+
+Keep feature geometry alongside the feature's rules and responsive overrides at
+the end of the stylesheet. The native log dimensions, sprites and pixel artwork
+are intentional variants, not general spacing tokens. Static presentation belongs
+in CSS. Inline styles are reserved for measured portal coordinates, log scale,
+count geometry and administrator-configured highlight/colour previews. Keep these
+values local to their elements; do not duplicate the theme in JavaScript or move
+configured colours into root defaults. When changing shared roles, check public
+and staff views, body portals and top-layer dialogs at desktop and narrow widths;
+the focused browser scenarios are described in [local testing](local-testing.md).
+
 ## Application wording
 
 `packages/domain/src/text.ts` is the code-maintained source for shipped application

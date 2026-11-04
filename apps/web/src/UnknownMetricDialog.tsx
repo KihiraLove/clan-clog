@@ -51,7 +51,7 @@ export function UnknownMetricDialog({
   return (
     <dialog
       ref={dialog}
-      className="unknown-metric-dialog"
+      className="site-dialog unknown-metric-dialog"
       aria-labelledby="unknown-metric-title"
       onKeyDown={(event) => {
         if (event.key !== 'Tab') return;

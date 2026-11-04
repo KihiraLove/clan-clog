@@ -77,7 +77,7 @@ function ReviewWindow({
   return (
     <dialog
       ref={dialog}
-      className="submission-review-dialog"
+      className="site-dialog submission-review-dialog"
       aria-label={appText.webSubmissionEditorSubmissionReview}
       onCancel={(event) => {
         event.preventDefault();

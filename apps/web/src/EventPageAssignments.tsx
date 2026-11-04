@@ -153,7 +153,7 @@ export function EventPageAssignments({
       {open && review && (
         <dialog
           ref={dialog}
-          className="submission-review-dialog"
+          className="site-dialog submission-review-dialog"
           aria-labelledby="event-page-title"
           onCancel={(event) => {
             event.preventDefault();

@@ -279,7 +279,7 @@ export function SiteApp({
         width="0"
         height="0"
         aria-hidden="true"
-        style={{ position: 'absolute' }}
+        className="collection-outline-defs"
       >
         <defs>
           {(

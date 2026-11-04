@@ -445,7 +445,7 @@ export function AdminScheduling({
           <dialog
             ref={deleteDialog}
             aria-label={appText.webAdminSchedulingDeleteSchedule}
-            className="schedule-delete-confirm"
+            className="site-dialog schedule-delete-confirm"
             onCancel={() => setRemoving(undefined)}
           >
             <p>
