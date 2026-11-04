@@ -201,6 +201,63 @@ The summary is `Collected <number>x by <collector name> first on <date>` for rep
 singletons retain their existing text. Merged groups display only the first date.
 Equal dates still represent separate obtains. No stored credit is collapsed.
 
+## Collector identities and name changes
+
+Collector identity is independent of staff accounts and WOM. Migration 007 adds
+the registry, immutable original-name provenance, preview/request/audit tables and
+indexed history references. The migration runner backfills existing submissions
+in batches using the shared JavaScript `normalizePlayerName()` inside its existing
+migration transaction, before recording 007. Run the normal application migration
+command; executing its SQL file alone omits this data step. Prior migration bytes,
+submission evidence, payload hashes, receipt JSON and audit JSON are retained.
+Original-name provenance uses the earliest available audit snapshot; if none
+records a name, it retains the submission's name at upgrade. Missing historical
+evidence is not reconstructed or inferred from a current external account.
+
+Active normalized current names are unique. Merged identities point directly to
+an active survivor, including after a second merge; reads never traverse a merge
+chain. A rename or merge updates identity records rather than rewriting all
+obtains. Public credits resolve the current name. Private submissions also expose
+`collectorId` and `originalCollectorName`; old receipts/audit snapshots may omit
+them. Submission version checks incorporate identity changes, so an older staff
+editor cannot silently reassign a collector using the name shown before a rename.
+Single-claim corrections retain original provenance and reassign only that claim.
+
+Administrator-only, same-origin routes:
+
+| Method | Route                                          | Request/result                                                                                                                                             |
+| ------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/admin/collectors?search=<prefix>`     | At most 50 active collectors and `hasMore`; each identity has `id`, `name`, `version`, `historyVersion`.                                                   |
+| POST   | `/api/v1/admin/collector-name-changes/preview` | `{ sourceId, newName }`; returns actor-bound token, explicit `rename`/`merge`/`noop`, exact source/target names and versions, and source counts by status. |
+| POST   | `/api/v1/admin/collector-name-changes/apply`   | `{ token }` plus UUID `Idempotency-Key`; returns operation ID, actual operation, source/survivor IDs, original/new names and affected counts.              |
+
+Both POSTs require Origin and CSRF validation. Preview performs no name/history
+change and expires after 15 minutes. Apply validates source/target identity and
+history versions, current normalized target existence and expiry. A new target or
+changed scope returns 409; it never converts a confirmed rename into a merge.
+No-op previews are not applicable operations. Missing/retired sources require a
+new selection. Moderators cannot search, preview or apply these operations.
+
+The catalog gate precedes the collector identity gate; intake, approvals and
+corrections hold its shared side before scheduling, submission or canonical-item
+locks. Apply holds its exclusive side and atomically saves the identity change,
+public/private revisions, actor-attributed audit and immutable request result.
+Preview pins identity rows in deterministic order while reading scope counts.
+History counters invalidate previews when submissions change. Queries use current
+name, survivor and collector-history indexes; bulk operations touch registry
+identities, not every historical obtain. A failure rolls the entire apply back.
+
+Replay with the same actor/key/token returns the saved result even after later
+renames or expiry; another token with that key conflicts. Existing source receipts
+are never rewritten. The browser retains the key/token after an uncertain result
+and requires a new explicit confirmation after a definite scope conflict.
+
+Names are not permanent external account IDs. Future submissions use the active
+current name. A new obtain under a retired spelling starts a separate identity;
+there is no automatic historical alias resolution for recycled/late player names.
+Staff can verify and merge it explicitly. Normalized case/spacing variants of a
+current name still resolve to that current identity.
+
 ## Legacy Event page assignments
 
 Administrator-only `GET /admin/event-page-assignments` returns `revision`, `total`

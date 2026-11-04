@@ -1,6 +1,7 @@
 /** Staff submission writes and receipt checks load only on interaction. */
 import {
   parseSubmissionFilters,
+  normalizePlayerName,
   type RepeatCollectorPolicy,
 } from '@clog/domain';
 import * as appText from '@clog/domain';
@@ -55,7 +56,10 @@ export function manualSubmissionReceipt(
     (screenshot && !safeScreenshotPath(result.screenshotPath)) ||
     result.itemId !== fields.itemId ||
     result.hardcore !== fields.hardcore ||
-    result.collectorName !== fields.collectorName.trim() ||
+    (result.originalCollectorName ?? result.collectorName) !==
+      fields.collectorName.trim() ||
+    normalizePlayerName(result.collectorName) !==
+      normalizePlayerName(fields.collectorName) ||
     result.collectedOn !== fields.collectedOn ||
     !collectionTypeMatches(
       result,

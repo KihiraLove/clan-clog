@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { repeatCollectorRejected } from '@clog/domain';
+import { manualSubmissionReceipt } from './submission-write-api.ts';
 import { LiveAdminClient, AdminRequestError } from './admin-api.ts';
 import { adminFixtures } from '../tests/admin-fixtures.ts';
 const json = (value: unknown, status = 200) =>
@@ -130,4 +131,41 @@ test('manual receipts accept only a truthful policy rejection for the submitted 
   } finally {
     globalThis.fetch = prior;
   }
+});
+test('manual receipts validate canonical display names against immutable submitted names', () => {
+  const fields = {
+    itemId: 1,
+    collectorName: 'alice_smith',
+    collectedOn: '2026-10-01',
+    hardcore: false,
+    approve: true,
+  };
+  const receipt = {
+    id: '00000000-0000-4000-8000-000000000001',
+    version: 1,
+    source: 'manual',
+    itemId: 1,
+    rawItemText: 'Item',
+    collectorName: 'Alice Smith',
+    originalCollectorName: 'alice_smith',
+    collectedOn: '2026-10-01',
+    dateSource: 'admin',
+    submittedAt: '2026-10-01T00:00:00.000Z',
+    proofUrl: '',
+    hardcore: false,
+    status: 'approved',
+    reviewNote: '',
+    reviewReason: null,
+  };
+  assert.equal(
+    manualSubmissionReceipt(receipt, fields, false).collectorName,
+    'Alice Smith',
+  );
+  assert.throws(() =>
+    manualSubmissionReceipt(
+      { ...receipt, collectorName: 'Unrelated' },
+      fields,
+      false,
+    ),
+  );
 });

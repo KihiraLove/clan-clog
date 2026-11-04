@@ -3,6 +3,13 @@ import * as appText from '@clog/domain';
 import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import {
+  currentCollectorName,
+  collectorVersionDelta,
+  lockCollectorNames,
+  resolveCollector,
+} from './collector-identities.js';
+import { PgCollectorNames } from './collector-name-store.js';
+import {
   eligibleEventPageIds,
   parseRepeatCollectorPolicy,
   normalizePlayerName,
@@ -50,6 +57,8 @@ type Row = {
   rawItemText: string;
   gameItemId: number | null;
   collectorName: string;
+  collectorId: string | null;
+  originalCollectorName: string | null;
   collectedOn: string;
   dateSource: string;
   submittedAt: Date;
@@ -63,10 +72,13 @@ type Row = {
   admissionPolicy: import('@clog/domain').SubmissionFilters | null;
 };
 const selection =
-  'id::text,version,source,item_id AS "itemId",raw_item_text AS "rawItemText",game_item_id AS "gameItemId",' +
+  'id::text,(version+' +
+  collectorVersionDelta +
+  ')::integer AS version,source,item_id AS "itemId",raw_item_text AS "rawItemText",game_item_id AS "gameItemId",' +
   'collection_type AS "collectionType",collection_reason AS "collectionReason",intake_scheduling AS "intakeScheduling",' +
   'event_page_id AS "eventPageId",event_page_assignment_pending AS "eventPageAssignmentPending",' +
-  'collector_name AS "collectorName",to_char(collected_on,\'YYYY-MM-DD\') AS "collectedOn",' +
+  currentCollectorName +
+  ' AS "collectorName",collector_id::text AS "collectorId",original_collector_name AS "originalCollectorName",to_char(collected_on,\'YYYY-MM-DD\') AS "collectedOn",' +
   'date_source AS "dateSource",submitted_at AS "submittedAt",' +
   'proof_url AS "proofUrl",proof_image_id::text AS "proofImageId",chat_message AS "chatMessage",hardcore,status,' +
   'review_note AS "reviewNote",review_reason AS "reviewReason",admission_policy AS "admissionPolicy"';
@@ -83,6 +95,10 @@ const view = (row: Row): ReviewSubmission => ({
   rawItemText: row.rawItemText,
   ...(row.gameItemId === null ? {} : { gameItemId: row.gameItemId }),
   collectorName: row.collectorName,
+  ...(row.collectorId ? { collectorId: row.collectorId } : {}),
+  ...(row.originalCollectorName === null
+    ? {}
+    : { originalCollectorName: row.originalCollectorName }),
   collectedOn: row.collectedOn,
   proofUrl: row.proofUrl,
   hardcore: row.hardcore,
@@ -231,6 +247,25 @@ function pageLimit(limit: number) {
     throw new ApiError(400, appText.apiReviewStorePageSizeMustBeBetween1And20);
 }
 export class PgReviewStore implements ReviewStore {
+  collectors(query: string) {
+    return new PgCollectorNames(this.pool).search(query);
+  }
+  previewCollectorName(sourceId: string, newName: string, actorId: string) {
+    return new PgCollectorNames(this.pool).preview(sourceId, newName, actorId);
+  }
+  applyCollectorName(
+    token: string,
+    key: string,
+    actorId: string,
+    actorName: string,
+  ) {
+    return new PgCollectorNames(this.pool).apply(
+      token,
+      key,
+      actorId,
+      actorName,
+    );
+  }
   constructor(
     private readonly pool: pg.Pool,
     private readonly backend: Pick<BackendStore, 'catalog'>,
@@ -335,6 +370,7 @@ export class PgReviewStore implements ReviewStore {
     const hash = digest(JSON.stringify(fields));
     return transaction(this.pool, 'write', async (client) => {
       await client.query('SELECT pg_advisory_xact_lock_shared(74261005)');
+      await lockCollectorNames(client);
       await client.query(
         'SELECT pg_advisory_xact_lock(hashtextextended($1,0))',
         [JSON.stringify(['event-pages', actorId, requestKey.toLowerCase()])],
@@ -477,6 +513,7 @@ export class PgReviewStore implements ReviewStore {
       return await transaction(this.pool, 'write', async (client) => {
         // Catalog bulk writers take the exclusive gate before canonical locks.
         await client.query('SELECT pg_advisory_xact_lock_shared(74261005)');
+        await lockCollectorNames(client);
         // Serialize this actor/key across API processes before checking receipts.
         await client.query(
           'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
@@ -562,13 +599,17 @@ export class PgReviewStore implements ReviewStore {
           );
         if (image) await insertImage(client, image);
         const id = randomUUID();
+        const collectorId = await resolveCollector(
+          client,
+          fields.collectorName,
+        );
         const row = (
           await client.query<Row>(
             'INSERT INTO submissions(id,source,raw_item_text,item_id,collector_name,' +
               'collected_on,date_source,proof_url,hardcore,status,reviewed_at,' +
-              "reviewed_by,review_reason,proof_image_id,collection_type,collection_reason,event_page_id) VALUES($1,'manual',$2,$3,$4,$5,'admin'," +
+              "reviewed_by,review_reason,proof_image_id,collection_type,collection_reason,event_page_id,collector_id,original_collector_name) VALUES($1,'manual',$2,$3,$4,$5,'admin'," +
               "$6,$7,$8,CASE WHEN $8<>'pending' THEN now() ELSE NULL END," +
-              "CASE WHEN $8<>'pending' THEN $9 ELSE NULL END,$10,$11,$12,$13,$14) RETURNING " +
+              "CASE WHEN $8<>'pending' THEN $9 ELSE NULL END,$10,$11,$12,$13,$14,$15,$4) RETURNING " +
               selection,
             [
               id,
@@ -587,6 +628,7 @@ export class PgReviewStore implements ReviewStore {
               classification.collectionType,
               classification.collectionReason,
               classification.eventPageId,
+              collectorId,
             ],
           )
         ).rows[0]!;
@@ -831,6 +873,7 @@ export class PgReviewStore implements ReviewStore {
     try {
       return await transaction(this.pool, 'write', async (client) => {
         await client.query('SELECT pg_advisory_xact_lock_shared(74261005)');
+        await lockCollectorNames(client);
         const row = (
           await client.query<Row>(
             'SELECT ' + selection + ' FROM submissions WHERE id=$1 FOR UPDATE',
@@ -1206,9 +1249,9 @@ export class PgReviewStore implements ReviewStore {
             );
           result = (
             await client.query<Row>(
-              'UPDATE submissions SET item_id=$2,collector_name=$3,collected_on=$4,collection_type=$8,collection_reason=$9,event_page_id=$10,event_page_assignment_pending=false,' +
+              'UPDATE submissions SET item_id=$2,collector_name=$3,collector_id=$11,collected_on=$4,collection_type=$8,collection_reason=$9,event_page_id=$10,event_page_assignment_pending=false,' +
                 "hardcore=$5,date_source=CASE WHEN collected_on<>$4::date THEN 'admin' ELSE date_source END," +
-                "version=version+1,reviewed_at=CASE WHEN status='approved' THEN now() ELSE reviewed_at END," +
+                "version=GREATEST(version,$12-COALESCE((SELECT version-1 FROM collectors WHERE id=$11),0))+1,reviewed_at=CASE WHEN status='approved' THEN now() ELSE reviewed_at END," +
                 "reviewed_by=CASE WHEN status='approved' THEN $6 ELSE reviewed_by END," +
                 "review_reason=CASE WHEN status='approved' THEN $7 ELSE review_reason END " +
                 'WHERE id=$1 RETURNING ' +
@@ -1224,6 +1267,11 @@ export class PgReviewStore implements ReviewStore {
                 classification.collectionType,
                 classification.collectionReason,
                 classification.eventPageId,
+                normalizePlayerName(row.collectorName) ===
+                  normalizePlayerName(fields.collectorName) && row.collectorId
+                  ? row.collectorId
+                  : await resolveCollector(client, fields.collectorName),
+                row.version,
               ],
             )
           ).rows[0]!;

@@ -15,6 +15,7 @@ import { formatUtcTime } from './format-time.ts';
 import { SubmissionEditor } from './SubmissionEditor.tsx';
 import { ManualSubmissionForm } from './ManualSubmissionForm.tsx';
 import { DuplicateHandling } from './DuplicateHandling.tsx';
+import { NameChanges } from './NameChanges.tsx';
 import { usePreparedAdminData } from './admin-route-data.ts';
 import type { SubmissionFilters } from '@clog/domain';
 export function AdminQueue({
@@ -167,6 +168,16 @@ export function AdminQueue({
         filters={filters}
         onSaved={setFilters}
         onAccessLost={onAccessLost}
+      />
+      <NameChanges
+        client={client}
+        session={session}
+        onAccessLost={onAccessLost}
+        onChanged={() => {
+          setSelected(undefined);
+          setCursors([undefined]);
+          setRefresh((v) => v + 1);
+        }}
       />
       <section className="admin-panel">
         <div className="admin-section-heading">

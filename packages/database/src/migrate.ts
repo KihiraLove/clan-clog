@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import pg from 'pg';
+import { backfillCollectorIdentities } from './collector-upgrade.js';
 
 export interface MigrationEntry {
   name: string;
@@ -130,6 +131,8 @@ export async function migrate(
     validateMigrationHistory(manifest, applied.rows);
     for (const entry of manifest.slice(applied.rows.length)) {
       await client.query(entry.sql);
+      if (entry.name === '007_collector_identities.sql')
+        await backfillCollectorIdentities(client);
       await client.query(
         'INSERT INTO schema_migrations (name, checksum) VALUES ($1, $2)',
         [entry.name, entry.checksum],

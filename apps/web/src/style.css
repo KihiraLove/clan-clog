@@ -3058,3 +3058,10 @@ html:has(.catalog-update-dialog[open]) {
     width: 2.5rem;
   }
 }
+.submission-review-dialog.collector-name-dialog {
+  width: min(600px, calc(100vw - 24px));
+}
+.collector-name-confirmation {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

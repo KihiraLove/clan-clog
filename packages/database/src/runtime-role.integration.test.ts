@@ -17,7 +17,7 @@ for (const [privileges, names] of [
   ],
   [
     'SELECT INSERT',
-    'catalog_update_bindings catalog_update_decisions catalog_update_receipts catalog_update_audit audit_events catalog_audit catalog_page_requests catalog_section_requests catalog_requests clan_api_key_audit clan_branding_audit clan_logo_assets collection_schedule_audit competition_import_history competition_metric_resolutions competition_metric_audit custom_competition_metrics discord_settings_audit manual_submission_requests runelite_settings_audit runelite_submission_requests runelite_drop_events submission_filter_audit site_settings_audit staff_account_audit staff_page_access_audit submission_images xp_import_history',
+    'event_page_assignment_requests collector_name_audit collector_name_requests catalog_update_bindings catalog_update_decisions catalog_update_receipts catalog_update_audit audit_events catalog_audit catalog_page_requests catalog_section_requests catalog_requests clan_api_key_audit clan_branding_audit clan_logo_assets collection_schedule_audit competition_import_history competition_metric_resolutions competition_metric_audit custom_competition_metrics discord_settings_audit manual_submission_requests runelite_settings_audit runelite_submission_requests runelite_drop_events submission_filter_audit site_settings_audit staff_account_audit staff_page_access_audit submission_images xp_import_history',
   ],
   [
     'SELECT UPDATE',
@@ -25,11 +25,11 @@ for (const [privileges, names] of [
   ],
   [
     'SELECT INSERT UPDATE',
-    'catalog_update_prompts catalog_assets catalog_sections clan_api_keys competition_previews discord_settings items pages staff_accounts submissions wom_competitions xp_events xp_previews',
+    'collectors catalog_update_prompts catalog_assets catalog_sections clan_api_keys competition_previews discord_settings items pages staff_accounts submissions wom_competitions xp_events xp_previews',
   ],
   [
     'SELECT INSERT DELETE',
-    'admin_sessions collection_log_schedule_pages collection_permanent_pages game_item_ids page_items',
+    'collector_name_previews admin_sessions collection_log_schedule_pages collection_permanent_pages game_item_ids page_items',
   ],
   ['SELECT INSERT UPDATE DELETE', 'auth_rate_limits collection_log_schedules'],
 ])

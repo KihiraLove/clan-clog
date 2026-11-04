@@ -302,6 +302,7 @@ export class PgStore implements BackendStore {
     try {
       await client.query('BEGIN');
       await client.query('SELECT pg_advisory_xact_lock_shared(74261005)');
+      await lockCollectorNames(client);
       const schedulingEnabled = await lockScheduling(client, input.hardcore);
       await client.query(
         'SELECT pg_advisory_xact_lock(hashtextextended($1,0))',
@@ -457,8 +458,8 @@ export class PgStore implements BackendStore {
         `INSERT INTO submissions (
           id, discord_interaction_id, discord_user_id, discord_guild_id,
           raw_item_text, item_id, collector_name, collected_on, date_source,
-          proof_url, hardcore, intake_payload_hash, intake_receipt, submitted_at, intake_scheduling, collection_type, collection_reason, proof_image_id,event_page_id
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+          proof_url, hardcore, intake_payload_hash, intake_receipt, submitted_at, intake_scheduling, collection_type, collection_reason, proof_image_id,event_page_id,collector_id,original_collector_name
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$7)
         ON CONFLICT (discord_interaction_id) DO NOTHING RETURNING id`,
         [
           receipt.submissionId,
@@ -480,6 +481,7 @@ export class PgStore implements BackendStore {
           classification.collectionReason,
           input.image.id,
           classification.eventPageId,
+          await resolveCollector(client, input.collectorName),
         ],
       );
       if (inserted.rowCount !== 1) {
@@ -857,3 +859,7 @@ export class PgStore implements BackendStore {
     return admitAuthentication(this.pool, attempt);
   }
 }
+import {
+  lockCollectorNames,
+  resolveCollector,
+} from './collector-identities.js';
