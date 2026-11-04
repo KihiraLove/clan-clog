@@ -86,7 +86,7 @@ export function moderatorPagesForRequest(
     return ['catalog', 'submissions', 'schedules'];
   if (path.startsWith('/api/v1/admin/catalog/')) return ['catalog'];
   if (
-    /^\/api\/v1\/admin\/(?:submissions|submission-images|submission-filters)(?:\/|$)/u.test(
+    /^\/api\/v1\/admin\/(?:submissions|submission-images|submission-filters|collector-name-settings)(?:\/|$)/u.test(
       path,
     )
   )

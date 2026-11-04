@@ -4991,6 +4991,27 @@ export const repeatCollectorPolicySnapshot = (
   revision: string,
 ) => `${policy} (${revision})`;
 export const collectorNamesTitle = 'Name Changes';
+export const userNameChangesToggle = 'Enable user submitted name changes';
+export const userNameChangesUnavailable =
+  'User name change settings could not be loaded.';
+export const userNameChangesSaved = 'User name change setting saved.';
+export const publicNamesTitle = 'Change name';
+export const publicNamesOldName = 'Old name';
+export const publicNamesNewName = 'New name';
+export const publicNamesChange = 'Change';
+export const publicNamesWomFirst =
+  'Name changes are verified through Wiseoldman, please change your name there first.';
+export const publicNamesStaffRequired =
+  'Name could not be verified through Wiseoldman, please contact staff';
+export const publicNamesWomLink = 'Change name on Wiseoldman';
+export const publicNamesSuccess = 'Name successfully changed';
+export const publicNamesActor = 'WOM-verified user';
+export const publicNamesDisabled =
+  'User submitted name changes are currently disabled.';
+export const publicNamesUncertain =
+  'The result could not be confirmed. Click Change to retry.';
+export const publicNamesInvalid =
+  'Enter two different RuneScape names of 1–12 characters.';
 export const collectorNamesSearch = 'Search collectors';
 export const collectorNamesSource = 'Existing collector';
 export const collectorNamesSelect = 'Select a collector';

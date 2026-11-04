@@ -12,6 +12,29 @@ import {
 import { transaction } from './transaction.js';
 import { lockCollectorNames } from './collector-identities.js';
 import { ApiError } from './types.js';
+import type { WomNameVerification } from './wom-names.js';
+export const publicNameActor = 'public:wom';
+export interface VerifiedPublicNameContext {
+  hash: string;
+  settingsRevision: string;
+  evidence: WomNameVerification;
+}
+export async function readUserNameSettings(
+  client: Pick<pg.Pool, 'query'> | Pick<pg.PoolClient, 'query'>,
+  lock = false,
+) {
+  const row = (
+    await client.query<{ version: number; enabled: boolean }>(
+      'SELECT version,user_submissions_enabled AS enabled FROM collector_name_settings WHERE singleton' +
+        (lock ? ' FOR SHARE' : ''),
+    )
+  ).rows[0];
+  if (!row) throw new ApiError(503, appText.userNameChangesUnavailable);
+  return {
+    revision: 'collector-name-settings-' + row.version,
+    enabled: row.enabled,
+  };
+}
 const uuid =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu;
 const fields =
@@ -51,6 +74,32 @@ async function targetIdentity(
 }
 export class PgCollectorNames {
   constructor(private readonly pool: pg.Pool) {}
+  settings() {
+    return readUserNameSettings(this.pool);
+  }
+  saveSettings(enabled: boolean, revision: string, actorId: string) {
+    return transaction(this.pool, 'write', async (client) => {
+      const row = (
+        await client.query(
+          'SELECT version,user_submissions_enabled AS enabled FROM collector_name_settings WHERE singleton FOR UPDATE',
+        )
+      ).rows[0];
+      if (!row || revision !== 'collector-name-settings-' + row.version)
+        throw conflict();
+      await client.query(
+        'UPDATE collector_name_settings SET user_submissions_enabled=$1,version=version+1 WHERE singleton',
+        [enabled],
+      );
+      await client.query(
+        'INSERT INTO collector_name_settings_audit(id,actor_id,version,old_enabled,new_enabled) VALUES($1,$2,$3,$4,$5)',
+        [randomUUID(), actorId, row.version + 1, row.enabled, enabled],
+      );
+      return {
+        revision: 'collector-name-settings-' + (row.version + 1),
+        enabled,
+      };
+    });
+  }
   async search(query: string) {
     if (query.length > 80)
       throw new ApiError(422, appText.collectorNameInvalid);
@@ -136,12 +185,15 @@ export class PgCollectorNames {
     key: string,
     actorId: string,
     actorName: string,
+    publicContext?: VerifiedPublicNameContext,
   ): Promise<CollectorNameResult> {
     if (!uuid.test(token) || !uuid.test(key))
       throw new ApiError(422, appText.collectorNamesChanged);
-    const hash = createHash('sha256')
-      .update(JSON.stringify({ token: token.toLowerCase() }))
-      .digest('hex');
+    const hash =
+      publicContext?.hash ??
+      createHash('sha256')
+        .update(JSON.stringify({ token: token.toLowerCase() }))
+        .digest('hex');
     return transaction(this.pool, 'write', async (client) => {
       await client.query('SELECT pg_advisory_xact_lock_shared(74261005)');
       await client.query("SET LOCAL lock_timeout='5s'");
@@ -160,6 +212,14 @@ export class PgCollectorNames {
         if (saved.payload_hash !== hash) throw conflict();
         return saved.response;
       }
+      if (publicContext) {
+        if (actorId !== publicNameActor) throw conflict();
+        const settings = await readUserNameSettings(client, true);
+        if (!settings.enabled)
+          throw new ApiError(403, appText.publicNamesDisabled);
+        if (settings.revision !== publicContext.settingsRevision)
+          throw conflict();
+      }
       const row = (
         await client.query<{ snapshot: CollectorNamePreview }>(
           'SELECT snapshot FROM collector_name_previews WHERE token=$1 AND actor_id=$2 AND expires_at>clock_timestamp()',
@@ -173,6 +233,24 @@ export class PgCollectorNames {
       const target = await targetIdentity(client, preview.newName, source.id);
       if (!same(source, preview.source) || !same(target, preview.target))
         throw conflict();
+      if (publicContext) {
+        const proof = publicContext.evidence,
+          scope = [source.id, ...(target ? [target.id] : [])];
+        const bindings = await client.query(
+          `SELECT 1 WHERE EXISTS(
+             SELECT 1 FROM collectors WHERE (id=ANY($1::uuid[]) OR merged_into=ANY($1::uuid[])) AND wom_player_id<>$2
+           ) OR EXISTS(
+             SELECT 1 FROM collectors WHERE wom_player_id=$2 AND NOT(COALESCE(merged_into,id)=ANY($1::uuid[]))
+           )`,
+          [scope, proof.playerId],
+        );
+        const consumed = await client.query(
+          'SELECT 1 FROM collector_name_wom_verifications WHERE name_change_id=ANY($1::bigint[]) LIMIT 1',
+          [proof.changes.map((c) => c.id)],
+        );
+        if (bindings.rowCount || consumed.rowCount)
+          throw new ApiError(422, appText.publicNamesStaffRequired);
+      }
       if (preview.operation === 'merge') {
         if (!target || target.id === source.id) throw conflict();
         await client.query(
@@ -225,6 +303,24 @@ export class PgCollectorNames {
         'INSERT INTO collector_name_requests(actor_id,request_key,payload_hash,response) VALUES($1,$2,$3,$4)',
         [actorId, key, hash, JSON.stringify(result)],
       );
+      if (publicContext) {
+        await client.query(
+          'UPDATE collectors SET wom_player_id=$2 WHERE id=$1',
+          [result.targetId, publicContext.evidence.playerId],
+        );
+        await client.query(
+          `INSERT INTO collector_name_wom_verifications(name_change_id,operation_id,player_id,evidence)
+           SELECT (c->>'id')::bigint,$2,$3,jsonb_build_object('playerId',$3::bigint,'username',$4::text,'verifiedAt',$5::text,'changes',jsonb_build_array(c))
+           FROM jsonb_array_elements($1::jsonb) c`,
+          [
+            JSON.stringify(publicContext.evidence.changes),
+            result.operationId,
+            publicContext.evidence.playerId,
+            publicContext.evidence.username,
+            publicContext.evidence.verifiedAt,
+          ],
+        );
+      }
       return result;
     });
   }

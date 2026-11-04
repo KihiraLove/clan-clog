@@ -25,6 +25,7 @@ import { PgRuneLiteSettingsStore } from './runelite-settings.js';
 import { PgSchedulingStore } from './scheduling-store.js';
 import { PgCompetitionStore } from './competition-store.js';
 import { PgReviewStore } from './review-store.js';
+import { PgPublicNameChanges } from './public-collector-names.js';
 import { PgLifecycleStore } from '@clog/database/dist/lifecycle.js';
 import {
   OperationalDiagnostics,
@@ -163,6 +164,7 @@ async function main() {
       lifecycle: pool ? new PgLifecycleStore(pool) : undefined,
       xp: pool ? new PgXpStore(pool) : undefined,
       review: pool && store ? new PgReviewStore(pool, store) : undefined,
+      publicNameChanges: pool ? new PgPublicNameChanges(pool) : undefined,
       ...config,
     },
   );

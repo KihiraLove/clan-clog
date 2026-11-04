@@ -20,6 +20,7 @@ export async function mockApi(
     xp.storeMetadata(value),
   );
   const state = { scenario: options.scenario as Scenario | undefined };
+  let publicNames = { enabled: false, revision: 'collector-name-settings-1' };
   if (options.xpSamples) await xp.samples();
   const signal = new AbortController().signal;
   const assets = new Map<string, { body: Buffer; contentType: string }>();
@@ -110,7 +111,24 @@ export async function mockApi(
       if (asset) return await route.fulfill(asset);
       let result: unknown;
       if (path === '/api/v1/auth/session') result = await session();
-      else if (path === '/api/v1/admin/event-page-assignments')
+      else if (path === '/api/v1/collector-name-changes')
+        result = { enabled: publicNames.enabled };
+      else if (path === '/api/v1/admin/collector-name-settings') {
+        if (method === 'PUT') {
+          const actor = await admin.session(signal);
+          if (actor?.role !== 'admin' || actor.csrfToken !== csrf)
+            throw Object.assign(Error('Forbidden'), { status: 403 });
+          if (b.expectedRevision !== publicNames.revision)
+            throw Object.assign(Error('Changed'), { status: 409 });
+          publicNames = {
+            enabled: b.enabled,
+            revision:
+              'collector-name-settings-' +
+              (Number(publicNames.revision.split('-').at(-1)) + 1),
+          };
+        }
+        result = publicNames;
+      } else if (path === '/api/v1/admin/event-page-assignments')
         result = {
           revision: 'event-pages-1-' + '0'.repeat(64),
           total: 0,

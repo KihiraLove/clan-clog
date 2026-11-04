@@ -6,6 +6,34 @@ export interface CollectorIdentity {
   version: string;
   historyVersion: string;
 }
+export interface UserNameChangeSettings {
+  revision: string;
+  enabled: boolean;
+}
+export interface PublicNameChangeInput {
+  oldName: string;
+  newName: string;
+}
+export interface PublicNameChangeResult {
+  status: 'changed';
+  operationId: string;
+  oldName: string;
+  newName: string;
+}
+export function publicNameChangeInput(
+  value: PublicNameChangeInput,
+): PublicNameChangeInput {
+  const oldName = collectorDisplayName(value.oldName),
+    newName = collectorDisplayName(value.newName);
+  if (
+    [oldName, newName].some(
+      (name) => name.length > 12 || !/^[a-zA-Z0-9 _-]+$/u.test(name),
+    ) ||
+    oldName === newName
+  )
+    throw Error(appText.collectorNameInvalid);
+  return { oldName, newName };
+}
 export type CollectorCounts = Record<
   'pending' | 'approved' | 'rejected' | 'revoked',
   number

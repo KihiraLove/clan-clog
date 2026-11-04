@@ -247,6 +247,20 @@ function pageLimit(limit: number) {
     throw new ApiError(400, appText.apiReviewStorePageSizeMustBeBetween1And20);
 }
 export class PgReviewStore implements ReviewStore {
+  userNameChangesSettings() {
+    return new PgCollectorNames(this.pool).settings();
+  }
+  saveUserNameChangesSettings(
+    enabled: boolean,
+    revision: string,
+    actorId: string,
+  ) {
+    return new PgCollectorNames(this.pool).saveSettings(
+      enabled,
+      revision,
+      actorId,
+    );
+  }
   collectors(query: string) {
     return new PgCollectorNames(this.pool).search(query);
   }

@@ -4,6 +4,7 @@ import type {
   CollectorCounts,
   CollectorNamePreview,
   CollectorNameResult,
+  UserNameChangeSettings,
 } from '@clog/domain';
 import * as appText from '@clog/domain';
 import { AdminRequestError } from './admin-api.ts';
@@ -81,6 +82,32 @@ async function request(
     throw new AdminRequestError(response.status, reason.error);
   }
   return response.json();
+}
+function settings(value: unknown): UserNameChangeSettings {
+  const r = object(value);
+  if (
+    typeof r.enabled !== 'boolean' ||
+    !/^collector-name-settings-[1-9][0-9]*$/u.test(text(r.revision))
+  )
+    throw Error(appText.userNameChangesUnavailable);
+  return { enabled: r.enabled, revision: text(r.revision) };
+}
+export async function userSettings(signal: AbortSignal) {
+  return settings(await request('/collector-name-settings', signal));
+}
+export async function saveUserSettings(
+  current: UserNameChangeSettings,
+  enabled: boolean,
+  csrf: string,
+  signal: AbortSignal,
+) {
+  return settings(
+    await request('/collector-name-settings', signal, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+      body: JSON.stringify({ enabled, expectedRevision: current.revision }),
+    }),
+  );
 }
 export async function collectors(search: string, signal: AbortSignal) {
   const r = object(
