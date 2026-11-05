@@ -87,6 +87,7 @@ export interface ReviewAudit {
 export interface ReviewStore {
   collectorGameMode?(
     submissionId: string,
+    byCollector?: boolean,
   ): Promise<import('@clog/domain').CollectorGameMode>;
   saveCollectorGameMode?(
     submissionId: string,
@@ -94,6 +95,7 @@ export interface ReviewStore {
     key: string,
     actorId: string,
     actorName: string,
+    byCollector?: boolean,
   ): Promise<import('@clog/domain').CollectorGameModeResult>;
   userNameChangesSettings?(): Promise<
     import('@clog/domain').UserNameChangeSettings

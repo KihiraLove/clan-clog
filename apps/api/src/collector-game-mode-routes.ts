@@ -9,65 +9,85 @@ export function collectorGameModeRoutes(
   authorize: (
     r: FastifyRequest,
     write?: boolean,
-  ) => Promise<{ id: string; displayName: string }>,
+  ) => Promise<{
+    id: string;
+    displayName: string;
+    role?: 'admin' | 'moderator';
+  }>,
 ) {
   const params = {
     type: 'object',
     required: ['id'],
     properties: { id: { type: 'string', format: 'uuid' } },
   };
-  app.get<{ Params: { id: string } }>(
-    '/api/v1/admin/submissions/:id/game-mode',
-    {
-      schema: { params },
-      preHandler: async (r) => {
-        await authorize(r);
+  for (const scope of ['submissions', 'collectors'] as const) {
+    const byCollector = scope === 'collectors';
+    const access = async (r: FastifyRequest, write = false) => {
+      const actor = await authorize(r, write);
+      if (byCollector && actor.role !== 'admin')
+        throw new ApiError(403, appText.collectorNamesAdminOnly);
+      return actor;
+    };
+    app.get<{ Params: { id: string } }>(
+      '/api/v1/admin/' + scope + '/:id/game-mode',
+      {
+        schema: { params },
+        preHandler: async (r) => {
+          await access(r);
+        },
       },
-    },
-    async (r, reply) => {
-      reply.header('Cache-Control', 'private, no-store');
-      if (!store.collectorGameMode)
-        throw new ApiError(503, appText.gameModeUnavailable);
-      return store.collectorGameMode(r.params.id);
-    },
-  );
-  app.put<{ Params: { id: string }; Body: CollectorGameModeChange }>(
-    '/api/v1/admin/submissions/:id/game-mode',
-    {
-      schema: {
-        params,
-        body: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['collectorId', 'expectedRevision', 'gameMode'],
-          properties: {
-            collectorId: { type: 'string', format: 'uuid' },
-            expectedRevision: { type: 'string', minLength: 1, maxLength: 160 },
-            gameMode: { enum: [null, ...gameModes] },
+      async (r, reply) => {
+        reply.header('Cache-Control', 'private, no-store');
+        if (!store.collectorGameMode)
+          throw new ApiError(503, appText.gameModeUnavailable);
+        return store.collectorGameMode(r.params.id, byCollector);
+      },
+    );
+    app.put<{ Params: { id: string }; Body: CollectorGameModeChange }>(
+      '/api/v1/admin/' + scope + '/:id/game-mode',
+      {
+        schema: {
+          params,
+          body: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['collectorId', 'expectedRevision', 'gameMode'],
+            properties: {
+              collectorId: { type: 'string', format: 'uuid' },
+              expectedRevision: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 160,
+              },
+              gameMode: { enum: [null, ...gameModes] },
+            },
+          },
+          headers: {
+            type: 'object',
+            required: ['idempotency-key'],
+            properties: {
+              'idempotency-key': { type: 'string', format: 'uuid' },
+            },
           },
         },
-        headers: {
-          type: 'object',
-          required: ['idempotency-key'],
-          properties: { 'idempotency-key': { type: 'string', format: 'uuid' } },
+        preHandler: async (r) => {
+          await access(r, true);
         },
       },
-      preHandler: async (r) => {
-        await authorize(r, true);
+      async (r, reply) => {
+        reply.header('Cache-Control', 'private, no-store');
+        const actor = await access(r, true);
+        if (!store.saveCollectorGameMode)
+          throw new ApiError(503, appText.gameModeUnavailable);
+        return store.saveCollectorGameMode(
+          r.params.id,
+          r.body,
+          r.headers['idempotency-key'] as string,
+          actor.id,
+          actor.displayName,
+          byCollector,
+        );
       },
-    },
-    async (r, reply) => {
-      reply.header('Cache-Control', 'private, no-store');
-      const actor = await authorize(r, true);
-      if (!store.saveCollectorGameMode)
-        throw new ApiError(503, appText.gameModeUnavailable);
-      return store.saveCollectorGameMode(
-        r.params.id,
-        r.body,
-        r.headers['idempotency-key'] as string,
-        actor.id,
-        actor.displayName,
-      );
-    },
-  );
+    );
+  }
 }

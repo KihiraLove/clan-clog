@@ -1,5 +1,5 @@
 import { mockApi } from './mock-api.ts';
-import { expect, test } from './test.ts';
+import { openSiteMenu, expect, test } from './test.ts';
 import catalog from './support/catalog.json' with { type: 'json' };
 
 test('additional catalog sections remain scrollable and keyboard accessible in the public log', async ({
@@ -178,9 +178,11 @@ test('homepage uses the supplied default branding, 2x log, separate XP navigatio
   await expect(
     page.getByRole('button', { name: 'Hardcore worlds', exact: true }),
   ).toHaveCount(0);
+  await openSiteMenu(page);
   await expect(
     page.getByRole('link', { name: 'Admin panel', exact: true }),
   ).toHaveAttribute('href', '/admin');
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('tab')).toHaveCount(5);
   const log = await page.locator('.game-window').boundingBox();
   expect(log!.width).toBe(1000);
@@ -304,6 +306,7 @@ test('admin release switch reveals skull; normal and hardcore menus and contours
     fullPage: true,
   });
   await page.goBack();
+  await openSiteMenu(page);
   await page.getByRole('link', { name: 'Admin panel', exact: true }).click();
   await page
     .getByRole('link', { name: 'Hardcore worlds', exact: true })

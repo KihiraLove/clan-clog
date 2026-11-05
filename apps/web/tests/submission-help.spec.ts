@@ -1,5 +1,11 @@
 import { defaultSubmissionHelp } from '@clog/domain';
-import { expect, test, type Page } from './test.ts';
+import {
+  openSiteMenu,
+  openSubmissionHelp,
+  expect,
+  test,
+  type Page,
+} from './test.ts';
 import { mockApi } from './mock-api.ts';
 import { adminFixtures } from './admin-fixtures.ts';
 
@@ -12,9 +18,7 @@ test('failed deferred submission help stays local and leaves the public log usab
   await mockApi(page);
   await page.route('**/src/HelpMarkdown.tsx*', (route) => route.abort());
   await page.goto('/');
-  await page
-    .getByRole('button', { name: 'How to submit', exact: true })
-    .click();
+  await openSubmissionHelp(page);
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText(
     'Instructions could not be displayed. Please ask your clan staff for submission help.',
@@ -49,7 +53,7 @@ async function helpSettings(page: Page, text = guide) {
 
 for (const width of [1440, 740, 320]) {
   test(
-    'help stays right aligned and preserves public view layout at ' + width,
+    'menu help preserves public view layout at ' + width,
     async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await helpSettings(page);
@@ -58,26 +62,9 @@ for (const width of [1440, 740, 320]) {
         'Duke Sucellus',
       );
       await page.evaluate(() => document.fonts.ready);
-      const help = page.getByRole('button', {
-        name: 'How to submit',
-        exact: true,
-      });
-      const normal = await help.boundingBox();
-      const shell = await page.locator('.site-shell').evaluate((node) => {
-        const r = node.getBoundingClientRect();
-        return r.right - parseFloat(getComputedStyle(node).paddingRight);
-      });
-      expect(normal!.x + normal!.width).toBeCloseTo(shell, 1);
-      const a = (await page
-        .getByRole('link', { name: 'Collection log', exact: true })
-        .boundingBox())!;
-      const b = (await page
-        .getByRole('link', { name: 'Xp tracker', exact: true })
-        .boundingBox())!;
-      const nav = (await page.locator('.public-navigation-bar').boundingBox())!;
-      expect((a.x + a.width + b.x) / 2).toBeCloseTo(nav.x + nav.width / 2, 1);
-      if (width > 600) expect(normal!.x).toBeGreaterThan(b.x + b.width);
-      else expect(normal!.y).toBeGreaterThanOrEqual(b.y + b.height);
+      const menu = page.getByRole('button', { name: 'Menu', exact: true });
+      await expect(menu).toBeEnabled();
+      const normal = await menu.boundingBox();
       const caption = await page.locator('.log-help').boundingBox();
       const log = await page.locator('.game-window').boundingBox();
       await page
@@ -87,10 +74,10 @@ for (const width of [1440, 740, 320]) {
         'inert',
         '',
       );
-      expect(await help.boundingBox()).toEqual(normal);
+      expect(await menu.boundingBox()).toEqual(normal);
       expect(await page.locator('.log-help').boundingBox()).toEqual(caption);
       expect(await page.locator('.game-window').boundingBox()).toEqual(log);
-      await help.click();
+      await openSubmissionHelp(page);
       const dialog = page.getByRole('dialog', {
         name: 'How to submit',
         exact: true,
@@ -99,14 +86,13 @@ for (const width of [1440, 740, 320]) {
         dialog.getByRole('heading', { name: 'Clan instructions' }),
       ).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(help).toBeFocused();
+      await expect(menu).toBeFocused();
       await page
         .getByRole('button', { name: 'Hardcore worlds', exact: true })
         .click();
       await page.getByRole('link', { name: 'Xp tracker', exact: true }).click();
       await expect(page.locator('#xp-tracker')).toBeVisible();
-      expect(await help.boundingBox()).toEqual(normal);
-      await help.click();
+      await openSubmissionHelp(page);
       await expect(dialog.locator('strong')).toHaveText('item');
       await page.screenshot({
         path: test.info().outputPath('submission-help-' + width + '.png'),
@@ -114,7 +100,7 @@ for (const width of [1440, 740, 320]) {
       await dialog
         .getByRole('button', { name: 'Close submission help', exact: true })
         .click();
-      await expect(help).toBeFocused();
+      await expect(menu).toBeFocused();
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
@@ -134,6 +120,7 @@ test('help opens over scrolled content, confines focus and scroll, and restores 
   );
   await page.goto('/?page=duke-sucellus');
   await expect(page.locator('.page-heading h3')).toHaveText('Duke Sucellus');
+  await openSiteMenu(page);
   const before = await page.evaluate(() => {
     document
       .querySelector<HTMLButtonElement>('.submission-help-button')!
@@ -178,7 +165,7 @@ test('help opens over scrolled content, confines focus and scroll, and restores 
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: 'How to submit', exact: true }),
+    page.getByRole('button', { name: 'Menu', exact: true }),
   ).toBeFocused();
   expect(
     await page.evaluate(() => ({ href: location.href, scroll: scrollY })),
@@ -267,9 +254,7 @@ test('admin previews and saves safe Markdown, discards drafts and preserves save
   await page.reload();
   await expect(input).toHaveValue(text);
   await page.getByRole('link', { name: 'Main site', exact: true }).click();
-  await page
-    .getByRole('button', { name: 'How to submit', exact: true })
-    .click();
+  await openSubmissionHelp(page);
   const content = page.getByRole('dialog').locator('.help-markdown');
   await expect(content).toBeVisible();
   expect(await content.innerHTML()).toBe(rendered);
@@ -357,9 +342,7 @@ for (const unavailable of [false, true])
           route.fulfill({ status: 503, json: { error: 'Unavailable' } }),
         );
       await page.goto('/');
-      await page
-        .getByRole('button', { name: 'How to submit', exact: true })
-        .click();
+      await openSubmissionHelp(page);
       const dialog = page.getByRole('dialog', {
         name: 'How to submit',
         exact: true,

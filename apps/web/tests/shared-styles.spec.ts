@@ -1,7 +1,13 @@
 /** World identity must not change the shared shell, log surfaces or page backdrop. */
 import sharp from 'sharp';
 import { defaultSiteCopy } from '@clog/domain';
-import { expect, test, type Page } from './test.ts';
+import {
+  openSiteMenu,
+  openSubmissionHelp,
+  expect,
+  test,
+  type Page,
+} from './test.ts';
 import { mockApi } from './mock-api.ts';
 
 async function shell(page: Page) {
@@ -211,10 +217,11 @@ for (const width of [1440, 320]) {
           .click();
       }
       const help = page.getByRole('button', {
-        name: 'How to submit',
+        name: 'Menu',
         exact: true,
       });
       await expect(help).toHaveCSS('background-color', 'rgb(64, 80, 96)');
+      await expect(help).toBeEnabled();
       await page.keyboard.press('Tab');
       await help.focus();
       await expect(help).toHaveCSS('outline-color', 'rgb(170, 187, 204)');
@@ -226,7 +233,7 @@ for (const width of [1440, 320]) {
         await tooltip.evaluate((node) => node.parentElement === document.body),
       ).toBe(true);
       await page.keyboard.press('Escape');
-      await help.click();
+      await openSubmissionHelp(page);
       const helpDialog = page.getByRole('dialog', {
         name: 'How to submit',
         exact: true,
@@ -254,7 +261,10 @@ for (const width of [1440, 320]) {
         'rgb(48, 64, 80)',
       );
       await page.keyboard.press('Escape');
-      await page.locator('.site-header-link').click();
+      await openSiteMenu(page);
+      await page
+        .getByRole('link', { name: 'Admin panel', exact: true })
+        .click();
       await page
         .getByRole('link', { name: 'Site settings', exact: true })
         .click();

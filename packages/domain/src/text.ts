@@ -4991,6 +4991,12 @@ export const repeatCollectorPolicySnapshot = (
   revision: string,
 ) => `${policy} (${revision})`;
 export const collectorNamesTitle = 'Name Changes';
+export const userHandlingTitle = 'User Handling';
+export const gameModeChangesTitle = 'Game Mode Changes';
+export const gameModeSearch = 'Search collectors for game mode changes';
+export const gameModeSelectCollector = 'Collector to change game mode';
+export const siteMenuTitle = 'Menu';
+export const siteMenuOptions = 'Menu options';
 export const userNameChangesToggle = 'Enable user submitted name changes';
 export const userNameChangesUnavailable =
   'User name change settings could not be loaded.';

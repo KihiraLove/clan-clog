@@ -18,6 +18,8 @@ type Pending = { fields: CollectorGameModeChange; key: string };
 const retained = new Map<string, Pending>();
 export function GameModeEditor({
   row,
+  collectorId,
+  heading = true,
   client,
   session,
   onAccessLost,
@@ -25,15 +27,24 @@ export function GameModeEditor({
   onDirty,
   onBusy,
 }: {
-  row: Submission;
+  heading?: boolean;
   client: AdminClient;
   session: AdminSession;
   onAccessLost: () => void;
   onSaved: () => void;
   onDirty: (value: boolean) => void;
   onBusy: (value: boolean) => void;
-}) {
-  const cacheKey = session.csrfToken + ':' + row.id;
+} & (
+  | { row: Submission; collectorId?: never }
+  | { row?: never; collectorId: string }
+)) {
+  const targetId = row ? row.id : collectorId!,
+    byCollector = !!collectorId;
+  const cacheKey =
+    session.csrfToken +
+    ':' +
+    (byCollector ? 'collector:' : 'submission:') +
+    targetId;
   const [pending, setPending] = useState<Pending | undefined>(() =>
       retained.get(cacheKey),
     ),
@@ -72,8 +83,9 @@ export function GameModeEditor({
       void client.collectorModeClient!()
         .then((api) =>
           api.load(
-            row.id,
+            targetId,
             AbortSignal.any([read.signal, AbortSignal.timeout(10000)]),
+            byCollector,
           ),
         )
         .then((next) => {
@@ -108,7 +120,7 @@ export function GameModeEditor({
       clearInterval(timer);
       document.removeEventListener('visibilitychange', load);
     };
-  }, [client, row.id, refresh, onAccessLost]);
+  }, [client, targetId, byCollector, refresh, onAccessLost]);
   if (!client.collectorModeClient) return null;
   const save = () =>
     void action.execute(async (signal) => {
@@ -127,15 +139,18 @@ export function GameModeEditor({
       try {
         const api = await client.collectorModeClient!(),
           saved = await api.save(
-            row.id,
+            targetId,
             request.fields,
             request.key,
             session.csrfToken,
             signal,
+            byCollector,
           );
         retained.delete(cacheKey);
         setPending(undefined);
-        const next = await api.load(row.id, signal).catch(() => saved);
+        const next = await api
+          .load(targetId, signal, byCollector)
+          .catch(() => saved);
         if (signal.aborted) return;
         setCurrent(next);
         setDraft(next.gameMode);
@@ -165,7 +180,7 @@ export function GameModeEditor({
       className="collector-mode-editor"
       aria-label={appText.gameModeTitle}
     >
-      <h3>{appText.gameModeTitle}</h3>
+      {heading && <h3>{appText.gameModeTitle}</h3>}
       {current && <p>{appText.gameModeCollector(current.collectorName)}</p>}
       <p className="admin-note">{appText.gameModeScope}</p>
       <label>
@@ -187,7 +202,7 @@ export function GameModeEditor({
           ))}
         </select>
       </label>
-      {row.submittedGameMode != null && (
+      {row?.submittedGameMode != null && (
         <p>
           {appText.gameModeSubmitted(gameModeLabel(row.submittedGameMode))}
           {current && row.submittedGameMode !== current.gameMode && (

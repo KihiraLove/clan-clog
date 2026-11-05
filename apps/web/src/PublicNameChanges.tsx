@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import * as appText from '@clog/domain';
 import {
   normalizePlayerName,
@@ -6,7 +7,15 @@ import {
   type PublicNameChangeInput,
 } from '@clog/domain';
 const endpoint = '/api/v1/collector-name-changes';
-export default function PublicNameChanges() {
+export default function PublicNameChanges({
+  triggerContainer,
+  menuButton,
+  onOpen,
+}: {
+  triggerContainer: HTMLElement | null;
+  menuButton: RefObject<HTMLButtonElement | null>;
+  onOpen: () => void;
+}) {
   const [enabled, setEnabled] = useState(false),
     [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
@@ -18,7 +27,6 @@ export default function PublicNameChanges() {
       { fields: PublicNameChangeInput; key: string } | undefined
     >(undefined),
     dialog = useRef<HTMLDialogElement>(null),
-    opener = useRef<HTMLButtonElement>(null),
     working = useRef(false),
     id = useId();
   useEffect(() => {
@@ -61,10 +69,10 @@ export default function PublicNameChanges() {
     element.showModal();
     return () => {
       element.close();
-      opener.current?.focus({ preventScroll: true });
+      menuButton.current?.focus({ preventScroll: true });
       window.scrollTo(x, y);
     };
-  }, [open]);
+  }, [open, menuButton]);
   const change = async () => {
     if (working.current) return;
     let request = pending.current;
@@ -157,19 +165,22 @@ export default function PublicNameChanges() {
   };
   return (
     <>
-      {(enabled || pending.current) && (
-        <button
-          ref={opener}
-          type="button"
-          className="site-button"
-          onClick={() => {
-            setMessage('');
-            setOpen(true);
-          }}
-        >
-          {appText.publicNamesTitle}
-        </button>
-      )}
+      {triggerContainer &&
+        (enabled || pending.current) &&
+        createPortal(
+          <button
+            type="button"
+            className="site-button"
+            onClick={() => {
+              onOpen();
+              setMessage('');
+              setOpen(true);
+            }}
+          >
+            {appText.publicNamesTitle}
+          </button>,
+          triggerContainer,
+        )}
       {message && (
         <p className="public-name-success" role="status">
           {message}

@@ -86,13 +86,7 @@ for (const width of [1440, 740, 320]) {
         'Hardcore collections earned together over the years Hardcore worlds',
       );
       expect(await layout(page)).toEqual(normal);
-      await page
-        .getByRole('link', { name: 'Admin panel', exact: true })
-        .focus();
-      await page.keyboard.press('Tab');
-      await expect(
-        page.getByRole('button', { name: 'How to submit', exact: true }),
-      ).toBeFocused();
+      await page.getByRole('button', { name: 'Menu', exact: true }).focus();
       await page.keyboard.press('Tab');
       expect(
         await page

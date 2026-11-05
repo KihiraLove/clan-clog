@@ -32,9 +32,13 @@ async function request(
   id: string,
   signal: AbortSignal,
   init: RequestInit = {},
+  byCollector = false,
 ) {
   const response = await fetch(
-    '/api/v1/admin/submissions/' + encodeURIComponent(id) + '/game-mode',
+    '/api/v1/admin/' +
+      (byCollector ? 'collectors/' : 'submissions/') +
+      encodeURIComponent(id) +
+      '/game-mode',
     { ...init, signal, cache: 'no-store', credentials: 'same-origin' },
   );
   if (!response.ok) {
@@ -43,8 +47,12 @@ async function request(
   }
   return response.json();
 }
-export async function load(id: string, signal: AbortSignal) {
-  return parseCollectorMode(await request(id, signal));
+export async function load(
+  id: string,
+  signal: AbortSignal,
+  byCollector = false,
+) {
+  return parseCollectorMode(await request(id, signal, {}, byCollector));
 }
 export async function save(
   id: string,
@@ -52,17 +60,23 @@ export async function save(
   key: string,
   csrf: string,
   signal: AbortSignal,
+  byCollector = false,
 ): Promise<CollectorGameModeResult> {
   const r = object(
-      await request(id, signal, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrf,
-          'Idempotency-Key': key,
+      await request(
+        id,
+        signal,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrf,
+            'Idempotency-Key': key,
+          },
+          body: JSON.stringify(fields),
         },
-        body: JSON.stringify(fields),
-      }),
+        byCollector,
+      ),
     ),
     profile = parseCollectorMode(r),
     operationId = string(r.operationId);

@@ -225,6 +225,8 @@ changes it. Game mode is independent of world classification and duplicate keys.
 | ------ | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/v1/admin/submissions/:id/game-mode` | Staff with current Submissions access; current `collectorId`, `collectorName`, nullable `gameMode` and profile `revision`.                                                                    |
 | PUT    | `/api/v1/admin/submissions/:id/game-mode` | Same access plus Origin/CSRF and UUID `Idempotency-Key`; `{ collectorId, expectedRevision, gameMode }`, allowing explicit null for staff unassignment. Returns the profile and `operationId`. |
+| GET    | `/api/v1/admin/collectors/:id/game-mode`  | Administrator with current Submissions access; the same profile, selected by collector identity from User Handling.                                                                           |
+| PUT    | `/api/v1/admin/collectors/:id/game-mode`  | Administrator with the same Origin/CSRF, revision and idempotency requirements as submission-based mode saves.                                                                                |
 
 Mode saves do not mutate or decide a submission. They use their own collector
 revision; concurrent edits or renamed/merged identities return 409. Identity,
@@ -232,6 +234,9 @@ profile revision, actor/old/new/time audit and request result commit atomically.
 Same actor/key/payload recovers the original result after later profile/name
 changes, without applying again; a different payload conflicts. The review
 client retains uncertain requests across dismissal within the current session.
+Collector-level saves use the same audit and transaction; receipts are scoped to
+the entry point so a collector request cannot replay as a submission request.
+Existing submission-based receipts retain their original payload fingerprints.
 
 Collector search and name previews include nullable `gameMode`. Previews include
 the surviving `gameMode` and `modeResolutionRequired`. A merge with different

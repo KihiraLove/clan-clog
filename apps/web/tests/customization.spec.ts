@@ -1,5 +1,5 @@
 import { mockApi } from './mock-api.ts';
-import { expect, test, pngFile } from './test.ts';
+import { openSiteMenu, expect, test, pngFile } from './test.ts';
 import { fixtureCatalog } from './support/scenarios.ts';
 import { resolve } from 'node:path';
 import { adminFixtures } from './admin-fixtures.ts';
@@ -238,6 +238,7 @@ test('hardcore appearance can be configured while disabled and switches independ
     defaultBranding.logoPath,
   );
   await page.goBack();
+  await openSiteMenu(page);
   await page.getByRole('link', { name: 'Admin panel', exact: true }).click();
   await page
     .getByRole('link', { name: 'Hardcore worlds', exact: true })

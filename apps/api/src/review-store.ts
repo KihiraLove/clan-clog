@@ -264,8 +264,8 @@ export class PgReviewStore implements ReviewStore {
   userNameChangesSettings() {
     return new PgCollectorNames(this.pool).settings();
   }
-  collectorGameMode(id: string) {
-    return new PgCollectorGameModes(this.pool).get(id);
+  collectorGameMode(id: string, byCollector = false) {
+    return new PgCollectorGameModes(this.pool).get(id, byCollector);
   }
   saveCollectorGameMode(
     id: string,
@@ -273,6 +273,7 @@ export class PgReviewStore implements ReviewStore {
     key: string,
     actorId: string,
     actorName: string,
+    byCollector = false,
   ) {
     return new PgCollectorGameModes(this.pool).save(
       id,
@@ -280,6 +281,7 @@ export class PgReviewStore implements ReviewStore {
       key,
       actorId,
       actorName,
+      byCollector,
     );
   }
   saveUserNameChangesSettings(

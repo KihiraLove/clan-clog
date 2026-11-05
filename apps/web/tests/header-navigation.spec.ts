@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from './test.ts';
+import { openSiteMenu, expect, test, type Locator } from './test.ts';
 import { mockApi } from './mock-api.ts';
 
 async function geometry(locator: Locator) {
@@ -14,7 +14,7 @@ async function geometry(locator: Locator) {
 
 for (const width of [1440, 740, 580, 390, 320]) {
   test(
-    'header links keep their position through world modes, administration and login at ' +
+    'Menu aligns with the visible log and preserves access across views at ' +
       width,
     async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -30,106 +30,112 @@ for (const width of [1440, 740, 580, 390, 320]) {
           privateReads++;
       });
       await page.goto('/');
-      await expect(page.locator('.clan-name')).toHaveText('Clan name');
-      await page.evaluate(async () => {
-        await document.fonts.ready;
-      });
-      const entry = page.getByRole('link', {
-        name: 'Admin panel',
+      const trigger = page.getByRole('button', { name: 'Menu', exact: true });
+      await expect(trigger).toBeEnabled();
+      await page.evaluate(() => document.fonts.ready);
+      const aligned = async () => {
+        await expect(trigger).toBeEnabled();
+        await expect(page.locator('.game-window')).toBeVisible();
+        await expect
+          .poll(async () =>
+            page.evaluate(() => {
+              const game = document
+                  .querySelector('.game-window')!
+                  .getBoundingClientRect(),
+                viewport = document
+                  .querySelector('.log-viewport')!
+                  .getBoundingClientRect(),
+                button = document
+                  .querySelector('.site-menu > button')!
+                  .getBoundingClientRect();
+              return Math.abs(
+                button.right - Math.min(game.right, viewport.right),
+              );
+            }),
+          )
+          .toBeLessThan(1);
+      };
+      await aligned();
+      expect(privateReads).toBe(0);
+      await expect(
+        page.getByRole('button', { name: 'How to submit', exact: true }),
+      ).toHaveCount(0);
+      const original = await geometry(trigger);
+      await trigger.focus();
+      await expect(trigger).toHaveCSS('outline-width', '2px');
+      await trigger.press('Enter');
+      const menu = page.getByRole('group', {
+        name: 'Menu options',
         exact: true,
       });
-      const home = page.getByRole('link', { name: 'Main site', exact: true });
+      await expect(menu).toBeVisible();
+      await page.keyboard.press('Tab');
+      await expect(
+        menu.getByRole('link', { name: 'Admin panel', exact: true }),
+      ).toBeFocused();
+      await page.keyboard.press('Escape');
+      await expect(trigger).toBeFocused();
+      await expect(menu).toBeHidden();
+      await openSiteMenu(page);
+      await page.locator('.log-help').click();
+      await expect(menu).toBeHidden();
+      const settings = await admin.settings(signal);
+      await admin.saveSettings(true, settings.revision, 'test-admin', signal);
+      await page.reload();
       const skull = page.getByRole('button', {
         name: 'Hardcore worlds',
         exact: true,
       });
-      await expect(entry).toBeVisible();
-      await expect(entry).toHaveAttribute('href', '/admin');
-      await expect(skull).toHaveCount(0);
-      expect(privateReads).toBe(0);
-      const original = await geometry(entry);
-      const helpBounds = await geometry(
-        page.getByRole('button', { name: 'How to submit', exact: true }),
-      );
-      expect(original.x! + original.width!).toBeCloseTo(
-        helpBounds.x! + helpBounds.width!,
+      await expect(skull).toBeVisible();
+      await aligned();
+      expect(await geometry(trigger)).toEqual(original);
+      await skull.click();
+      await aligned();
+      expect(await geometry(trigger)).toEqual(original);
+      if (width < 1050) {
+        await page.locator('.log-viewport').evaluate((node) => {
+          node.scrollLeft = node.scrollWidth;
+        });
+        await aligned();
+        await page.locator('.log-viewport').evaluate((node) => {
+          node.scrollLeft = 0;
+        });
+        await aligned();
+      }
+      await openSiteMenu(page);
+      const options = await menu.boundingBox(),
+        button = await trigger.boundingBox();
+      expect(options!.x + options!.width).toBeCloseTo(
+        button!.x + button!.width,
         1,
       );
-      if (width > 580) {
-        expect(original.x).toBe(helpBounds.x);
-        expect(original.width).toBe(helpBounds.width);
-      }
-      const caption = await geometry(page.locator('.log-help'));
-      await entry.focus();
-      await expect(entry).toHaveCSS('outline-style', 'solid');
-      await expect(entry).toHaveCSS('outline-width', '2px');
-      await entry.hover();
-      await expect(entry).toHaveCSS('background-color', 'rgb(73, 64, 45)');
-      await page.locator('.site-header').screenshot({
-        path: test.info().outputPath('header-disabled-' + width + '.png'),
+      await page.screenshot({
+        path: test.info().outputPath('menu-' + width + '.png'),
       });
-
-      const settings = await admin.settings(signal);
-      await admin.saveSettings(true, settings.revision, 'test-admin', signal);
-      await page.reload();
-      await expect(skull).toBeVisible();
-      await page.evaluate(async () => {
-        await document.fonts.ready;
-      });
-      expect(await geometry(entry)).toEqual(original);
-      expect((await geometry(page.locator('.log-help'))).y).toBe(caption.y);
-      const skullBounds = await geometry(skull);
-      expect(original.x!).toBeGreaterThanOrEqual(
-        skullBounds.x! + skullBounds.width!,
-      );
-      await skull.click();
+      await menu
+        .getByRole('link', { name: 'Admin panel', exact: true })
+        .click();
+      const home = page.getByRole('link', { name: 'Main site', exact: true });
+      await expect(home).toHaveAttribute('href', '/?hardcore=1');
+      await home.click();
       await expect(skull).toHaveAttribute('aria-pressed', 'true');
-      expect(await geometry(entry)).toEqual(original);
-      await page.locator('.site-header').screenshot({
-        path: test.info().outputPath('header-hardcore-' + width + '.png'),
-      });
+      await aligned();
+      await skull.click();
+      await page.getByRole('link', { name: 'Xp tracker', exact: true }).click();
+      await openSiteMenu(page);
+      await menu
+        .getByRole('button', { name: 'How to submit', exact: true })
+        .click();
+      await expect(
+        page.getByRole('dialog', { name: 'How to submit', exact: true }),
+      ).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(trigger).toBeFocused();
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true);
-
-      await entry.focus();
-      await entry.press('Enter');
-      await expect(page).toHaveURL(/\/admin$/);
-      await expect(home).toHaveAttribute('href', '/?hardcore=1');
-      await expect(skull).toHaveCount(0);
-      expect(await geometry(home)).toEqual(original);
-      await page
-        .getByRole('link', { name: 'Scheduling and Competitions', exact: true })
-        .click();
-      await expect(
-        page.getByRole('heading', { name: 'Schedule management', exact: true }),
-      ).toBeVisible();
-      expect(await geometry(home)).toEqual(original);
-      await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-      await expect(
-        page.getByRole('heading', {
-          name: 'Admin sign-in required',
-          exact: true,
-        }),
-      ).toBeVisible();
-      expect(await geometry(home)).toEqual(original);
-      await page.locator('.site-header').screenshot({
-        path: test.info().outputPath('header-login-' + width + '.png'),
-      });
-      await home.click();
-      await expect(page).toHaveURL(/\/\?hardcore=1$/);
-      await expect(skull).toHaveAttribute('aria-pressed', 'true');
-      expect(await geometry(entry)).toEqual(original);
-      await entry.click();
-      await expect(
-        page.getByRole('heading', {
-          name: 'Admin sign-in required',
-          exact: true,
-        }),
-      ).toBeVisible();
-      expect(await geometry(home)).toEqual(original);
     },
   );
 }
@@ -198,9 +204,20 @@ test('public admin entry remains available when public settings cannot load', as
   await expect(
     page.getByRole('button', { name: 'Hardcore worlds', exact: true }),
   ).toHaveCount(0);
+  await openSiteMenu(page);
   await page.getByRole('link', { name: 'Admin panel', exact: true }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(
     page.getByRole('link', { name: 'Main site', exact: true }),
   ).toBeVisible();
+});
+test('failed deferred Menu leaves the log and admin entry usable', async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.route('**/src/PublicMenu.tsx*', (route) => route.abort());
+  await page.goto('/');
+  await expect(page.locator('.game-window')).toBeVisible();
+  await page.getByRole('link', { name: 'Admin panel', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin$/);
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseCollectorMode, save } from './collector-mode-api.ts';
+import { load, parseCollectorMode, save } from './collector-mode-api.ts';
 const id = '00000000-0000-4000-8000-000000000133',
   revision = 'collector-mode-' + id + '-1-1';
 test('profile parsing requires explicit nullable canonical mode and an identity-bound revision', () => {
@@ -30,6 +30,46 @@ test('profile parsing requires explicit nullable canonical mode and an identity-
       gameMode: 'normal',
     }),
   );
+});
+test('collector handling loads and saves the selected identity through its own endpoint', async () => {
+  const original = globalThis.fetch;
+  const key = '00000000-0000-4000-8000-000000000134';
+  globalThis.fetch = async (url, init) => {
+    assert.equal(url, '/api/v1/admin/collectors/' + id + '/game-mode');
+    if (init?.method === 'PUT') {
+      assert.equal(new Headers(init.headers).get('X-CSRF-Token'), 'csrf');
+      assert.equal(new Headers(init.headers).get('Idempotency-Key'), key);
+    }
+    return Response.json({
+      collectorId: id,
+      collectorName: 'User',
+      gameMode: 'ironman',
+      revision:
+        init?.method === 'PUT' ? 'collector-mode-' + id + '-2-2' : revision,
+      operationId: key,
+    });
+  };
+  try {
+    assert.equal(
+      (await load(id, new AbortController().signal, true)).collectorId,
+      id,
+    );
+    assert.equal(
+      (
+        await save(
+          id,
+          { collectorId: id, expectedRevision: revision, gameMode: 'ironman' },
+          key,
+          'csrf',
+          new AbortController().signal,
+          true,
+        )
+      ).operationId,
+      key,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
 });
 test('mode receipt validation keeps the request fields/key stable and rejects mismatched or unchanged receipts', async () => {
   const original = globalThis.fetch,
