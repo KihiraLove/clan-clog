@@ -1,4 +1,4 @@
-import { test, expect, type Page } from './test.ts';
+import { openSiteMenu, test, expect, type Page } from './test.ts';
 import { mockApi } from './mock-api.ts';
 import * as text from '@clog/domain';
 async function fixture(page: Page) {
@@ -37,17 +37,22 @@ async function fixture(page: Page) {
   return { ...base, state };
 }
 async function open(page: Page) {
+  await openSiteMenu(page);
   await page.getByRole('button', { name: 'Change name', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Change name', exact: true });
   await dialog.getByLabel('Old name', { exact: true }).fill('Old Name');
   await dialog.getByLabel('New name', { exact: true }).fill('New Name');
   return dialog;
 }
-test('public button sits below help; exact errors and WOM link stay inside the same dialog, then success closes it', async ({
+test('menu name action follows help; exact errors and WOM link stay inside the same dialog, then success closes it', async ({
   page,
 }, info) => {
   const { state } = await fixture(page);
   await page.goto('/');
+  await openSiteMenu(page);
+  await expect(
+    page.getByRole('button', { name: 'Change name', exact: true }),
+  ).toBeVisible();
   const help = await page
       .getByRole('button', { name: 'How to submit', exact: true })
       .boundingBox(),
@@ -56,6 +61,7 @@ test('public button sits below help; exact errors and WOM link stay inside the s
       .boundingBox();
   expect(button!.y).toBeGreaterThanOrEqual(help!.y + help!.height);
   expect(button!.width).toBe(help!.width);
+  await page.screenshot({ path: info.outputPath('menu-name-enabled.png') });
   const dialog = await open(page);
   state.error = text.publicNamesWomFirst;
   await dialog.getByRole('button', { name: 'Change', exact: true }).click();
@@ -95,6 +101,7 @@ test('uncertain save keeps the same names and key through dismissal and a retry'
   await expect(dialog.getByLabel('Old name', { exact: true })).toBeDisabled();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
+  await openSiteMenu(page);
   await page.getByRole('button', { name: 'Change name', exact: true }).click();
   dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Change', exact: true }).click();
@@ -123,7 +130,7 @@ test('mobile dialog fits, traps keyboard focus, restores the opener and cancels 
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: 'Change name', exact: true }),
+    page.getByRole('button', { name: 'Menu', exact: true }),
   ).toBeFocused();
   expect(state.requests).toHaveLength(0);
 });
@@ -141,17 +148,32 @@ test('admin toggle is directly under Name Changes and hides or enables the publi
         el.closest('.user-name-setting')?.previousElementSibling?.textContent,
     ),
   ).toBe('Name Changes');
-  await toggle.check();
+  await toggle.click();
   await expect(toggle).toBeChecked();
+  await expect(toggle).toHaveText('On');
+  await expect(toggle).toHaveClass(/admin-toggle/);
+  await expect(
+    panel.getByRole('heading', { name: 'User Handling', exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByRole('heading', { name: 'Name Changes', level: 3, exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByRole('heading', {
+      name: 'Game Mode Changes',
+      level: 3,
+      exact: true,
+    }),
+  ).toBeVisible();
   await page.getByRole('link', { name: 'Main site', exact: true }).click();
+  await openSiteMenu(page);
   await expect(
     page.getByRole('button', { name: 'Change name', exact: true }),
   ).toBeVisible();
   await page.goto('/admin/submissions');
-  await panel
-    .getByRole('switch', { name: text.userNameChangesToggle })
-    .uncheck();
+  await panel.getByRole('switch', { name: text.userNameChangesToggle }).click();
   await page.getByRole('link', { name: 'Main site', exact: true }).click();
+  await openSiteMenu(page);
   await expect(
     page.getByRole('button', { name: 'Change name', exact: true }),
   ).toHaveCount(0);

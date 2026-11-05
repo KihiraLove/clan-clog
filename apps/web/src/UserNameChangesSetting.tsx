@@ -40,37 +40,39 @@ export function UserNameChangesSetting({
   }, [client, reload, onAccessLost]);
   return (
     <div className="user-name-setting">
-      <label>
-        <input
-          type="checkbox"
-          role="switch"
-          checked={current?.enabled ?? false}
-          disabled={!current || action.busy || session.role !== 'admin'}
-          onChange={(event) => {
-            const enabled = event.target.checked;
-            setCurrent({ ...current!, enabled });
-            void action.execute(async (signal) => {
-              const api = await client.collectorNameClient!();
-              try {
-                const next = await api.saveUserSettings(
-                  current!,
-                  enabled,
-                  session.csrfToken,
-                  signal,
-                );
-                if (!signal.aborted) {
-                  setCurrent(next);
-                  action.setMessage(appText.userNameChangesSaved);
-                }
-              } catch (error) {
-                setReload((n) => n + 1);
-                throw error;
+      <p>{appText.userNameChangesToggle}</p>
+      <button
+        type="button"
+        className="site-button admin-toggle"
+        role="switch"
+        aria-label={appText.userNameChangesToggle}
+        aria-checked={current?.enabled ?? false}
+        disabled={!current || action.busy || session.role !== 'admin'}
+        onClick={() => {
+          const enabled = !current!.enabled;
+          setCurrent({ ...current!, enabled });
+          void action.execute(async (signal) => {
+            const api = await client.collectorNameClient!();
+            try {
+              const next = await api.saveUserSettings(
+                current!,
+                enabled,
+                session.csrfToken,
+                signal,
+              );
+              if (!signal.aborted) {
+                setCurrent(next);
+                action.setMessage(appText.userNameChangesSaved);
               }
-            });
-          }}
-        />
-        {appText.userNameChangesToggle}
-      </label>
+            } catch (error) {
+              setReload((n) => n + 1);
+              throw error;
+            }
+          });
+        }}
+      >
+        {current?.enabled ? appText.webAdminQueueOn : appText.webAdminQueueOff}
+      </button>
       {failed && (
         <p>
           {appText.userNameChangesUnavailable}{' '}

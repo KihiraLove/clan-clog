@@ -814,6 +814,108 @@ test(
           'pending',
         );
         assert.equal((await review.detail(row.id))!.submission.itemId, null);
+        const collectorEndpoint =
+          '/api/v1/admin/collectors/' + current.collectorId + '/game-mode';
+        assert.equal(
+          (await app.inject({ url: collectorEndpoint })).statusCode,
+          401,
+        );
+        assert.equal(
+          (await app.inject({ url: collectorEndpoint, headers: mod }))
+            .statusCode,
+          403,
+        );
+        const direct = await app.inject({
+          url: collectorEndpoint,
+          headers: admin,
+        });
+        assert.equal(direct.statusCode, 200, direct.body);
+        const directPayload = {
+          ...payload,
+          expectedRevision: direct.json().revision,
+          gameMode: 'group_ironman',
+        };
+        const unchanged = (
+          await owner.query(
+            'SELECT to_jsonb(s) AS data FROM submissions s WHERE id=$1',
+            [row.id],
+          )
+        ).rows[0].data;
+        for (const headers of [
+          mod,
+          { ...admin, 'x-csrf-token': 'bad' },
+          { ...admin, origin: 'https://other.example' },
+          { ...admin, 'idempotency-key': 'bad' },
+        ])
+          assert.ok(
+            [400, 403].includes(
+              (
+                await app.inject({
+                  method: 'PUT',
+                  url: collectorEndpoint,
+                  headers,
+                  payload: directPayload,
+                })
+              ).statusCode,
+            ),
+          );
+        const directSave = await app.inject({
+          method: 'PUT',
+          url: collectorEndpoint,
+          headers: admin,
+          payload: directPayload,
+        });
+        assert.equal(directSave.statusCode, 200, directSave.body);
+        assert.equal(directSave.json().gameMode, 'group_ironman');
+        const repeated = await app.inject({
+          method: 'PUT',
+          url: collectorEndpoint,
+          headers: admin,
+          payload: directPayload,
+        });
+        assert.deepEqual(repeated.json(), directSave.json());
+        assert.equal(
+          (
+            await app.inject({
+              method: 'PUT',
+              url: collectorEndpoint,
+              headers: { ...admin, 'idempotency-key': randomUUID() },
+              payload: directPayload,
+            })
+          ).statusCode,
+          409,
+        );
+        // Receipts are scoped to their entry point, so a collector key cannot
+        // replay as a submission mutation after deployment.
+        assert.equal(
+          (
+            await app.inject({
+              method: 'PUT',
+              url: endpoint,
+              headers: admin,
+              payload: directPayload,
+            })
+          ).statusCode,
+          409,
+        );
+        assert.deepEqual(
+          (
+            await owner.query(
+              'SELECT to_jsonb(s) AS data FROM submissions s WHERE id=$1',
+              [row.id],
+            )
+          ).rows[0].data,
+          unchanged,
+        );
+        assert.equal(
+          (
+            await owner.query(
+              'SELECT count(*)::int AS n FROM collector_game_mode_audit WHERE operation_id=$1',
+              [directSave.json().operationId],
+            )
+          ).rows[0].n,
+          1,
+        );
         await owner.query(
           "UPDATE staff_page_access SET moderator_pages='{}'::text[]",
         );

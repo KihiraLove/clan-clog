@@ -1,5 +1,5 @@
 import { mockApi } from './mock-api.ts';
-import { expect, test, pngFile } from './test.ts';
+import { openSiteMenu, expect, test, pngFile } from './test.ts';
 
 test('sections and pages are managed in the log; deleted pages leave reusable pageless items', async ({
   page,
@@ -124,6 +124,7 @@ test('sections and pages are managed in the log; deleted pages leave reusable pa
   await expect(
     page.getByRole('button', { name: 'Hardcore worlds', exact: true }),
   ).toHaveAttribute('aria-pressed', 'false');
+  await openSiteMenu(page);
   await page.getByRole('link', { name: 'Admin panel', exact: true }).click();
   await page.getByRole('link', { name: 'Items catalog', exact: true }).click();
   await page.getByRole('tab', { name: 'Clan trophies', exact: true }).click();

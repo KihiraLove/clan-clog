@@ -15,6 +15,7 @@ import { classifyAccessFailure } from './admin-session.ts';
 import { useAdminAction } from './use-admin-action.ts';
 import { useAdminDraft } from './admin-route-data.ts';
 import { UserNameChangesSetting } from './UserNameChangesSetting.tsx';
+import { GameModeChanges } from './GameModeChanges.tsx';
 export function NameChanges({
   client,
   session,
@@ -221,7 +222,8 @@ export function NameChanges({
   if (!client.collectorNameClient) return null;
   return (
     <section className="admin-panel name-changes-panel">
-      <h2>{appText.collectorNamesTitle}</h2>
+      <h2>{appText.userHandlingTitle}</h2>
+      <h3>{appText.collectorNamesTitle}</h3>
       <UserNameChangesSetting
         client={client}
         session={session}
@@ -448,6 +450,17 @@ export function NameChanges({
               </div>
             </dialog>
           )}
+        </>
+      )}
+      {session.role === 'admin' && (
+        <>
+          <h3>{appText.gameModeChangesTitle}</h3>
+          <GameModeChanges
+            client={client}
+            session={session}
+            onAccessLost={onAccessLost}
+            onChanged={onChanged}
+          />
         </>
       )}
     </section>

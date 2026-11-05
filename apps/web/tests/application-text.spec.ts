@@ -1,4 +1,4 @@
-import { expect, test } from './test.ts';
+import { openSubmissionHelp, expect, test } from './test.ts';
 import { mockApi } from './mock-api.ts';
 
 test('canonical initial title and rich footer preserve wording while saved world copy and help survive reload', async ({
@@ -69,9 +69,7 @@ test('canonical initial title and rich footer preserve wording while saved world
     }),
   ).toBeVisible();
   await expect(page.locator('.clan-name')).toHaveText('Hardcore <A&B>');
-  await page
-    .getByRole('button', { name: 'How to submit', exact: true })
-    .click();
+  await openSubmissionHelp(page);
   const help = page.getByRole('dialog', { name: 'How to submit', exact: true });
   await expect(
     help.getByRole('heading', { name: 'Saved clan rules' }),

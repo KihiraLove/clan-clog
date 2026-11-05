@@ -1,6 +1,6 @@
 # Staff guide
 
-Use **Admin panel** in the website header, or open `/admin` directly. **Main site**
+Use **Menu → Admin panel** in the website header, or open `/admin` directly. **Main site**
 returns to the collection log; leaving unsaved edits asks for confirmation.
 The administrator can create moderator accounts; each
 person changes their temporary password at first login. By default, moderators can review
@@ -126,6 +126,12 @@ modes are Normal, Ironman, Ultimate Ironman, Hardcore Ironman, Group Ironman (GI
 Hardcore Group Ironman (HCGIM) and Unranked Group Ironman (UGIM); team sizes are not
 tracked.
 
+Administrators can open **Submissions → User Handling → Game Mode Changes**,
+search for a collector, select that collector and save a game mode without opening
+a submission. **Name Changes** and **Game Mode Changes** share the User Handling
+panel. Unsaved or uncertain mode changes keep the selected collector locked until
+the change is discarded or recovered.
+
 In a submission review, administrators and moderators with Submissions access can
 choose **Game mode**, then **Save game mode** or **Discard**. This saves the
 collector profile independently of the claim: it needs no item match or proof
@@ -151,7 +157,7 @@ merge with conflicting modes requires staff.
 ### Name changes and merges
 
 **Enable user submitted name changes**, directly below the **Name Changes**
-heading, controls the public **Change name** button below **How to submit**.
+subtitle in **User Handling**, controls **Menu → Change name** on the public site.
 It starts disabled after upgrade. Administrators can toggle it; moderators can
 see its current setting. The staff rename and merge workflow below does not
 require Wise Old Man (WOM) verification.
@@ -171,7 +177,7 @@ used verification record or conflicting known player identities requires staff
 review. This check trusts WOM's approval; it does not authenticate the visitor
 or update accounts on WOM.
 
-The administrator can use **Name Changes**, below **Duplicate handling** on
+The administrator can use **User Handling → Name Changes**, below **Duplicate handling** on
 **Submissions**, to rename a collection-log collector or merge that collector into
 an existing one. Search for the source collector, select it, and enter the new
 name. Existing target names are suggested while typing. **Change name** requests

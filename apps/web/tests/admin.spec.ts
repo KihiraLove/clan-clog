@@ -1,6 +1,6 @@
 import { mockApi } from './mock-api.ts';
 /** Mocked HTTP browser review flows; these do not verify real backend authorization. */
-import { expect, test, pngFile, type Page } from './test.ts';
+import { openSiteMenu, expect, test, pngFile, type Page } from './test.ts';
 import { resolve } from 'node:path';
 import { adminFixtures } from './admin-fixtures.ts';
 import { defaultBranding } from '../src/branding.ts';
@@ -341,6 +341,7 @@ test('paged unmatched review saves a specific shared item, approves hardcore cre
       exact: true,
     }),
   ).toBeVisible();
+  await openSiteMenu(page);
   await page.getByRole('link', { name: 'Admin panel', exact: true }).click();
   if (!page.url().includes('/admin/submissions'))
     await page.getByRole('link', { name: 'Submissions', exact: true }).click();

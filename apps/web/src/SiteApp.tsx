@@ -22,7 +22,7 @@ const SubmissionHelp = lazy(() =>
     default: module.SubmissionHelp,
   })),
 );
-const PublicNameChanges = lazy(() => import('./PublicNameChanges.tsx'));
+const PublicMenu = lazy(() => import('./PublicMenu.tsx'));
 import { usePublicPolling } from './use-public-polling.ts';
 import type { SiteNavigation } from './use-route-navigation.ts';
 import type { RouteResources } from './app-runtime.ts';
@@ -373,47 +373,63 @@ export function SiteApp({
                 />
               )}
             </div>
-            <a
-              className="site-button site-header-link"
-              href={admin ? collectionHref : '/admin'}
-              onClick={navigate}
-              aria-label={
-                admin
-                  ? appText.webSiteAppMainSite
-                  : appText.webSiteAppAdminPanel
-              }
-              title={
-                admin
-                  ? appText.webSiteAppMainSite
-                  : appText.webSiteAppAdminPanel
-              }
-            >
-              <svg
-                className="site-header-link__icon"
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinejoin="round"
+            {admin ? (
+              <a
+                className="site-button site-header-link"
+                href={collectionHref}
+                onClick={navigate}
+                aria-label={appText.webSiteAppMainSite}
+                title={appText.webSiteAppMainSite}
               >
-                {admin ? (
+                <svg
+                  className="site-header-link__icon"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  width="22"
+                  height="22"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinejoin="round"
+                >
                   <path d="M3 11 12 3l9 8M5 9v12h5v-7h4v7h5V9" />
-                ) : (
-                  <>
-                    <rect x="3" y="3" width="18" height="18" rx="1" />
-                    <path d="M9 3v18M9 9h12M13 13h4M13 17h4" />
-                  </>
-                )}
-              </svg>
-              <span className="site-header-link__label">
-                {admin
-                  ? appText.webSiteAppMainSite
-                  : appText.webSiteAppAdminPanel}
-              </span>
-            </a>
+                </svg>
+                <span className="site-header-link__label">
+                  {appText.webSiteAppMainSite}
+                </span>
+              </a>
+            ) : (
+              <RenderBoundary
+                fallback={
+                  <a
+                    className="site-button site-header-link"
+                    href="/admin"
+                    onClick={navigate}
+                  >
+                    {appText.webSiteAppAdminPanel}
+                  </a>
+                }
+              >
+                <Suspense
+                  fallback={
+                    <div className="site-menu">
+                      <button
+                        type="button"
+                        className="site-button site-header-link"
+                        disabled
+                      >
+                        {appText.siteMenuTitle}
+                      </button>
+                    </div>
+                  }
+                >
+                  <PublicMenu
+                    navigate={navigate}
+                    onHelp={() => setHelpOpen(true)}
+                  />
+                </Suspense>
+              </RenderBoundary>
+            )}
           </div>
         </header>
         {!admin && (
@@ -444,23 +460,6 @@ export function SiteApp({
                 {appText.webSiteAppXpTracker2}
               </a>
             </nav>
-            <div className="public-actions">
-              <button
-                type="button"
-                className="site-button submission-help-button"
-                onClick={(event) => {
-                  event.currentTarget.focus({ preventScroll: true });
-                  setHelpOpen(true);
-                }}
-              >
-                {appText.webSiteAppHowToSubmit}
-              </button>
-              <RenderBoundary fallback={null}>
-                <Suspense fallback={null}>
-                  <PublicNameChanges />
-                </Suspense>
-              </RenderBoundary>
-            </div>
           </div>
         )}
         {!admin && helpOpen && (

@@ -16,13 +16,15 @@ const changed = () => new ApiError(409, appText.gameModeChanged);
 async function profile(
   client: Pick<pg.Pool, 'query'> | Pick<pg.PoolClient, 'query'>,
   submissionId: string,
+  byCollector = false,
 ) {
   const row = (
     await client.query<CollectorGameMode>(
       `SELECT c.id::text AS "collectorId",c.display_name AS "collectorName",c.game_mode AS "gameMode",
     'collector-mode-'||c.id::text||'-'||c.game_mode_version::text||'-'||c.version::text AS revision
-    FROM submissions s JOIN collectors original ON original.id=s.collector_id
-    JOIN collectors c ON c.id=COALESCE(original.merged_into,original.id) WHERE s.id=$1`,
+    FROM collectors original
+    JOIN collectors c ON c.id=COALESCE(original.merged_into,original.id)
+    WHERE ${byCollector ? 'original.id=$1' : 'original.id=(SELECT collector_id FROM submissions WHERE id=$1)'}`,
       [submissionId],
     )
   ).rows[0];
@@ -31,9 +33,9 @@ async function profile(
 }
 export class PgCollectorGameModes {
   constructor(private readonly pool: pg.Pool) {}
-  get(submissionId: string) {
+  get(submissionId: string, byCollector = false) {
     if (!uuid.test(submissionId)) throw changed();
-    return profile(this.pool, submissionId);
+    return profile(this.pool, submissionId, byCollector);
   }
   save(
     submissionId: string,
@@ -41,6 +43,7 @@ export class PgCollectorGameModes {
     key: string,
     actorId: string,
     actorName: string,
+    byCollector = false,
   ) {
     if (
       !uuid.test(submissionId) ||
@@ -53,6 +56,7 @@ export class PgCollectorGameModes {
     const hash = createHash('sha256')
       .update(
         JSON.stringify([
+          ...(byCollector ? ['collector'] : []),
           submissionId,
           fields.collectorId,
           fields.expectedRevision,
@@ -79,7 +83,7 @@ export class PgCollectorGameModes {
         if (saved.payload_hash !== hash) throw changed();
         return saved.response;
       }
-      const before = await profile(client, submissionId);
+      const before = await profile(client, submissionId, byCollector);
       if (
         before.collectorId !== fields.collectorId ||
         before.revision !== fields.expectedRevision
@@ -94,7 +98,7 @@ export class PgCollectorGameModes {
         [fields.collectorId, fields.gameMode],
       );
       const result: CollectorGameModeResult = {
-        ...(await profile(client, submissionId)),
+        ...(await profile(client, submissionId, byCollector)),
         operationId: randomUUID(),
       };
       await client.query(
