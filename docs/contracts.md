@@ -160,6 +160,38 @@ most three standings; public activity reads expose metadata only. Imports
 are previewed and applied transactionally; refreshing replaces a prior event's
 contribution. [Competition rules](wom-competitions.md) define lifecycle and corrections.
 
+## Collection HiScores
+
+`GET /api/v1/collections/hiscores` is a public, conditional read. Parameters are
+`metric` (`total`, `unique`, `event` or `hardcore`, default `total`), a positive
+`page` up to 999,999,999 (default 1), and optional `player` (a current name of up to
+80 characters). Search uses the collector normalizer: case, underscores,
+nonbreaking spaces and repeated whitespace do not distinguish names. It matches
+an exact current name and jumps to that player's page; it does not filter the page.
+
+Every response has `revision`, `metric`, `page`, `pageSize: 25`, `totalPlayers`,
+`totalPages`, `hardcoreEnabled`, `players` and nullable `match`. Player rows contain
+only consecutive overall `rank`, current `name` and positive decimal-string
+`score`; the string keeps large counts exact. `match` contains the matched name
+and overall rank only when that player has a positive score in this category.
+An absent/zero-score player has no match. Empty categories have page 1 of 1 and
+no players. Out-of-range pages clamp to the final page.
+
+Total counts approved normal-world obtains, Unique counts their distinct
+canonical item IDs, Event counts their Event obtains, and Hardcore counts
+approved Hardcore-world obtains independently. Each submission contributes once;
+page membership, aliases and repeat-display grouping never multiply it. Only
+active items score, matching the collection-log public credit scope. Unresolved
+legacy Event-page assignments retain their contribution. Counts aggregate under
+the surviving collector identity. Account game mode does not determine world scope.
+
+Rows, ranks, page totals, search position and Hardcore visibility share one
+read-only repeatable-read snapshot. The revision includes collection projection
+and site settings versions/visibility; the ETag also distinguishes category,
+result page and normalized searched name. With public Hardcore disabled, its
+list/search response is empty and never exposes names or counts. Originating
+obtain/review evidence and stored request receipts are unchanged by these reads.
+
 ## Repeat collector policy
 
 `GET /admin/submission-filters` and queue metadata include `repeatCollectorPolicy`:

@@ -2,6 +2,7 @@ import * as appText from '@clog/domain';
 /** Public projections plus optional configured admin auth; unavailable services fail closed. */
 import { proofRoutes } from './proof-routes.js';
 import { publicNameRoutes } from './public-name-routes.js';
+import { collectionHiScoresRoutes } from './collection-hiscores-routes.js';
 import { discordSettingsRoutes } from './discord-settings-routes.js';
 import { runeLiteSettingsRoutes } from './runelite-settings-routes.js';
 import { schedulingRoutes } from './scheduling-routes.js';
@@ -268,6 +269,7 @@ export function createApp(
     return value;
   });
   const store = options.store;
+  collectionHiScoresRoutes(app, store);
   if (options.xp) xpPublicRoutes(app, options.xp);
   for (const resource of ['catalog', 'collections'] as const) {
     app.get('/api/v1/' + resource, async (request, reply) => {

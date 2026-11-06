@@ -4997,6 +4997,37 @@ export const gameModeSearch = 'Search collectors for game mode changes';
 export const gameModeSelectCollector = 'Collector to change game mode';
 export const siteMenuTitle = 'Menu';
 export const siteMenuOptions = 'Menu options';
+export const hiscoresTitle = 'Collection HiScores';
+export const hiscoresTotal = 'Total collections';
+export const hiscoresUnique = 'Unique collections';
+export const hiscoresEvent = 'Event collections';
+export const hiscoresHardcore = 'Hardcore worlds';
+export const hiscoresCategories = 'Collection rankings';
+export const hiscoresRank = 'Rank';
+export const hiscoresName = 'Name';
+export const hiscoresScore = 'Score';
+export const hiscoresSearchName = 'Player name';
+export const hiscoresSearch = 'Search';
+export const hiscoresPrevious = 'Previous 25 players';
+export const hiscoresNext = 'Next 25 players';
+export const hiscoresLoading = 'Loading Collection HiScores…';
+export const hiscoresRefreshing = 'Refreshing Collection HiScores…';
+export const hiscoresUnavailable =
+  'Collection HiScores could not be loaded. Please try again.';
+export const hiscoresRetry = 'Retry HiScores';
+export const hiscoresEmpty = 'No players are ranked in this category yet.';
+export const hiscoresNotRanked = 'That player is not ranked in this category.';
+export const hiscoresInvalidName =
+  'Enter a valid player name of up to 80 characters.';
+export const hiscoresInvalidSelection =
+  'Choose a supported ranking and a valid page.';
+export const hiscoresHardcoreDisabled =
+  'Hardcore-world HiScores are currently disabled.';
+export const hiscoresMatch = (name: string, rank: string) =>
+  `${name} found at rank ${rank}.`;
+export const hiscoresPageLabel = (page: string, total: string) =>
+  `Page ${page} of ${total}`;
+export const hiscoresMatchedPlayer = 'Searched player';
 export const userNameChangesToggle = 'Enable user submitted name changes';
 export const userNameChangesUnavailable =
   'User name change settings could not be loaded.';

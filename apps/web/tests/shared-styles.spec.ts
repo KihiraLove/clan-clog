@@ -62,7 +62,9 @@ async function backdrop(page: Page, name: string) {
     await document.fonts.ready;
     window.scrollTo(0, 0);
   });
-  const nav = (await page.locator('.public-navigation-bar').boundingBox())!;
+  const links = page.locator('.public-navigation a');
+  const first = (await links.nth(0).boundingBox())!,
+    second = (await links.nth(1).boundingBox())!;
   const screenshot = await page.screenshot({
     path: test.info().outputPath(name + '.png'),
   });
@@ -71,8 +73,8 @@ async function backdrop(page: Page, name: string) {
   return Array.from(
     await sharp(screenshot)
       .extract({
-        left: Math.floor(nav.x + nav.width / 2) - 1,
-        top: Math.floor(nav.y + nav.height / 2),
+        left: Math.floor((first.x + first.width + second.x) / 2) - 1,
+        top: Math.floor(first.y + first.height / 2),
         width: 2,
         height: 2,
       })

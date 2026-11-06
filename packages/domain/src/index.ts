@@ -201,3 +201,4 @@ export {
 export * from './collector-names.js';
 export * from './game-modes.js';
 export * from './game-mode-display.js';
+export * from './collection-hiscores.js';

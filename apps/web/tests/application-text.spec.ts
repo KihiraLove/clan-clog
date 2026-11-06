@@ -41,7 +41,7 @@ test('canonical initial title and rich footer preserve wording while saved world
   await expect(page.locator('.clan-name').locator('a, b')).toHaveCount(0);
   await expect(
     page.getByRole('navigation', { name: 'Public pages' }).getByRole('link'),
-  ).toHaveText(['Collection log', 'Xp tracker']);
+  ).toHaveText(['Collection log', 'Collection HiScores', 'Xp tracker']);
   await expect(page.locator('.footer-catalog')).toContainText(
     'Catalog data: TempleOSRS and OSRS Wiki',
   );

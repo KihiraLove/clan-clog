@@ -83,6 +83,9 @@ export interface BotReceipt {
   creditOccupied: boolean;
 }
 export interface BackendStore {
+  collectionHiScores?(
+    query: import('@clog/domain').CollectionHiScoreQuery,
+  ): Promise<import('@clog/domain').CollectionHiScores>;
   publicSnapshot?(
     resource: 'catalog' | 'collections',
   ): Promise<{ revision: string; body: string }>;
