@@ -1785,14 +1785,13 @@ main {
 /* Original CSS parchment/arrow artwork; no third-party image request or asset. */
 .collection-hiscores {
   display: grid;
-  grid-template-columns: minmax(0, 650px) minmax(180px, 230px);
+  grid-template-columns: minmax(230px, 1fr) minmax(0, 650px) minmax(230px, 1fr);
   align-items: start;
-  justify-content: center;
-  gap: 48px;
+  gap: 32px;
   margin: 60px auto;
-  max-width: 928px;
 }
 .hiscores-scroll {
+  grid-column: 2;
   position: relative;
   min-width: 0;
   min-height: 920px;
@@ -1922,6 +1921,8 @@ main {
   border-top: 10px solid currentColor;
 }
 .hiscores-search {
+  grid-column: 3;
+  width: 230px;
   min-width: 0;
   padding: var(--space-lg);
   border: 1px solid var(--border-panel);
@@ -2142,7 +2143,7 @@ main {
 }
 .event-tracker__layout {
   display: grid;
-  grid-template-columns: minmax(160px, 260px) 470px minmax(320px, 480px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 470px) minmax(0, 1fr);
   gap: 0;
   max-width: 1210px;
   margin: 0 auto;
@@ -2885,14 +2886,20 @@ main {
   color: var(--control-danger-text);
 }
 /* Responsive layouts. Game-frame sizes and measured runtime scaling remain independent. */
-@media (max-width: 740px) {
+@media (max-width: 1050px) {
   .collection-hiscores {
     grid-template-columns: minmax(0, 650px);
+    justify-content: center;
     gap: 40px;
     margin-block: 40px;
   }
   .hiscores-search {
+    grid-column: 1;
     grid-row: 1;
+    width: 100%;
+  }
+  .hiscores-scroll {
+    grid-column: 1;
   }
 }
 @media (max-width: 600px) {
@@ -3199,7 +3206,21 @@ main {
 }
 @media (max-width: 1050px) {
   .event-tracker__layout {
-    grid-template-columns: minmax(160px, 260px) minmax(0, 470px);
+    grid-template-columns: minmax(0, 660px);
+    justify-content: center;
+    row-gap: var(--space-lg);
+  }
+  .event-sidebar {
+    grid-column: 1 / -1;
+    width: min(660px, 100%);
+    justify-self: center;
+    border-right: 5px solid #343328;
+    border-radius: 5px;
+  }
+  .event-skills {
+    grid-column: 1;
+    width: min(470px, 100%);
+    justify-self: center;
   }
   .xp-podium {
     grid-column: 1 / -1;
@@ -3231,16 +3252,6 @@ main {
   }
   .activity-competition {
     flex: 0 0 220px;
-  }
-}
-@media (max-width: 740px) {
-  .event-tracker__layout {
-    grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr);
-  }
-}
-@media (max-width: 380px) {
-  .event-tracker__layout {
-    grid-template-columns: 94px minmax(0, 1fr);
   }
 }
 @media (max-width: 480px) {

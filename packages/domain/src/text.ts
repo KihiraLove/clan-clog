@@ -5056,8 +5056,6 @@ export const gameModeInvalid = 'Choose a supported game mode.';
 export const gameModeUnavailable = 'Collector game mode could not be loaded.';
 export const gameModeChanged =
   'Collector identity or game mode changed. Reload before saving.';
-export const gameModeScope =
-  "Saving changes this collector's game mode across all collection entries. World mode, Event credit and review status are unchanged.";
 export const gameModeSaved = 'Game mode saved.';
 export const gameModeSave = 'Save game mode';
 export const gameModeDiscard = 'Discard';
@@ -5069,7 +5067,6 @@ export const gameModeConflictLabel =
   "The submitted game mode differs from the collector's current mode.";
 export const gameModeSubmitted = (mode: string) =>
   `Submitted game mode: ${mode}.`;
-export const gameModeCollector = (name: string) => `Collector: ${name}`;
 export const gameModeMergeConflict =
   'These collectors have different game modes. Choose the one mode to keep before confirming the merge.';
 export const gameModeMergeResolution = 'Game mode after merging';

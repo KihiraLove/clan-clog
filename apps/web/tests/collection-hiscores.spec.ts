@@ -429,6 +429,11 @@ for (const width of [1440, 740, 320])
       await page.evaluate(() => document.fonts.ready);
       const scroll = (await page.locator('.hiscores-scroll').boundingBox())!,
         search = (await page.locator('.hiscores-search').boundingBox())!;
+      const main = (await page.locator('#hiscores-main').boundingBox())!;
+      expect(scroll.x + scroll.width / 2).toBeCloseTo(
+        main.x + main.width / 2,
+        0,
+      );
       if (width > 740)
         expect(search.x).toBeGreaterThan(scroll.x + scroll.width);
       else expect(search.y + search.height).toBeLessThan(scroll.y);
