@@ -3,7 +3,11 @@ import * as appText from '@clog/domain';
 import { classifyAccessFailure } from './admin-session.ts';
 import { isAdminPath, loadAdminRoute } from './admin-route-data.ts';
 import { withAbort } from './with-abort.ts';
-import { loadAdminCode } from './route-code.ts';
+import {
+  loadAdminCode,
+  loadCollectionHiScoresCode,
+  loadXpCode,
+} from './route-code.ts';
 import type {
   AppRuntime,
   PreparedAdminEntry,
@@ -59,10 +63,14 @@ export async function prepareAppRoute(
       ? prepareEntry(route.path, live, signal)
       : Promise.resolve(undefined);
   try {
-    const [code, prepared] = await withAbort(
+    const [code, prepared, hiscores, xp] = await withAbort(
       Promise.all([
         admin ? loadAdminCode() : Promise.resolve(undefined),
         entryPromise,
+        route.path === '/collections/hiscores'
+          ? loadCollectionHiScoresCode()
+          : Promise.resolve(undefined),
+        route.path === '/xp' ? loadXpCode() : Promise.resolve(undefined),
       ]),
       signal,
     );
@@ -72,6 +80,10 @@ export async function prepareAppRoute(
     return {
       runtime: live,
       ...(code ? { AdminEntry: code.AdminEntry } : {}),
+      ...(hiscores
+        ? { CollectionHiScoresPage: hiscores.CollectionHiScoresPage }
+        : {}),
+      ...(xp ? { XpPage: xp.XpPage } : {}),
       takeEntry: () => {
         const result = entry;
         entry = undefined;

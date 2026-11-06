@@ -49,6 +49,12 @@ art. New assets should be local, necessary, and include attribution and hashes
 where the existing manifest requires them. Build-time catalog checks catch missing
 or altered pinned assets. Outdated review screenshots are not shipped.
 
+Collection HiScores' parchment, rolled edges and paging arrows are original CSS
+artwork in `apps/web/src/style.css`, covered by the project's MIT license. They
+use gradients, borders and shadows rather than copied OSRS screenshots or external
+image URLs. Its type uses the existing locally bundled RuneScape font under the
+font license above. Example player names and scores are never shipped as seed data.
+
 New manual items without an uploaded icon share `/catalog/default.webp`.
 The supplied 26 × 26 lossless WebP, original PNG hash and delivery hash are recorded
 in [default icon provenance](../catalog/default-icon.json). Preserve its exact bytes,

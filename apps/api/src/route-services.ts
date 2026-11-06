@@ -102,7 +102,10 @@ export type AuthStore = Pick<
 >;
 export type ApplicationStore = AuthStore &
   BotStore &
-  Pick<BackendStore, 'catalog' | 'collections' | 'publicSnapshot'>;
+  Pick<
+    BackendStore,
+    'catalog' | 'collections' | 'publicSnapshot' | 'collectionHiScores'
+  >;
 export type IconFiles = Pick<IconStorage, 'read' | 'save'>;
 export type ProofFiles = Pick<ProofStorage, 'read' | 'save'> &
   Partial<Pick<ProofStorage, 'remove'>>;

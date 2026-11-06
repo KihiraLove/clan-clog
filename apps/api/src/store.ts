@@ -1,6 +1,7 @@
 import * as appText from '@clog/domain';
 import { collectorGameMode } from './collector-identities.js';
 import { classifyIntake } from './event-pages.js';
+import { PgCollectionHiScores } from './collection-hiscores-store.js';
 import { insertImage, screenshotPath } from './proof-store.js';
 /** Parameterized PostgreSQL persistence; public projections explicitly select safe fields. */
 import { randomUUID } from 'node:crypto';
@@ -89,7 +90,13 @@ export class PgStore implements BackendStore {
     repeatCollectorPolicy: import('@clog/domain').RepeatCollectorPolicy;
   }>();
   private readonly matchCache = new ProjectionCache<MatchItem[]>();
-  constructor(private readonly pool: pg.Pool) {}
+  private readonly hiscores: PgCollectionHiScores;
+  constructor(private readonly pool: pg.Pool) {
+    this.hiscores = new PgCollectionHiScores(pool);
+  }
+  collectionHiScores(query: import('@clog/domain').CollectionHiScoreQuery) {
+    return this.hiscores.read(query);
+  }
 
   async ensureDefaultAdmin(bootstrapPasswordHash?: string) {
     return ensureDefaultAdministrator(this.pool, bootstrapPasswordHash);
