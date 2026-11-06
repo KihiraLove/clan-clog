@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { access, readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
-import { skills } from '../packages/domain/src/skills.ts';
+import ts from 'typescript';
+import { createTextCompiler } from './inline-application-text.mjs';
 
 const json = async (path) => JSON.parse(await readFile(path, 'utf8'));
 
@@ -34,6 +35,26 @@ test('workspace versions, internal dependencies and lockfile describe the same r
 });
 
 test('default branding and every canonical skill icon can render from local assets with recorded provenance', async () => {
+  // Tools run before workspace builds, so resolve canonical copy from source.
+  const inline = createTextCompiler(
+    await readFile('packages/domain/src/text.ts', 'utf8'),
+  );
+  const source = await readFile('packages/domain/src/skills.ts', 'utf8');
+  const javascript = ts.transpileModule(
+    inline(source, 'skills.ts').replace(
+      /import \* as appText from '[^']+';/u,
+      '',
+    ),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2022,
+      },
+    },
+  ).outputText;
+  const { skills } = await import(
+    'data:text/javascript;base64,' + Buffer.from(javascript).toString('base64')
+  );
   const publicRoot = 'apps/web/public/';
   const provenance = await json(publicRoot + 'skills/provenance.json');
   for (const [, , filename] of skills) {

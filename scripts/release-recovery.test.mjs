@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm, access } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -22,12 +22,9 @@ test('release bundle binds exact infrastructure and migration bytes without copy
   assert.equal(saved.evidence, 'local-acceptance');
   assert.deepEqual(
     saved.migrations.map((entry) => entry.name),
-    [
-      '001_baseline.sql',
-      '002_custom_competition_metrics.sql',
-      '003_catalog_updates.sql',
-      '004_catalog_bootstrap_state.sql',
-    ],
+    (await readdir('packages/database/migrations'))
+      .filter((name) => name.endsWith('.sql'))
+      .sort(),
   );
   assert.deepEqual(
     Object.keys(saved.files).filter((name) => !name.startsWith('packages/')),
@@ -40,6 +37,10 @@ test('release bundle binds exact infrastructure and migration bytes without copy
     assert.equal(
       createHash('sha256').update(bytes).digest('hex'),
       entry.checksum,
+    );
+    assert.deepEqual(
+      bytes,
+      await readFile(path.join('packages/database/migrations', entry.name)),
     );
   }
   assert.equal(bundle.format, 1);

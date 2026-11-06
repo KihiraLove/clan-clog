@@ -301,6 +301,8 @@ test('empty submission filters preserve panel and pagination geometry while load
       });
     if (path.startsWith('/api/v1/branding'))
       return route.fulfill({ json: defaultBranding });
+    if (path === '/api/v1/admin/event-page-assignments')
+      return route.fulfill({ json: fixture.eventPageAssignments });
     if (path === '/api/v1/admin/catalog')
       return route.fulfill({ json: fixture.catalog });
     if (path === '/api/v1/admin/submissions') {
@@ -321,6 +323,9 @@ test('empty submission filters preserve panel and pagination geometry while load
   const panel = page.locator('.admin-panel').filter({
     has: page.getByRole('heading', { name: 'Submissions', exact: true }),
   });
+  await page
+    .getByRole('button', { name: 'Unmatched', exact: true })
+    .scrollIntoViewIfNeeded();
   const before = await panel.boundingBox(),
     pagination = await page.locator('.admin-pagination').boundingBox();
   for (const view of ['Unmatched', 'Reviewed', 'Pending']) {

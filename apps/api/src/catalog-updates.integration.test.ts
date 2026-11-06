@@ -1,7 +1,7 @@
 /** Populated upgrade, reviewed adoption/corrections, durable bytes and real runtime grants. */
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { test, type TestContext } from 'node:test';
 import pg from 'pg';
 import sharp from 'sharp';
@@ -231,13 +231,23 @@ async function fixture(t: TestContext) {
   await migrate(url.href);
   await migrate(url.href);
   assert.deepEqual(
-    (await client.query('SELECT to_jsonb(s) AS row FROM submissions s')).rows,
+    (
+      await client.query('SELECT to_jsonb(s) AS row FROM submissions s')
+    ).rows.map(({ row }) => ({
+      row: Object.fromEntries(
+        Object.keys(before[0].row).map((key) => [key, row[key]]),
+      ),
+    })),
     before,
   );
   assert.equal(
     (await client.query('SELECT count(*)::int AS n FROM schema_migrations'))
       .rows[0].n,
-    4,
+    (
+      await readdir(
+        new URL('../../../packages/database/migrations/', import.meta.url),
+      )
+    ).filter((name) => name.endsWith('.sql')).length,
   );
   const supplied = await image('#f0c000'),
     old = await image('#ff0000');

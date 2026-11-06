@@ -34,6 +34,7 @@ export default function PublicNameChanges({
     let controller: AbortController | undefined;
     const refresh = () => {
       controller?.abort();
+      if (document.visibilityState === 'hidden') return;
       controller = new AbortController();
       const current = controller;
       void fetch(endpoint, {

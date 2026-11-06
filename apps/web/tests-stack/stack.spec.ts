@@ -124,6 +124,31 @@ async function capture(page: Page, name: string) {
   });
 }
 test.beforeEach(async ({ page, browser, browserName }, info) => {
+  if (
+    process.env.STACK_BROWSER_TEST !== '1' ||
+    !/^clog-checks-[a-z0-9-]+$/u.test(process.env.COMPOSE_PROJECT_NAME ?? '')
+  )
+    throw new Error('Disposable database required');
+  // Each browser scenario verifies real login without inheriting another's budget.
+  await execute('docker', [
+    'compose',
+    'exec',
+    '-T',
+    '--user',
+    '999',
+    'clan-clog',
+    'psql',
+    '-h',
+    '/run/clog/postgres',
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-U',
+    'clog',
+    '-d',
+    'clog',
+    '-c',
+    'DELETE FROM auth_rate_limits',
+  ]);
   await writeFile(
     info.outputPath('browser-environment.json'),
     JSON.stringify(
@@ -460,7 +485,11 @@ test('real login, PNG claim, independent note/correction, canonical public credi
     const publicResult = await (
       await anonymous.request.get('/api/v1/collections')
     ).json();
-    expect(Object.keys(publicResult).sort()).toEqual(['credits', 'revision']);
+    expect(Object.keys(publicResult).sort()).toEqual([
+      'credits',
+      'repeatCollectorPolicy',
+      'revision',
+    ]);
     const credits = publicResult.credits.filter(
       (credit: { itemId: number }) => credit.itemId === mask.id,
     );

@@ -4,6 +4,12 @@ export async function adminFixtures() {
   const client = new MemoryAdminClient(),
     signal = new AbortController().signal;
   return {
+    publicLog: client.publicLog(),
+    eventPageAssignments: {
+      revision: 'event-pages-1-' + '0'.repeat(64),
+      total: 0,
+      credits: [],
+    },
     catalogUpdates: {
       revision: '0'.repeat(64),
       catalogRevision: 'catalog-1',

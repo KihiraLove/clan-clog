@@ -63,7 +63,7 @@ for (let i = 0; i < 20; i++) {
   const result = await request('/api/v1/auth/login', {
     ip: '127.0.0.2',
     method: 'POST',
-    body: { username: 'admin', password: 'wrong-password' },
+    body: { username: 'source-fixture-' + i, password: 'wrong-password' },
   });
   assert.equal(result.status, 401);
 }
@@ -73,7 +73,7 @@ assert.equal(
       ip: '127.0.0.2',
       method: 'POST',
       headers: { 'X-Forwarded-For': '203.0.113.9' },
-      body: { username: 'admin', password },
+      body: { username: 'source-fixture-last', password },
     })
   ).status,
   429,

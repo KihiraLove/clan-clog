@@ -93,6 +93,7 @@ test('2,000 activities retain stable dates while idle and suspend public work in
       '/api/v1/branding': defaultBranding,
       '/api/v1/branding/hardcore': defaultBranding,
       '/api/v1/auth/session': { authenticated: false },
+      '/api/v1/collector-name-changes': { enabled: false },
       '/api/v1/catalog': catalog,
       '/api/v1/collections': { revision: 'collections-1', credits: [] },
       '/api/v1/xp/tracker': {
@@ -172,7 +173,7 @@ test('2,000 activities retain stable dates while idle and suspend public work in
   ].sort();
   await expect.poll(() => [...conditional].sort()).toEqual(collectionResources);
   expect([...new Set(reads.map(({ path }) => path))].sort()).toEqual(
-    collectionResources,
+    [...collectionResources, '/api/v1/collector-name-changes'].sort(),
   );
   const world = page.getByRole('button', {
     name: 'Hardcore worlds',

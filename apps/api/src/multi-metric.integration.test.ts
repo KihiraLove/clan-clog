@@ -1,6 +1,7 @@
 /** Exercise compatible imports and weighted/multi-metric reconciliation on the release baseline. */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readdir } from 'node:fs/promises';
 import { test } from 'node:test';
 import pg from 'pg';
 import { migrate } from '@clog/database/dist/migrate.js';
@@ -102,12 +103,16 @@ test(
           (
             await pool.query('SELECT name FROM schema_migrations ORDER BY name')
           ).rows.map((r) => r.name),
-          [
-            '001_baseline.sql',
-            '002_custom_competition_metrics.sql',
-            '003_catalog_updates.sql',
-            '004_catalog_bootstrap_state.sql',
-          ],
+          (
+            await readdir(
+              new URL(
+                '../../../packages/database/migrations/',
+                import.meta.url,
+              ),
+            )
+          )
+            .filter((name) => name.endsWith('.sql'))
+            .sort(),
         );
         const publicRows = await imports.activities();
         assert.equal(publicRows.competitions.length, 1);

@@ -56,6 +56,9 @@ test(
     await pool.query(
       "INSERT INTO items(id,name) SELECT i,'Item '||i FROM generate_series(1,30) i",
     );
+    await pool.query(
+      "INSERT INTO pages(id,name,category,sort_order) VALUES('old-page','Flags page','bosses',0); INSERT INTO page_items(page_id,item_id,slot) SELECT 'old-page',id,id-1 FROM items",
+    );
     const password = 'flags-test-password-only',
       hashed = await hashPassword(password);
     await backend.ensureDefaultAdmin(hashed);
@@ -90,6 +93,7 @@ test(
       event: ReviewCollectionFlags = {
         hardcore: false,
         collectionType: 'event',
+        eventPageId: 'old-page',
       },
       hardcore: ReviewCollectionFlags = {
         hardcore: true,

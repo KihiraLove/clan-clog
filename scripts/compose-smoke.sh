@@ -6,6 +6,13 @@ export COMPOSE_FILE=compose.yaml:compose.checks.yaml
 export COMPOSE_ENV_FILES=/dev/null COMPOSE_DISABLE_ENV_FILE=true
 export CLOG_HOST=clog.example.com
 
+# Independent scenarios share an installation, but must not share login budgets.
+case "${1:-}" in
+review|branding-proxy|catalog-proxy)
+docker compose exec -T --user 999 clan-clog psql -h /run/clog/postgres -v ON_ERROR_STOP=1 -U clog -d clog -c 'DELETE FROM auth_rate_limits' > /dev/null
+;;
+esac
+
 case "${1:-}" in
 compose-config)
 printf "\nValidate Compose\n"

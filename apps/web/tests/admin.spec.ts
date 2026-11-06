@@ -96,6 +96,10 @@ async function mockAdmin(page: Page) {
           hardcoreEnabled: false,
         },
       });
+    if (path === '/api/v1/catalog')
+      return route.fulfill({ json: f.publicLog.catalog });
+    if (path === '/api/v1/collections')
+      return route.fulfill({ json: f.publicLog.collections });
     if (path === '/api/v1/auth/session')
       return route.fulfill({
         json: state.authenticated ? f.session : { authenticated: false },
@@ -111,6 +115,8 @@ async function mockAdmin(page: Page) {
         },
       });
     if (path.startsWith('/api/v1/admin/')) state.privateReads++;
+    if (path === '/api/v1/admin/event-page-assignments')
+      return route.fulfill({ json: f.eventPageAssignments });
     if (path === '/api/v1/admin/catalog-updates')
       return route.fulfill({ json: f.catalogUpdates });
     if (path === '/api/v1/admin/catalog') {
@@ -1290,7 +1296,11 @@ test('stalled login times out, ignores a late reply, and cancels on navigation',
   await page.evaluate(() => window.dispatchEvent(new Event('release-login')));
   await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-login-calls', '1');
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill('timeout-test-password');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-login-calls', '2');
   await closeReviewIfOpen(page);
   await page.locator('header a.clan-brand').click();
   await expect(page.locator('html')).toHaveAttribute('data-login-aborts', '2');

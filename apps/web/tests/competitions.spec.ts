@@ -243,8 +243,8 @@ test('activity list orders by source end, shows local start/end status colors an
     'Past activity ↗',
   ]);
   for (const [title, color] of [
-    ['Past activity', 'rgb(255, 152, 152)'],
-    ['Running activity', 'rgb(164, 229, 164)'],
+    ['Past activity', 'rgb(241, 163, 140)'],
+    ['Running activity', 'rgb(180, 212, 150)'],
     ['Future activity', 'rgb(243, 220, 131)'],
   ]) {
     const item = viewer.locator('li').filter({ hasText: title! });
@@ -270,13 +270,13 @@ test('activity list orders by source end, shows local start/end status colors an
       .locator('li')
       .filter({ hasText: 'Running activity' })
       .locator('small'),
-  ).toHaveCSS('color', 'rgb(255, 152, 152)');
+  ).toHaveCSS('color', 'rgb(241, 163, 140)');
   await expect(
     viewer
       .locator('li')
       .filter({ hasText: 'Future activity' })
       .locator('small'),
-  ).toHaveCSS('color', 'rgb(164, 229, 164)');
+  ).toHaveCSS('color', 'rgb(180, 212, 150)');
 });
 test('XP podium follows Total and selected SKILL events, preserves 2–1–3 geometry and supports empty/one/two players', async ({
   page,

@@ -161,6 +161,7 @@ for (const flag of ['hardcore', 'event'] as const) {
       flags: {
         hardcore: flag === 'hardcore',
         collectionType: flag === 'event' ? 'event' : 'regular',
+        ...(flag === 'event' ? { eventPageId: 'abyssal-sire' } : {}),
       },
     });
     const saved = (await admin.detail(row.id, signal)).submission;
@@ -198,6 +199,9 @@ test('unmatched claims can be rejected with flags while real corrections still b
   await page.getByRole('button', { name: 'Pending', exact: true }).click();
   await page.getByRole('button', { name: /^Review Oakheart ·/ }).click();
   await editor.getByLabel('Obtained during events').check();
+  await editor
+    .getByRole('combobox', { name: 'Event page', exact: true })
+    .selectOption('the-whisperer');
   await editor
     .getByLabel('Collector name', { exact: true })
     .fill('Corrected name');

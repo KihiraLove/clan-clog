@@ -25,7 +25,7 @@ test('obtain counts refresh after approvals, replay, revocation and item/world c
   const slot = page.getByRole('button', { name: /^Virtus mask:/ });
   const count = slot.locator('.item-obtain-count');
   const progress = page.locator('.game-titlebar h2');
-  await page.goto('/');
+  await page.goto('/?page=the-whisperer');
   await expect(slot).toHaveAccessibleName('Virtus mask: not collected');
   await expect(count).toHaveCount(0);
   const pending = await admin.addManual(
@@ -57,7 +57,12 @@ test('obtain counts refresh after approvals, replay, revocation and item/world c
   await expect(slot).toHaveAccessibleName('Virtus mask: collected, 2 obtains');
   await expect(progress).toHaveText(uniqueProgress!);
   const event = await admin.addManual(
-    { ...fields, collectorName: 'Event collector', collectionType: 'event' },
+    {
+      ...fields,
+      collectorName: 'Event collector',
+      collectionType: 'event',
+      eventPageId: 'the-whisperer',
+    },
     crypto.randomUUID(),
     'test-admin',
     signal,
@@ -79,6 +84,11 @@ test('obtain counts refresh after approvals, replay, revocation and item/world c
   });
   await page
     .getByRole('button', { name: 'Duke Sucellus', exact: true })
+    .click();
+  await expect(count).toHaveText('3');
+  await expect(slot).not.toHaveClass(/item-slot--event/);
+  await page
+    .getByRole('button', { name: 'The Whisperer', exact: true })
     .click();
   await expect(count).toHaveText('3');
   for (let i = 0; i < 2; i++)
@@ -183,6 +193,7 @@ for (const width of [1440, 320]) {
           hardcore: false,
           status: 'approved' as const,
           collectionType: n === 0 ? ('event' as const) : ('regular' as const),
+          eventPageId: n === 0 ? 'counts' : null,
         })),
       );
       await page.route('**/api/v1/catalog', (route) =>
