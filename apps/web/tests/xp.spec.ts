@@ -16,7 +16,7 @@ const tracker = {
     },
     {
       id: 1002,
-      title: 'All-skill weekend',
+      title: 'All-skill weekend championship',
       sourceUrl: 'https://wiseoldman.net/competitions/1002',
       skills: skills.map(([id]) => id),
       gains: { ...zeroTotals(), fishing: '5000000' },
@@ -26,6 +26,7 @@ const tracker = {
 test('Total and event sidebar display exact event gains and links with four-digit million labels', async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.route('**/api/v1/xp/tracker', (route) =>
     route.fulfill({ json: tracker }),
   );
@@ -61,9 +62,19 @@ test('Total and event sidebar display exact event gains and links with four-digi
       .locator('.xp-podium')
       .getByRole('link', { name: /View event on Wise Old Man/ }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: 'All-skill weekend', exact: true })
-    .click();
+  const weekend = page.getByRole('button', {
+    name: 'All-skill weekend championship',
+    exact: true,
+  });
+  await page.evaluate(() => document.fonts.ready);
+  expect(
+    await weekend.evaluate((button) => {
+      const text = document.createRange();
+      text.selectNodeContents(button);
+      return text.getClientRects().length;
+    }),
+  ).toBe(1);
+  await weekend.click();
   await expect(group.getByLabel('Attack: 0 XP', { exact: true })).toBeVisible();
   await expect(
     group.getByLabel('Fishing: 5,000,000 XP', { exact: true }),
@@ -120,6 +131,11 @@ test('touch exact values and skill cells fit at 320px', async ({ browser }) => {
     path: test.info().outputPath('event-tracker-mobile.png'),
     fullPage: true,
   });
+  const panel = (await page
+      .locator('.event-skills .skill-panel')
+      .boundingBox())!,
+    main = (await page.locator('#xp-main').boundingBox())!;
+  expect(panel.x + panel.width / 2).toBeCloseTo(main.x + main.width / 2, 0);
   await context.close();
 });
 test('stored results switch by event changes totals without showing member tables', async ({
@@ -136,14 +152,39 @@ test('stored results switch by event changes totals without showing member table
   await expect(page.getByLabel('Attack: 0 XP', { exact: true })).toBeVisible();
   await expect(page.getByRole('table')).toHaveCount(0);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  const podium = await page.locator('.xp-podium').boundingBox();
-  expect(podium!.width).toBeCloseTo(480, 0);
+  const podium = (await page.locator('.xp-podium').boundingBox())!,
+    panel = (await page.locator('.event-skills .skill-panel').boundingBox())!,
+    sidebar = (await page.locator('.event-sidebar').boundingBox())!,
+    main = (await page.locator('#xp-main').boundingBox())!;
+  expect(panel.x + panel.width / 2).toBeCloseTo(main.x + main.width / 2, 0);
+  expect(sidebar.width).toBeGreaterThan(260);
+  expect(sidebar.width).toBeCloseTo(podium.width, 0);
   await page
     .locator('.event-tracker')
     .screenshot({ path: test.info().outputPath('wide-podium.png') });
   await page
     .locator('.footer-support')
     .screenshot({ path: test.info().outputPath('support-buttons.png') });
+  for (const width of [1100, 900, 740, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const skill = (await page
+        .locator('.event-skills .skill-panel')
+        .boundingBox())!,
+      viewport = (await page.locator('#xp-main').boundingBox())!;
+    expect(skill.x + skill.width / 2).toBeCloseTo(
+      viewport.x + viewport.width / 2,
+      0,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: test.info().outputPath('xp-layout-' + width + '.png'),
+      fullPage: true,
+    });
+  }
 });
 test('failed or malformed refresh retains the last exact snapshot', async ({
   page,

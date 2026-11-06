@@ -181,8 +181,6 @@ export function GameModeEditor({
       aria-label={appText.gameModeTitle}
     >
       {heading && <h3>{appText.gameModeTitle}</h3>}
-      {current && <p>{appText.gameModeCollector(current.collectorName)}</p>}
-      <p className="admin-note">{appText.gameModeScope}</p>
       <label>
         {appText.gameModeTitle}
         <select
