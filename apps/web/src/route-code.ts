@@ -18,3 +18,7 @@ function entry<T>(load: () => Promise<T>) {
   };
 }
 export const loadAdminCode = entry(() => import('./admin-entry.tsx'));
+export const loadCollectionHiScoresCode = entry(
+  () => import('./CollectionHiScoresPage.tsx'),
+);
+export const loadXpCode = entry(() => import('./XpPage.tsx'));

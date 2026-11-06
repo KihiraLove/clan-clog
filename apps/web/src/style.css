@@ -12,6 +12,12 @@
   --surface-inset: #211e17;
   --surface-field: #1d1b15;
   --surface-tooltip: #282820;
+  --surface-parchment: #e0c79c;
+  --text-parchment: #342515;
+  --border-parchment: #8a663d;
+  --parchment-edge: #bb965e;
+  --parchment-highlight: #f6dfb3;
+  --hiscores-match: #b8d994;
   --text-body: #c9c2b2;
   --text-muted: #b4aa95;
   --text-subtle: #a99d82;
@@ -1758,7 +1764,7 @@ main {
 }
 .public-navigation-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 292px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 470px) minmax(0, 1fr);
   column-gap: var(--space-md);
   min-height: 40px;
 }
@@ -1767,9 +1773,175 @@ main {
   align-self: start;
   min-height: 40px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-md);
-  width: min(292px, 100%);
+  width: min(470px, 100%);
+}
+.public-navigation a {
+  white-space: normal;
+  min-height: 40px;
+}
+
+/* Original CSS parchment/arrow artwork; no third-party image request or asset. */
+.collection-hiscores {
+  display: grid;
+  grid-template-columns: minmax(0, 650px) minmax(180px, 230px);
+  align-items: start;
+  justify-content: center;
+  gap: 48px;
+  margin: 60px auto;
+  max-width: 928px;
+}
+.hiscores-scroll {
+  position: relative;
+  min-width: 0;
+  min-height: 920px;
+  padding: 32px 40px;
+  color: var(--text-parchment);
+  background:
+    repeating-linear-gradient(3deg, #4b2c0d04 0 1px, transparent 1px 5px),
+    linear-gradient(
+      90deg,
+      var(--parchment-edge),
+      var(--surface-parchment) 5%,
+      var(--parchment-highlight) 50%,
+      var(--surface-parchment) 95%,
+      var(--parchment-edge)
+    );
+  border-inline: 2px solid var(--border-parchment);
+  box-shadow: 2px 8px 18px #0008;
+  font-family: var(--font-display);
+}
+.hiscores-scroll::before,
+.hiscores-scroll::after {
+  content: '';
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  height: 30px;
+  border: 2px solid var(--border-parchment);
+  border-radius: 12px 18px 10px 14px / 12px 15px 12px 14px;
+  background: linear-gradient(
+    var(--parchment-edge),
+    var(--parchment-highlight) 30%,
+    var(--surface-parchment) 65%,
+    var(--border-parchment)
+  );
+  box-shadow: 0 3px 5px #0006;
+}
+.hiscores-scroll::before {
+  top: -16px;
+}
+.hiscores-scroll::after {
+  bottom: -16px;
+}
+.hiscores-scroll h1 {
+  font: 40px/1.1 var(--font-display);
+  text-align: center;
+  margin: 8px 0 24px;
+}
+.hiscores-scroll h1:focus-visible {
+  outline: 2px solid var(--text-parchment);
+  outline-offset: 4px;
+}
+.hiscores-categories {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin-bottom: 24px;
+}
+.hiscores-categories .site-button {
+  font-family: var(--font-body);
+  white-space: normal;
+  min-height: 44px;
+  padding: 8px 4px;
+}
+.hiscores-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 22px;
+  line-height: 1.25;
+}
+.hiscores-rank-column,
+.hiscores-score-column {
+  width: 24%;
+}
+.hiscores-table :is(th, td) {
+  padding: 4px 2px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  font-weight: normal;
+}
+.hiscores-table th {
+  font-size: 25px;
+  padding-bottom: 14px;
+}
+.hiscores-row--matched {
+  background: var(--hiscores-match);
+  outline: 1px solid #5f8138;
+}
+.hiscores-page-number {
+  margin: 24px 0 0;
+  text-align: center;
+}
+.hiscores-scroll > p {
+  text-align: center;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.hiscores-loading {
+  min-height: 25px;
+}
+.hiscores-paging {
+  position: absolute;
+  right: 3px;
+  top: 45%;
+  display: grid;
+  gap: var(--space-md);
+}
+.hiscores-arrow {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  min-height: 36px;
+  padding: 0;
+  background: var(--parchment-edge);
+  border-color: var(--border-parchment);
+  color: var(--text-parchment);
+}
+.hiscores-arrow span {
+  width: 0;
+  height: 0;
+  border-inline: 8px solid transparent;
+}
+.hiscores-arrow--up span {
+  border-bottom: 10px solid currentColor;
+}
+.hiscores-arrow--down span {
+  border-top: 10px solid currentColor;
+}
+.hiscores-search {
+  min-width: 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--border-panel);
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-panel);
+}
+.hiscores-search label {
+  display: block;
+  font-size: var(--font-size-body);
+}
+.hiscores-search .site-button {
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-md);
+  white-space: normal;
+}
+.hiscores-search p {
+  font-size: var(--font-size-body);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 .public-name-dialog {
   width: min(440px, calc(100% - 32px));
@@ -2713,6 +2885,40 @@ main {
   color: var(--control-danger-text);
 }
 /* Responsive layouts. Game-frame sizes and measured runtime scaling remain independent. */
+@media (max-width: 740px) {
+  .collection-hiscores {
+    grid-template-columns: minmax(0, 650px);
+    gap: 40px;
+    margin-block: 40px;
+  }
+  .hiscores-search {
+    grid-row: 1;
+  }
+}
+@media (max-width: 600px) {
+  .hiscores-scroll {
+    padding-inline: 20px;
+  }
+  .hiscores-scroll h1 {
+    font-size: 32px;
+  }
+  .hiscores-categories {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hiscores-table {
+    font-size: 20px;
+  }
+  .hiscores-paging {
+    right: -8px;
+  }
+  .hiscores-arrow {
+    width: 24px;
+  }
+  .public-navigation a {
+    padding: 8px 3px;
+    font-size: var(--font-size-small);
+  }
+}
 @media (max-width: 600px) {
   .mode-label {
     max-width: 80px;

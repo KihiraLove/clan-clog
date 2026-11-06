@@ -43,6 +43,31 @@ load code and data together and clear private state on access loss. Production
 builds exclude tests and fixture data. Item icons, fonts, UI art, logos and
 uploads are served locally; the browser never fetches WOM results directly.
 
+## Collection HiScores read model
+
+The public ranking reads approved submissions joined once to active canonical
+items and their current surviving collectors. It never joins page memberships or
+aliases, so repeated pages cannot inflate obtain counts. Stored normalized
+collector names supply exact search and deterministic score/name/identity ordering.
+Normal and Hardcore world scopes are independent of account game mode.
+
+The API derives ranking positions, totals and one 25-player page in a repeatable-read
+transaction, using the existing collection projection and site-setting revisions.
+The per-store cache holds one selection/revision rather than accumulating a cache
+per player or page. No separate ranking table or schema migration is needed.
+The browser loads the ranking route before committing navigation, then uses the
+shared visibility-aware poller and conditional requests. Its bounded last-result
+cache also recognises the clamped/search-result URL, avoiding an extra initial
+read after canonicalizing that URL. Replaced selections abort their reads and
+cannot replace the new view. XP page code also loads through route preparation;
+public ranking code does not enter the initial collection-log bundle.
+
+Metric/page and a submitted search selection live in the URL. Search changes
+history; a coherent read may replace its page when the matched rank moves or a
+requested page becomes out of range. Pagination/category changes clear the active
+search highlight. Input drafts stay local, including while live scores refresh.
+See [the API contract](contracts.md#collection-hiscores) for score and visibility rules.
+
 ## Web styling
 
 `apps/web/src/style.css`, imported once by `main.tsx`, owns the public site and

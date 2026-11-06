@@ -23,5 +23,7 @@ export interface PreparedAdminEntry {
 export interface RouteResources {
   runtime: AppRuntime;
   AdminEntry?: typeof AdminEntry;
+  CollectionHiScoresPage?: typeof import('./CollectionHiScoresPage.tsx').CollectionHiScoresPage;
+  XpPage?: typeof import('./XpPage.tsx').XpPage;
   takeEntry: () => PreparedAdminEntry | undefined;
 }

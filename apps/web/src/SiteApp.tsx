@@ -8,7 +8,6 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { XpPage } from './XpPage.tsx';
 import { ActivityCompetitions } from './ActivityCompetitions.tsx';
 import type { CompetitionClient } from './competition-api.ts';
 import { CollectionLog, type CollectionLogView } from './CollectionLog.tsx';
@@ -120,16 +119,19 @@ export function SiteApp({
 }) {
   const { route, navigate, visit, replaceSearch, register } = navigation;
   const admin = route.path === '/admin' || route.path.startsWith('/admin/');
+  const hiscores = route.path === '/collections/hiscores';
   const [publicSearch, setPublicSearch] = useState(
-    admin ? '' : (route.search ?? ''),
+    admin || hiscores ? '' : (route.search ?? ''),
   );
   const [logView, setLogView] = useState<CollectionLogView>({ selection: {} });
-  const params = new URLSearchParams(admin ? publicSearch : route.search);
+  const params = new URLSearchParams(
+    admin || hiscores ? publicSearch : route.search,
+  );
   const requestedPage = params.get('page');
   const pageId =
     requestedPage ??
     (logView.category ? logView.selection[logView.category] : undefined);
-  const { runtime, AdminEntry } = resources;
+  const { runtime, AdminEntry, CollectionHiScoresPage, XpPage } = resources;
   const {
     admin: adminClient,
     xp: xpClient,
@@ -213,11 +215,12 @@ export function SiteApp({
     );
   }, [settings.data]);
   useEffect(() => {
-    if (!admin) setPublicSearch(route.search ?? '');
-  }, [admin, route.search]);
-  const hardcore = liveEnabled && params.get('hardcore') === '1';
+    if (!admin && !hiscores) setPublicSearch(route.search ?? '');
+  }, [admin, hiscores, route.search]);
+  const hardcoreSelection = liveEnabled && params.get('hardcore') === '1';
+  const hardcore = hardcoreSelection && !hiscores;
   const xp = route.path === '/xp' && !hardcore;
-  const collectionHref = publicHref('/', pageId, hardcore);
+  const collectionHref = publicHref('/', pageId, hardcoreSelection);
   const xpHref = publicHref('/xp', pageId);
   useEffect(() => {
     if (!admin && route.path === '/xp' && hardcore) visit(collectionHref, true);
@@ -269,10 +272,12 @@ export function SiteApp({
       (clanName ? clanName + ' · ' : '') +
       (admin
         ? appText.webSiteAppClanAdministration
-        : xp
-          ? copy.xpTitle
-          : copy.collectionTitle);
-  }, [clanName, copy.collectionTitle, copy.xpTitle, admin, xp]);
+        : hiscores
+          ? appText.hiscoresTitle
+          : xp
+            ? copy.xpTitle
+            : copy.collectionTitle);
+  }, [clanName, copy.collectionTitle, copy.xpTitle, admin, xp, hiscores]);
   return (
     <>
       <svg
@@ -324,7 +329,15 @@ export function SiteApp({
       </svg>
       <a
         className="skip-link"
-        href={admin ? '#admin-main' : xp ? '#xp-main' : '#collection-log'}
+        href={
+          admin
+            ? '#admin-main'
+            : hiscores
+              ? '#hiscores-main'
+              : xp
+                ? '#xp-main'
+                : '#collection-log'
+        }
         onClick={(event) => {
           if (
             event.button !== 0 ||
@@ -343,9 +356,11 @@ export function SiteApp({
         {appText.webSiteAppSkipToMessage(
           admin
             ? appText.webSiteAppClanAdministration2
-            : xp
-              ? appText.webSiteAppXpTracker
-              : appText.webSiteAppCollectionLog,
+            : hiscores
+              ? appText.hiscoresTitle
+              : xp
+                ? appText.webSiteAppXpTracker
+                : appText.webSiteAppCollectionLog,
         )}
       </a>
       <div className="site-shell">
@@ -447,9 +462,21 @@ export function SiteApp({
                 className="site-button"
                 href={collectionHref}
                 onClick={navigate}
-                aria-current={!xp ? 'page' : undefined}
+                aria-current={!xp && !hiscores ? 'page' : undefined}
               >
                 {appText.webSiteAppCollectionLog2}
+              </a>
+              <a
+                className="site-button"
+                href={
+                  hiscores
+                    ? '/collections/hiscores' + (route.search ?? '')
+                    : '/collections/hiscores'
+                }
+                onClick={navigate}
+                aria-current={hiscores ? 'page' : undefined}
+              >
+                {appText.hiscoresTitle}
               </a>
               <a
                 className="site-button"
@@ -481,7 +508,15 @@ export function SiteApp({
           </RenderBoundary>
         )}
         <main
-          id={admin ? 'admin-main' : xp ? 'xp-main' : 'collection-log'}
+          id={
+            admin
+              ? 'admin-main'
+              : hiscores
+                ? 'hiscores-main'
+                : xp
+                  ? 'xp-main'
+                  : 'collection-log'
+          }
           tabIndex={-1}
         >
           {admin && AdminEntry ? (
@@ -500,7 +535,13 @@ export function SiteApp({
               onNavigate={navigate}
               takeEntry={resources.takeEntry}
             />
-          ) : xp ? (
+          ) : hiscores && CollectionHiScoresPage ? (
+            <CollectionHiScoresPage
+              search={route.search ?? ''}
+              visit={visit}
+              replaceSearch={replaceSearch}
+            />
+          ) : xp && XpPage ? (
             <XpPage client={xpClient} copy={copy} />
           ) : (
             <LiveLog
