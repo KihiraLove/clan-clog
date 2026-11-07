@@ -11,10 +11,7 @@ import { XpPodium } from './XpPodium.tsx';
 import { skills, type XpClient } from './xp-model.ts';
 import { eventTotals, sumXp, type XpTracker } from './xp-tracker.ts';
 import { defaultSiteCopy, competitionUnit, type SiteCopy } from '@clog/domain';
-import {
-  CompetitionMetrics,
-  CompetitionBreakdown,
-} from './CompetitionMetrics.tsx';
+import { CompetitionBreakdown } from './CompetitionMetrics.tsx';
 export function XpPage({
   client,
   copy = defaultSiteCopy,
@@ -101,9 +98,6 @@ export function XpPage({
           </div>
         </nav>
         <div className="event-skills">
-          {event?.competition && (
-            <CompetitionMetrics competition={event.competition} />
-          )}
           <div className="skill-panel">
             <div
               className="skill-grid"
