@@ -54,9 +54,13 @@ the workspace manifests and lockfile. This command does not create a Git tag or
 publish a release. Internal workspace dependencies use `*` and resolve locally.
 
 After editing the root version directly, run `npm run version:sync`. Installation
-and root builds also synchronize derived metadata. `npm run version:check` checks
-for drift without writing files. Published release tags must match the root
-version with a `v` prefix. The footer uses the same root version.
+and root builds also synchronize derived metadata. Run `npm run version:check`
+and commit the root manifest, workspace manifests and lockfile together. Before
+tagging, run `npm run test:all -- --ref HEAD` from the release commit so the local
+check covers the same committed source as hosted acceptance. Hosted acceptance
+checks the committed version metadata before starting Docker. Published release
+tags must match the root version with a `v` prefix. The footer uses the same root
+version.
 
 ## Focused checks
 
