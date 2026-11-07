@@ -1286,7 +1286,11 @@ test('stalled login times out, ignores a late reply, and cancels on navigation',
   await expect(
     page.getByRole('button', { name: 'Signing in…' }),
   ).toBeDisabled();
+  const html = page.locator('html');
+  // The login transport loads asynchronously before fetch attaches its abort observer.
+  await expect(html).toHaveAttribute('data-login-calls', '1');
   await page.clock.fastForward(15001);
+  await expect(html).toHaveAttribute('data-login-aborts', '1');
   await expect(
     page.getByRole('alert').filter({ hasText: 'timed out' }),
   ).toBeVisible();
@@ -1295,15 +1299,15 @@ test('stalled login times out, ignores a late reply, and cancels on navigation',
   ).toBeEnabled();
   await page.evaluate(() => window.dispatchEvent(new Event('release-login')));
   await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
-  await expect(page.locator('html')).toHaveAttribute('data-login-calls', '1');
+  await expect(html).toHaveAttribute('data-login-calls', '1');
   await page
     .getByLabel('Password', { exact: true })
     .fill('timeout-test-password');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-login-calls', '2');
-  await closeReviewIfOpen(page);
+  await expect(html).toHaveAttribute('data-login-calls', '2');
   await page.locator('header a.clan-brand').click();
-  await expect(page.locator('html')).toHaveAttribute('data-login-aborts', '2');
+  await expect(page).toHaveURL('/');
+  await expect(html).toHaveAttribute('data-login-aborts', '2');
 });
 
 for (const approveImmediately of [false, true]) {

@@ -406,9 +406,14 @@ test('ambiguous frozen eligibility still requires a choice after another current
 
 test('fresh installs show no upgrade prompt and moderators make no migration review reads', async ({
   page,
+  context,
 }) => {
   await mockApi(page);
-  await page.goto('/admin/submissions');
+  const [assignments] = await Promise.all([
+    page.waitForResponse('**/api/v1/admin/event-page-assignments'),
+    page.goto('/admin/submissions'),
+  ]);
+  expect(assignments.ok()).toBe(true);
   await expect(
     page.getByRole('heading', { name: 'Submissions', exact: true }),
   ).toBeVisible();
@@ -418,24 +423,29 @@ test('fresh installs show no upgrade prompt and moderators make no migration rev
       exact: true,
     }),
   ).toHaveCount(0);
+  await page.close();
+
+  // Isolate the moderator's requests from any outstanding administrator reads.
+  const moderator = await context.newPage();
+  await mockApi(moderator);
   const fixture = await adminFixtures();
   let privateReads = 0;
-  await page.route('**/api/v1/auth/session', (route) =>
+  await moderator.route('**/api/v1/auth/session', (route) =>
     route.fulfill({ json: { ...fixture.session, role: 'moderator' } }),
   );
-  await page.route('**/api/v1/admin/event-page-assignments', (route) => {
+  await moderator.route('**/api/v1/admin/event-page-assignments', (route) => {
     privateReads++;
     return route.fulfill({ status: 403, json: {} });
   });
-  await page.reload();
+  await moderator.goto('/admin/submissions');
   await expect(
-    page.getByRole('heading', { name: 'Submissions', exact: true }),
+    moderator.getByRole('heading', { name: 'Submissions', exact: true }),
   ).toBeVisible();
-  expect(privateReads).toBe(0);
   await expect(
-    page.getByRole('button', {
+    moderator.getByRole('button', {
       name: 'Review Event page assignments',
       exact: true,
     }),
   ).toHaveCount(0);
+  expect(privateReads).toBe(0);
 });
