@@ -11,6 +11,7 @@ import { migrate } from '@clog/database/dist/migrate.js';
 import { createRuntimeTestPool } from './tests/runtime-pool.js';
 import { PgStore } from './store.js';
 import { PgCollectorNames } from './collector-name-store.js';
+import { PgCollectorGameModes } from './collector-game-modes.js';
 import { createApp } from './app.js';
 import { collectionHiScoresSql } from './collection-hiscores-store.js';
 
@@ -152,19 +153,22 @@ test(
             'unique',
             'event',
             'hardcore',
-          ] as const)
-            assert.equal(
-              (await read(metric, 'aLiCe')).players.find(
-                (row) => row.name === 'Alice',
-              )!.score,
-              expected[metric],
-            );
-          assert.equal(
-            (await read('event', 'Legacy')).players.find(
-              (row) => row.name === 'Legacy',
-            )!.score,
-            '1',
-          );
+          ] as const) {
+            const aliceRow = (await read(metric, 'aLiCe')).players.find(
+              (row) => row.name === 'Alice',
+            )!;
+            assert.equal(aliceRow.score, expected[metric]);
+            assert.equal(aliceRow.gameMode, 'hardcore_ironman');
+          }
+          const bobRow = (await read('hardcore', 'Bob')).players.find(
+            (row) => row.name === 'Bob',
+          )!;
+          assert.equal(bobRow.gameMode, 'normal');
+          const legacyRow = (await read('event', 'Legacy')).players.find(
+            (row) => row.name === 'Legacy',
+          )!;
+          assert.equal(legacyRow.score, '1');
+          assert.equal(legacyRow.gameMode, null);
           const before = (await read('total')).players;
           await owner.query(
             "UPDATE submission_filter_settings SET repeat_collector_policy='merge',filter_collected=false,version=version+1",
@@ -195,13 +199,9 @@ test(
           await names.apply(preview.token, randomUUID(), 'staff', 'Staff');
           const renamed = await read('total', 'alice_renamed');
           assert.equal(renamed.match!.name, 'Alice Renamed');
+          assert.equal(renamed.players[0]!.gameMode, 'hardcore_ironman');
           assert.equal((await read('total', 'Alice')).match, null);
-          const merge = await names.preview(
-            alice,
-            'Bob',
-            'staff',
-            'hardcore_ironman',
-          );
+          const merge = await names.preview(alice, 'Bob', 'staff', 'normal');
           await names.apply(merge.token, randomUUID(), 'staff', 'Staff');
           for (const [metric, score] of [
             ['total', '6'],
@@ -210,10 +210,11 @@ test(
             ['hardcore', '3'],
           ] as const) {
             const snapshot = await read(metric, 'Bob');
-            assert.equal(
-              snapshot.players.find((row) => row.name === 'Bob')!.score,
-              score,
-            );
+            const survivor = snapshot.players.find(
+              (row) => row.name === 'Bob',
+            )!;
+            assert.equal(survivor.score, score);
+            assert.equal(survivor.gameMode, 'normal');
             assert.equal(
               snapshot.players.some((row) => row.name.startsWith('Alice')),
               false,
@@ -228,6 +229,50 @@ test(
             ).rows[0].original_collector_name,
             'Alice',
           );
+        },
+      );
+      await t.test(
+        'current mode changes and clears revalidate the same ranked player and score',
+        async () => {
+          const app = createApp(undefined, undefined, { store, logger: false });
+          const modes = new PgCollectorGameModes(runtime);
+          const url = '/api/v1/collections/hiscores?metric=hardcore&player=Bob';
+          try {
+            let previous = await app.inject(url);
+            assert.equal(previous.statusCode, 200);
+            const original = previous.json().players[0];
+            assert.deepEqual(original, {
+              rank: 1,
+              name: 'Bob',
+              score: '3',
+              gameMode: 'normal',
+            });
+            for (const gameMode of ['group_ironman', null] as const) {
+              const { collectorId, revision } = await modes.get(bob, true);
+              await modes.save(
+                bob,
+                { collectorId, expectedRevision: revision, gameMode },
+                randomUUID(),
+                'staff',
+                'Staff',
+                true,
+              );
+              const next = await app.inject({
+                url,
+                headers: { 'if-none-match': String(previous.headers.etag) },
+              });
+              assert.equal(next.statusCode, 200);
+              assert.notEqual(next.headers.etag, previous.headers.etag);
+              assert.notEqual(next.json().revision, previous.json().revision);
+              assert.deepEqual(next.json().players, [
+                { ...original, gameMode },
+              ]);
+              assert.deepEqual(next.json().match, previous.json().match);
+              previous = next;
+            }
+          } finally {
+            await app.close();
+          }
         },
       );
       await t.test(
@@ -392,6 +437,7 @@ test(
           304,
         );
         assert.deepEqual(Object.keys(first.json().players[0]).sort(), [
+          'gameMode',
           'name',
           'rank',
           'score',

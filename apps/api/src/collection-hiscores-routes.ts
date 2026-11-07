@@ -44,6 +44,8 @@ export function collectionHiScoresRoutes(
         createHash('sha256')
           .update(
             JSON.stringify([
+              // Version the representation separately from the data revision.
+              'hiscores-v2',
               snapshot.revision,
               query.metric,
               snapshot.page,

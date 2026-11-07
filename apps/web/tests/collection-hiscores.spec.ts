@@ -3,7 +3,17 @@ import { mockApi } from './mock-api.ts';
 import {
   normalizePlayerName,
   type CollectionHiScoreMetric,
+  type GameMode,
 } from '@clog/domain';
+
+const helmets = [
+  ['ironman', 'Ironman'],
+  ['ultimate_ironman', 'Ultimate Ironman'],
+  ['hardcore_ironman', 'Hardcore Ironman'],
+  ['group_ironman', 'Group Ironman (GIM)'],
+  ['hardcore_group_ironman', 'Hardcore Group Ironman (HCGIM)'],
+  ['unranked_group_ironman', 'Unranked Group Ironman (UGIM)'],
+] as const;
 
 async function fixture(page: Page) {
   const base = await mockApi(page, { scenario: 'hardcore', xpSamples: true });
@@ -14,6 +24,10 @@ async function fixture(page: Page) {
           ? 'KihiraVD'
           : `${prefix} ${String(i + 1).padStart(4, '0')}`,
       score: String(count - i + 100),
+      gameMode:
+        i === count - 1
+          ? 'group_ironman'
+          : (helmets[i]?.[0] ?? (i === helmets.length ? 'normal' : null)),
     }));
   const state = {
     enabled: true,
@@ -24,7 +38,10 @@ async function fixture(page: Page) {
       unique: make(3, 'Unique'),
       event: make(51, 'Event'),
       hardcore: make(26, 'Hardcore'),
-    } as Record<CollectionHiScoreMetric, { name: string; score: string }[]>,
+    } as Record<
+      CollectionHiScoreMetric,
+      { name: string; score: string; gameMode?: GameMode | null }[]
+    >,
     hold: undefined as
       { page?: number; player?: string; promise: Promise<void> } | undefined,
     requests: [] as string[],
@@ -144,12 +161,23 @@ test('four rankings and 25-player pages have stable ranks and disabled boundarie
     'aria-pressed',
     'true',
   );
+  for (const [index, [mode, label]] of helmets.entries()) {
+    const helmet = rows(page).nth(index).getByRole('img', { name: label });
+    await expect(helmet).toHaveAttribute('src', `/game-modes/${mode}.webp`);
+  }
+  for (const index of [helmets.length, helmets.length + 1])
+    await expect(rows(page).nth(index).getByRole('img')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: 'Previous 25 players' }),
   ).toBeDisabled();
   await page.getByRole('button', { name: 'Next 25 players' }).click();
   await expect(rows(page).first().locator('td').first()).toHaveText('26');
   await expect(rows(page).last().locator('td').first()).toHaveText('50');
+  await category(page, 'Unique collections').click();
+  await expect(rows(page)).toHaveCount(3);
+  await expect(
+    rows(page).last().getByRole('img', { name: 'Group Ironman (GIM)' }),
+  ).toBeVisible();
   await category(page, 'Event collections').click();
   await ready(page);
   await expect(rows(page).first()).toContainText('Event 0001');
@@ -158,6 +186,9 @@ test('four rankings and 25-player pages have stable ranks and disabled boundarie
   await page.getByRole('button', { name: 'Next 25 players' }).click();
   await expect(rows(page)).toHaveCount(1);
   await expect(rows(page).first().locator('td').first()).toHaveText('51');
+  await expect(
+    rows(page).first().getByRole('img', { name: 'Group Ironman (GIM)' }),
+  ).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Next 25 players' }),
   ).toBeDisabled();
@@ -173,6 +204,11 @@ test('four rankings and 25-player pages have stable ranks and disabled boundarie
   await expect(page.locator('.hiscores-row--matched td').first()).toHaveText(
     '26',
   );
+  await expect(
+    page
+      .locator('.hiscores-row--matched')
+      .getByRole('img', { name: 'Group Ironman (GIM)' }),
+  ).toBeVisible();
 });
 test('keyboard users can change category, page and search with an announced match', async ({
   page,
@@ -277,6 +313,15 @@ test('search jumps to page 77, highlights the final player and preserves input a
   const match = page.locator('.hiscores-row--matched');
   await expect(match).toHaveCount(1);
   await expect(match).toContainText('KihiraVD');
+  const nameCell = match.locator('td').nth(1);
+  const helmet = nameCell.getByRole('img', { name: 'Group Ironman (GIM)' });
+  await expect(helmet).toHaveAttribute('src', '/game-modes/group_ironman.webp');
+  await expect(nameCell.locator('.collector-name > :first-child')).toHaveClass(
+    'collector-helmet',
+  );
+  await expect
+    .poll(() => helmet.evaluate((img: HTMLImageElement) => img.naturalWidth))
+    .toBeGreaterThan(0);
   await expect(match).toHaveCSS('background-color', 'rgb(184, 217, 148)');
   await expect(page.getByRole('status')).toContainText(
     'KihiraVD found at rank 1,925.',
@@ -361,6 +406,28 @@ test('stale page responses cannot replace a newer category and visible refresh f
   await category(page, 'Search').click();
   await expect(page).toHaveURL(/page=77/);
   await page.getByLabel('Player name').fill('Draft new search');
+  const match = page.locator('.hiscores-row--matched');
+  await expect(
+    match.getByRole('img', { name: 'Group Ironman (GIM)' }),
+  ).toBeVisible();
+  const score = await match.locator('td').last().textContent();
+  state.rows.total.at(-1)!.gameMode = 'hardcore_group_ironman';
+  state.revision++;
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event('visibilitychange')),
+  );
+  await expect(
+    match.getByRole('img', { name: 'Hardcore Group Ironman (HCGIM)' }),
+  ).toBeVisible();
+  await expect(match.locator('td').last()).toHaveText(score!);
+  await expect(match.locator('td').first()).toHaveText('1,925');
+  state.rows.total.at(-1)!.gameMode = null;
+  state.revision++;
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event('visibilitychange')),
+  );
+  await expect(match.getByRole('img')).toHaveCount(0);
+  await expect(match.locator('td').last()).toHaveText(score!);
   state.rows.total = [{ name: 'KihiraVD', score: '42' }];
   state.revision++;
   await page.evaluate(() =>
@@ -418,14 +485,24 @@ for (const width of [1440, 740, 320])
     async ({ page }) => {
       await page.setViewportSize({ width, height: 1000 });
       const { state } = await fixture(page);
+      state.rows.total[25]!.gameMode = 'ironman';
       state.rows.unique = [
         {
           name: 'LongCollectorNameWithoutSpaces'.repeat(2),
           score: '9007199254740993',
+          gameMode: 'ironman',
         },
       ];
       await page.goto('/collections/hiscores?metric=total&page=2');
       await ready(page);
+      const firstRow = rows(page).first();
+      await expect(
+        firstRow.getByRole('img', { name: 'Ironman' }),
+      ).toBeVisible();
+      expect((await firstRow.boundingBox())!.height).toBeCloseTo(
+        (await rows(page).nth(1).boundingBox())!.height,
+        1,
+      );
       await page.evaluate(() => document.fonts.ready);
       const scroll = (await page.locator('.hiscores-scroll').boundingBox())!,
         search = (await page.locator('.hiscores-search').boundingBox())!;
@@ -455,6 +532,13 @@ for (const width of [1440, 740, 320])
       });
       await category(page, 'Unique collections').click();
       await expect(rows(page)).toHaveCount(1);
+      const nameCell = rows(page).locator('td').nth(1);
+      await expect(
+        nameCell.getByRole('img', { name: 'Ironman' }),
+      ).toBeVisible();
+      await expect(nameCell).toHaveText(
+        'LongCollectorNameWithoutSpaces'.repeat(2),
+      );
       await expect(rows(page).locator('td').last()).toHaveText(
         '9,007,199,254,740,993',
       );

@@ -3,6 +3,7 @@ import {
   collectionHiScoreMetrics,
   collectionHiScorePage,
   normalizePlayerName,
+  parseGameMode,
   type CollectionHiScoreQuery,
   type CollectionHiScores,
 } from '@clog/domain';
@@ -65,7 +66,12 @@ export function parseCollectionHiScores(value: unknown): CollectionHiScores {
       !/^[1-9][0-9]{0,18}$/u.test(row.score)
     )
       throw Error(appText.hiscoresUnavailable);
-    return { rank: Number(row.rank), name: row.name, score: row.score };
+    return {
+      rank: Number(row.rank),
+      name: row.name,
+      gameMode: parseGameMode(row.gameMode ?? null),
+      score: row.score,
+    };
   });
   const match = r.match === null ? null : record(r.match);
   if (

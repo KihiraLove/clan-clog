@@ -12,6 +12,7 @@ import {
   collectionHiScoresKey,
 } from './collection-hiscores-api.ts';
 import { usePublicPolling } from './use-public-polling.ts';
+import { CollectorName } from './CollectorName.tsx';
 
 const labels = [
   appText.hiscoresTotal,
@@ -190,7 +191,10 @@ function HiScoresView({
                   >
                     <td>{player.rank.toLocaleString()}</td>
                     <td>
-                      {player.name}
+                      <CollectorName
+                        name={player.name}
+                        gameMode={player.gameMode}
+                      />
                       {matched?.rank === player.rank && (
                         <span className="sr-only">
                           {' '}
