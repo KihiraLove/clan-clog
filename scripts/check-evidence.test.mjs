@@ -61,6 +61,21 @@ test('missing tools leave explicit facts without raw errors, environment values 
     else process.env.SESSION_SECRET = original;
   }
 });
+test('Docker plugin version probes retry an unavailable result once', async () => {
+  const attempts = { compose: 0, buildx: 0 };
+  const facts = await collectEnvironment(
+    tmpdir(),
+    async (command, [plugin, operation]) => {
+      if (command !== 'docker' || operation !== 'version') return;
+      attempts[plugin]++;
+      if (plugin === 'compose' && attempts.compose === 2) return '5.6.0';
+    },
+  );
+
+  assert.equal(facts.docker.compose, '5.6.0');
+  assert.deepEqual(facts.docker.buildx, { unavailable: true });
+  assert.deepEqual(attempts, { compose: 2, buildx: 2 });
+});
 test('comparison distinguishes source/configuration drift, execution differences and missing evidence', () => {
   const base = {
     format: 1,

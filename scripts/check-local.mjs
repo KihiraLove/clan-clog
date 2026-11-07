@@ -247,19 +247,19 @@ export async function main(args = process.argv.slice(2)) {
       throw new Error(
         'Start Docker with Linux containers before running the full checks.',
       );
-    for (const [name, value] of Object.entries({
-      docker: manifest.host.docker.server.Version,
-      compose: manifest.host.docker.compose,
-      buildx: manifest.host.docker.buildx,
+    for (const [name, [value, command]] of Object.entries({
+      docker: [manifest.host.docker.server.Version, 'docker version'],
+      compose: [manifest.host.docker.compose, 'docker compose version --short'],
+      buildx: [manifest.host.docker.buildx, 'docker buildx version'],
     })) {
-      if (
-        !supportedVersion(
-          typeof value === 'string' ? value : '',
-          toolchain.supported[name],
-        )
-      )
+      if (typeof value !== 'string')
         throw Error(
-          `Unsupported or unavailable ${name}; see scripts/check-toolchain.json`,
+          `Could not detect the ${name} version. Run "${command}" in the same shell to diagnose.`,
+        );
+      const policy = toolchain.supported[name];
+      if (!supportedVersion(value, policy))
+        throw Error(
+          `Unsupported ${name} version ${value}. Expected ${policy.min} through ${policy.maxMajor}.x per scripts/check-toolchain.json.`,
         );
     }
     phase = 'source-snapshot';
