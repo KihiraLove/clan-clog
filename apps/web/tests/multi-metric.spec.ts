@@ -201,6 +201,12 @@ for (const width of [1440, 320])
           .getByRole('group', { name: 'Event skill XP' })
           .getByLabel('Attack: 100 XP', { exact: true }),
       ).toBeVisible();
+      await expect(page.getByLabel('Competition metrics')).toHaveCount(0);
+      if (width === 1440) {
+        const panel = (await page.locator('.skill-panel').boundingBox())!,
+          sidebar = (await page.locator('.event-sidebar').boundingBox())!;
+        expect(panel.y).toBeCloseTo(sidebar.y, 0);
+      }
       await page.locator('#xp-tracker').screenshot({
         path: test.info().outputPath('weighted-' + width + '.png'),
       });
