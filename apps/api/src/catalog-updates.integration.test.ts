@@ -17,7 +17,7 @@ import {
   importBundledCatalog,
   readBundledSnapshot,
 } from '@clog/database/dist/catalog-import.js';
-import { provisionRuntimeRole } from '@clog/database/dist/runtime-role.js';
+import { createRuntimeTestPool } from './tests/runtime-pool.js';
 import {
   PgCatalogUpdates,
   installCatalogUpdate,
@@ -950,10 +950,7 @@ test(
       );
       await installCatalogUpdate(owner, batch, [supplied]);
       await owner.end();
-      await provisionRuntimeRole(url.href, 'f'.repeat(64));
-      url.username = 'clog_runtime';
-      url.password = 'f'.repeat(64);
-      pool = new pg.Pool({ connectionString: url.href });
+      pool = await createRuntimeTestPool(url);
       const store = new PgCatalogUpdates(pool),
         review = await store.preview('owner');
       await store.seen('owner', review.revision);

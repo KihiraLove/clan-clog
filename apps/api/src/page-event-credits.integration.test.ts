@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import pg from 'pg';
 import { migrate } from '@clog/database/dist/migrate.js';
-import { provisionRuntimeRole } from '@clog/database/dist/runtime-role.js';
+import { createRuntimeTestPool } from './tests/runtime-pool.js';
 import {
   defaultRuneLiteRules,
   type IntakeSchedulingEvidence,
@@ -174,11 +174,7 @@ test(
         [null, true],
       ],
     );
-    await provisionRuntimeRole(url.href, 'd'.repeat(64));
-    const runtimeUrl = new URL(url);
-    runtimeUrl.username = 'clog_runtime';
-    runtimeUrl.password = 'd'.repeat(64);
-    const runtime = new pg.Pool({ connectionString: runtimeUrl.href });
+    const runtime = await createRuntimeTestPool(url);
     resources.runtime = runtime;
     const backend = new PgStore(runtime),
       review = new PgReviewStore(runtime, backend),

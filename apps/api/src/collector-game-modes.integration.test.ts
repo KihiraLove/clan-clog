@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import pg from 'pg';
 import { migrate } from '@clog/database/dist/migrate.js';
-import { provisionRuntimeRole } from '@clog/database/dist/runtime-role.js';
+import { createRuntimeTestPool } from './tests/runtime-pool.js';
 import { gameModes, defaultRuneLiteRules, type GameMode } from '@clog/domain';
 import { PgStore } from './store.js';
 import { PgReviewStore } from './review-store.js';
@@ -114,11 +114,7 @@ test(
     );
     await migrate(url.href);
     await migrate(url.href);
-    await provisionRuntimeRole(url.href, 'f'.repeat(64));
-    const runtimeUrl = new URL(url);
-    runtimeUrl.username = 'clog_runtime';
-    runtimeUrl.password = 'f'.repeat(64);
-    const runtime = new pg.Pool({ connectionString: runtimeUrl.href, max: 12 });
+    const runtime = await createRuntimeTestPool(url, 12);
     resources.runtime = runtime;
     const backend = new PgStore(runtime),
       review = new PgReviewStore(runtime, backend),

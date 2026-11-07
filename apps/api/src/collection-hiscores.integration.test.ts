@@ -8,7 +8,7 @@ import {
   type CollectionHiScoreMetric,
 } from '@clog/domain';
 import { migrate } from '@clog/database/dist/migrate.js';
-import { provisionRuntimeRole } from '@clog/database/dist/runtime-role.js';
+import { createRuntimeTestPool } from './tests/runtime-pool.js';
 import { PgStore } from './store.js';
 import { PgCollectorNames } from './collector-name-store.js';
 import { createApp } from './app.js';
@@ -32,10 +32,7 @@ async function fixture(
   let runtime: pg.Pool | undefined;
   try {
     await migrate(url.href);
-    await provisionRuntimeRole(url.href, 'f'.repeat(64));
-    url.username = 'clog_runtime';
-    url.password = 'f'.repeat(64);
-    runtime = new pg.Pool({ connectionString: url.href, max: 8 });
+    runtime = await createRuntimeTestPool(url, 8);
     await owner.query(
       "INSERT INTO items(id,name) VALUES(1,'Shared item'),(2,'Second item'),(3,'Inactive item'); UPDATE items SET active=false WHERE id=3; INSERT INTO pages(id,name,category,sort_order) VALUES('a','Page A','bosses',0),('b','Page B','bosses',1); INSERT INTO page_items(page_id,item_id,slot) VALUES('a',1,0),('b',1,0),('a',2,1)",
     );
