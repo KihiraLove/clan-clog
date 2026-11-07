@@ -145,8 +145,12 @@ export {
 export {
   defaultRuneLiteRules,
   normalizePlayerName,
+  normalizeRuneLiteClanName,
+  parseRuneLiteClanNames,
   parseRuneLiteRules,
   parseRuneLiteSettings,
+  parseStoredRuneLiteRules,
+  runeLiteClanNameLimit,
   runeLiteDecision,
   type WorldPolicy,
   type RuneLiteRules,

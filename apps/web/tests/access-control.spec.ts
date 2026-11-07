@@ -83,7 +83,7 @@ test('access control hides denied pages, revokes open drafts on focus and keeps 
   });
   await page.goto('/admin/runelite');
   await expect(
-    page.getByLabel('In-game clan name for matching', { exact: true }),
+    page.getByLabel('In-game clan name 1', { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'Access control', exact: true }),
@@ -92,7 +92,7 @@ test('access control hides denied pages, revokes open drafts on focus and keeps 
     page.getByRole('link', { name: 'Site settings', exact: true }),
   ).toHaveCount(0);
   await page
-    .getByLabel('In-game clan name for matching', { exact: true })
+    .getByLabel('In-game clan name 1', { exact: true })
     .fill('Unsaved moderator draft');
   allowedPages = [];
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
@@ -102,7 +102,7 @@ test('access control hides denied pages, revokes open drafts on focus and keeps 
     }),
   ).toBeVisible();
   await expect(
-    page.getByLabel('In-game clan name for matching', { exact: true }),
+    page.getByLabel('In-game clan name 1', { exact: true }),
   ).toHaveCount(0);
   await expect(
     page

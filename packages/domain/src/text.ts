@@ -2097,8 +2097,20 @@ export const webRuneLiteReviewSettingsApiKey = 'API key';
 
 export const webRuneLiteReviewSettingsBoth = 'Both';
 
-export const webRuneLiteReviewSettingsInGameClanNameForMatching =
-  'In-game clan name for matching';
+export const webRuneLiteReviewSettingsInGameClanNamesForMatching =
+  'In-game clan names for matching';
+
+export const webRuneLiteReviewSettingsClanNameLabel = (number: number) =>
+  `In-game clan name ${number}`;
+
+export const webRuneLiteReviewSettingsAddClanName = 'Add clan name';
+
+export const webRuneLiteReviewSettingsRemoveClanName = (number: number) =>
+  `Remove clan name ${number}`;
+
+export const webRuneLiteReviewSettingsRemove = 'Remove';
+
+export const webRuneLiteReviewSettingsDiscardChanges = sharedDiscardChanges;
 
 export const webRuneLiteReviewSettingsReject = 'Reject';
 
@@ -4179,6 +4191,18 @@ export const domainIndexInvalidCalendarDate = 'Invalid calendar date';
 /** packages/domain / runelite-rules. */
 export const domainRuneliteRulesInvalidRuneLiteSettings =
   sharedInvalidRuneLiteSettings;
+
+export const domainRuneliteRulesClanNameLimit = (limit: number) =>
+  `Use a list of up to ${limit} in-game clan names.`;
+
+export const domainRuneliteRulesClanNameRequired =
+  'Add at least one in-game clan name when matching by clan name.';
+
+export const domainRuneliteRulesInvalidClanName =
+  'Enter 1 to 80 characters for each in-game clan name. Control characters are invalid.';
+
+export const domainRuneliteRulesDuplicateClanName =
+  'Each in-game clan name must be unique, ignoring capitalization and surrounding spaces.';
 
 export const domainRuneliteRulesInvalidRuneLiteSettingsUseValidNamesAndWorldPoliciesWith =
   'Invalid RuneLite settings. Use valid names and world policies, with up to 200 whitelist entries.';

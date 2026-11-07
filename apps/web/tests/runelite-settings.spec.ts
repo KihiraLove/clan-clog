@@ -6,6 +6,14 @@ test('RuneLite policies, independent clan matching and whitelist save on desktop
 }) => {
   await mockApi(page);
   await page.goto('/admin/runelite');
+  const names = page.getByRole('group', {
+    name: 'In-game clan names for matching',
+  });
+  const firstName = names.getByLabel('In-game clan name 1', { exact: true });
+  const secondName = names.getByLabel('In-game clan name 2', { exact: true });
+  const add = names.getByRole('button', { name: 'Add clan name' });
+  const save = page.getByRole('button', { name: 'Save review settings' });
+  const discard = page.getByRole('button', { name: 'Discard changes' });
   await expect(
     page.getByLabel('Match Clan name or API', { exact: true }),
   ).toBeEnabled();
@@ -14,9 +22,12 @@ test('RuneLite policies, independent clan matching and whitelist save on desktop
       .getByLabel('Match Clan name or API', { exact: true })
       .locator('option'),
   ).toHaveText(['Clan name', 'API key', 'Both']);
-  await expect(page.getByLabel('In-game clan name for matching')).toHaveValue(
-    'Clan name',
-  );
+  await expect(firstName).toHaveValue('Clan name');
+  await names.getByRole('button', { name: 'Remove clan name 1' }).click();
+  await expect(names.getByRole('alert')).toContainText('Add at least one');
+  await expect(save).toBeDisabled();
+  await discard.click();
+  await expect(firstName).toHaveValue('Clan name');
   for (const label of [
     'Free to play worlds submissions',
     'PVP worlds submissions',
@@ -42,30 +53,37 @@ test('RuneLite policies, independent clan matching and whitelist save on desktop
     ]);
     await select.selectOption('allow');
   }
-  await page.getByLabel('In-game clan name for matching').fill('Game Clan');
+  await firstName.fill(' Game Clan ');
+  await add.click();
+  await expect(names.getByRole('alert')).toContainText(
+    'Enter 1 to 80 characters',
+  );
+  await expect(save).toBeDisabled();
+  await secondName.fill(' game clan ');
+  await expect(names.getByRole('alert')).toContainText('must be unique');
+  await expect(save).toBeDisabled();
+  await secondName.fill(' Sister Clan ');
+  await expect(names.getByRole('alert')).toHaveCount(0);
   await page
     .getByLabel('Match Clan name or API', { exact: true })
     .selectOption('name');
   await page
     .getByLabel('Player whitelist', { exact: true })
     .fill('Trusted_Player\ntrusted player\nSecond Player');
-  await page.getByRole('button', { name: 'Save review settings' }).click();
+  await save.click();
   await expect(page.getByRole('status')).toHaveText(
     'RuneLite review settings saved.',
   );
   await expect(
     page.getByLabel('Player whitelist', { exact: true }),
   ).toHaveValue('trusted player\nSecond Player');
+  await expect(firstName).toHaveValue('Game Clan');
+  await expect(secondName).toHaveValue('Sister Clan');
   await page
     .getByLabel('Match Clan name or API', { exact: true })
     .selectOption('key');
-  await expect(
-    page.getByLabel('In-game clan name for matching'),
-  ).toBeDisabled();
-  await page.getByRole('button', { name: 'Save review settings' }).click();
-  await expect(
-    page.getByRole('button', { name: 'Save review settings' }),
-  ).toBeDisabled();
+  await save.click();
+  await expect(save).toBeDisabled();
   await page.getByRole('link', { name: 'Site settings', exact: true }).click();
   await expect(
     page.getByLabel('Displayed clan name', { exact: true }),
@@ -76,9 +94,15 @@ test('RuneLite policies, independent clan matching and whitelist save on desktop
   await expect(
     page.getByLabel('Match Clan name or API', { exact: true }),
   ).toHaveValue('key');
-  await expect(page.getByLabel('In-game clan name for matching')).toHaveValue(
-    'Game Clan',
-  );
+  await expect(firstName).toHaveValue('Game Clan');
+  await expect(secondName).toHaveValue('Sister Clan');
+  await names.getByRole('button', { name: 'Remove clan name 1' }).click();
+  await firstName.fill('Renamed Clan');
+  await save.click();
+  await expect(save).toBeDisabled();
+  await page.reload();
+  await expect(firstName).toHaveValue('Renamed Clan');
+  await expect(secondName).toHaveCount(0);
   await expect(
     page.getByLabel('Free to play worlds submissions', { exact: true }),
   ).toHaveValue('reject');

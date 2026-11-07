@@ -2328,6 +2328,20 @@ main {
 .runelite-review-settings p {
   overflow-wrap: anywhere;
 }
+.runelite-clan-names {
+  min-inline-size: 0;
+  margin: 1rem 0;
+  border: 1px solid var(--border-subtle);
+}
+.runelite-clan-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.runelite-clan-name input {
+  min-width: 0;
+}
 .runelite-world-policy {
   margin-block: 1rem;
 }

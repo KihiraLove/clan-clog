@@ -2,7 +2,9 @@ import * as appText from '@clog/domain';
 import { useEffect, useState } from 'react';
 import {
   defaultRuneLiteRules,
+  parseRuneLiteClanNames,
   parseRuneLiteRules,
+  runeLiteClanNameLimit,
   type RuneLiteRules,
   type RuneLiteSettings,
   type WorldPolicy,
@@ -53,7 +55,7 @@ export function RuneLiteReviewSettings({
     initial
       ? {
           matchClanName: initial.matchClanName,
-          clanName: initial.clanName,
+          clanNames: initial.clanNames,
           worldPolicies: initial.worldPolicies,
           playerWhitelist: initial.playerWhitelist,
         }
@@ -71,7 +73,7 @@ export function RuneLiteReviewSettings({
     setMode(matchingMode(value.matchClanName, key.enabled));
     setRules({
       matchClanName: value.matchClanName,
-      clanName: value.clanName,
+      clanNames: value.clanNames,
       worldPolicies: value.worldPolicies,
       playerWhitelist: value.playerWhitelist,
     });
@@ -111,11 +113,23 @@ export function RuneLiteReviewSettings({
     keySettings &&
     (rules.matchClanName !== saved.matchClanName ||
       mode !== matchingMode(saved.matchClanName, keySettings.enabled) ||
-      rules.clanName !== saved.clanName ||
+      JSON.stringify(rules.clanNames) !== JSON.stringify(saved.clanNames) ||
       JSON.stringify(rules.worldPolicies) !==
         JSON.stringify(saved.worldPolicies) ||
       whitelist !== saved.playerWhitelist.join('\n'));
   const disabled = action.busy || !saved || !keySettings;
+  let clanNameError: string | undefined;
+  if (saved) {
+    try {
+      parseRuneLiteClanNames(rules.clanNames, rules.matchClanName);
+    } catch (failure) {
+      if (failure instanceof Error) clanNameError = failure.message;
+    }
+  }
+  const updateClanNames = (clanNames: string[]) => {
+    setRules({ ...rules, clanNames });
+    action.setMessage(undefined);
+  };
   useAdminDraft(!!changed, action.busy);
   return (
     <>
@@ -141,7 +155,7 @@ export function RuneLiteReviewSettings({
           aria-busy={!saved && !error}
           onSubmit={(event) => {
             event.preventDefault();
-            if (!saved || !keySettings) return;
+            if (!saved || !keySettings || !changed || clanNameError) return;
             void action.execute(
               async (signal) => {
                 const input = parseRuneLiteRules({
@@ -213,20 +227,66 @@ export function RuneLiteReviewSettings({
               {appText.webRuneLiteReviewSettingsBoth}
             </option>
           </select>
-          <label htmlFor="runelite-clan-name">
-            {appText.webRuneLiteReviewSettingsInGameClanNameForMatching}
-          </label>
-          <input
-            id="runelite-clan-name"
-            value={rules.clanName}
-            maxLength={80}
-            required
-            disabled={disabled || !rules.matchClanName}
-            onChange={(event) => {
-              setRules({ ...rules, clanName: event.target.value });
-              action.setMessage(undefined);
-            }}
-          />
+          <fieldset
+            className="runelite-clan-names"
+            disabled={disabled}
+            aria-describedby={
+              clanNameError ? 'runelite-clan-name-error' : undefined
+            }
+          >
+            <legend>
+              {appText.webRuneLiteReviewSettingsInGameClanNamesForMatching}
+            </legend>
+            {rules.clanNames.map((name, index) => (
+              <div className="runelite-clan-name" key={index}>
+                <label
+                  className="sr-only"
+                  htmlFor={`runelite-clan-name-${index}`}
+                >
+                  {appText.webRuneLiteReviewSettingsClanNameLabel(index + 1)}
+                </label>
+                <input
+                  id={`runelite-clan-name-${index}`}
+                  value={name}
+                  maxLength={80}
+                  onChange={(event) =>
+                    updateClanNames(
+                      rules.clanNames.map((entry, position) =>
+                        position === index ? event.target.value : entry,
+                      ),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  aria-label={appText.webRuneLiteReviewSettingsRemoveClanName(
+                    index + 1,
+                  )}
+                  onClick={() =>
+                    updateClanNames(
+                      rules.clanNames.filter(
+                        (_, position) => position !== index,
+                      ),
+                    )
+                  }
+                >
+                  {appText.webRuneLiteReviewSettingsRemove}
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              disabled={rules.clanNames.length >= runeLiteClanNameLimit}
+              onClick={() => updateClanNames([...rules.clanNames, ''])}
+            >
+              {appText.webRuneLiteReviewSettingsAddClanName}
+            </button>
+            {clanNameError && (
+              <p id="runelite-clan-name-error" role="alert">
+                {clanNameError}
+              </p>
+            )}
+          </fieldset>
           {worldOptions.map(([key, label, canReject]) => (
             <div className="runelite-world-policy" key={key}>
               <label htmlFor={'runelite-policy-' + key}>{label}</label>
@@ -281,9 +341,21 @@ export function RuneLiteReviewSettings({
           <div className="admin-actions">
             <button
               className="site-button"
-              disabled={disabled || !changed || !rules.clanName.trim()}
+              disabled={disabled || !changed || !!clanNameError}
             >
               {appText.webRuneLiteReviewSettingsSaveReviewSettings}
+            </button>
+            <button
+              type="button"
+              disabled={disabled || !changed}
+              onClick={() => {
+                if (!saved || !keySettings) return;
+                accept(saved, keySettings);
+                action.setError(undefined);
+                action.setMessage(undefined);
+              }}
+            >
+              {appText.webRuneLiteReviewSettingsDiscardChanges}
             </button>
           </div>
         </form>

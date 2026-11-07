@@ -257,7 +257,7 @@ test('RuneLite chat-only proof is private, persisted and reviewable without a sc
     },
     multipart: {
       username: collector,
-      clanName: rules.clanName,
+      clanName: rules.clanNames[0]!,
       itemId: String(item.game_item_id),
       worldType: 'HARDCORE_MAIN',
       chatMessage: message,

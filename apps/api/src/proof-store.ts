@@ -10,6 +10,7 @@ import {
   parseRuneLiteWorldTypes,
   runeLiteDecision,
   normalizePlayerName,
+  normalizeRuneLiteClanName,
   type RuneLiteRules,
 } from '@clog/domain';
 import { readRuneLiteSettings } from './runelite-settings.js';
@@ -33,8 +34,6 @@ export const screenshotPath = (id: string) =>
   `/api/v1/admin/submission-images/${id}.webp`;
 export const uuidPattern =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu;
-export const clanMatches = (a: string, b: string) =>
-  a.trim().toLowerCase() === b.trim().toLowerCase();
 export function runeLiteWorld(value: unknown) {
   let worldTypes: string[];
   try {
@@ -74,11 +73,18 @@ function validateSubmission(fields: RuneLiteFields, rules: RuneLiteRules) {
       422,
       appText.apiProofStoreSupplyTheFullChatMessageUpTo8192Utf8,
     );
-  if (rules.matchClanName && !clanMatches(fields.clanName, rules.clanName))
-    throw new ApiError(
-      403,
-      appText.apiProofStoreClanNameDoesNotMatchTheConfiguredInGameClan,
-    );
+  if (rules.matchClanName) {
+    const clanName = normalizeRuneLiteClanName(fields.clanName);
+    if (
+      !rules.clanNames.some(
+        (name) => normalizeRuneLiteClanName(name) === clanName,
+      )
+    )
+      throw new ApiError(
+        403,
+        appText.apiProofStoreClanNameDoesNotMatchTheConfiguredInGameClan,
+      );
+  }
   return runeLiteDecision(fields.worldTypes, fields.username, rules);
 }
 export async function insertImage(

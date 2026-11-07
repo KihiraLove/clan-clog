@@ -2,6 +2,7 @@ import * as appText from '@clog/domain';
 import type pg from 'pg';
 import {
   parseRuneLiteRules,
+  parseStoredRuneLiteRules,
   type RuneLiteRules,
   type RuneLiteSettings,
   type RuneLiteSettingsUpdate,
@@ -20,7 +21,7 @@ export async function readRuneLiteSettings(
   lock = false,
 ): Promise<RuneLiteSettings> {
   const row = (
-    await database.query<{ version: number; rules: RuneLiteRules }>(
+    await database.query<{ version: number; rules: unknown }>(
       'SELECT version,rules FROM runelite_settings WHERE singleton=true' +
         (lock ? ' FOR SHARE' : ''),
     )
@@ -32,7 +33,7 @@ export async function readRuneLiteSettings(
     );
   return {
     revision: 'runelite-' + row.version,
-    ...parseRuneLiteRules(row.rules),
+    ...parseStoredRuneLiteRules(row.rules),
   };
 }
 export class PgRuneLiteSettingsStore implements RuneLiteSettingsStore {
@@ -57,7 +58,7 @@ export class PgRuneLiteSettingsStore implements RuneLiteSettingsStore {
     try {
       await client.query('BEGIN');
       const old = (
-        await client.query<{ version: number; rules: RuneLiteRules }>(
+        await client.query<{ version: number; rules: unknown }>(
           'SELECT version,rules FROM runelite_settings WHERE singleton=true FOR UPDATE',
         )
       ).rows[0];
