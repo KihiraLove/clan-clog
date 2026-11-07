@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import Fastify from 'fastify';
 import pg from 'pg';
 import { migrate } from '@clog/database/dist/migrate.js';
-import { provisionRuntimeRole } from '@clog/database/dist/runtime-role.js';
+import { createRuntimeTestPool } from './tests/runtime-pool.js';
 import { PgCompetitionMetricStore } from './competition-metric-store.js';
 import {
   competitionUnit,
@@ -35,12 +35,7 @@ test(
     let runtime: pg.Pool | undefined;
     try {
       await migrate(ownerUrl.href);
-      const password = 'f'.repeat(64);
-      await provisionRuntimeRole(ownerUrl.href, password);
-      const runtimeUrl = new URL(ownerUrl);
-      runtimeUrl.username = 'clog_runtime';
-      runtimeUrl.password = password;
-      runtime = new pg.Pool({ connectionString: runtimeUrl.href });
+      runtime = await createRuntimeTestPool(ownerUrl);
       const registry = new PgCompetitionMetricStore(runtime);
       const p = await registry.challenge(
         {

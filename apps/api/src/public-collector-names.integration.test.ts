@@ -4,7 +4,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import pg from 'pg';
 import { migrate } from '@clog/database/dist/migrate.js';
-import { provisionRuntimeRole } from '@clog/database/dist/runtime-role.js';
+import { createRuntimeTestPool } from './tests/runtime-pool.js';
 import * as text from '@clog/domain';
 import { PgStore } from './store.js';
 import { PgReviewStore } from './review-store.js';
@@ -80,11 +80,7 @@ test(
       ).rows;
     await migrate(url.href);
     await migrate(url.href);
-    await provisionRuntimeRole(url.href, 'e'.repeat(64));
-    const runtimeUrl = new URL(url);
-    runtimeUrl.username = 'clog_runtime';
-    runtimeUrl.password = 'e'.repeat(64);
-    const runtime = new pg.Pool({ connectionString: runtimeUrl.href, max: 10 });
+    const runtime = await createRuntimeTestPool(url, 10);
     resources.runtime = runtime;
     const names = new PgCollectorNames(runtime),
       backend = new PgStore(runtime),

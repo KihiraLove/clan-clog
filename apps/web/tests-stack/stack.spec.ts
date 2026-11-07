@@ -68,40 +68,38 @@ async function owner(page: Page) {
     page.getByRole('heading', { name: 'Submissions', exact: true }),
   ).toBeVisible();
 }
-async function database<T>(
-  query: string,
-  values: unknown[] = [],
-): Promise<T[]> {
+function stackCompose(args: string[]) {
   if (
     process.env.STACK_BROWSER_TEST !== '1' ||
     !/^clog-checks-[a-z0-9-]+$/u.test(process.env.COMPOSE_PROJECT_NAME ?? '')
   )
     throw new Error('Disposable database required');
+  return execute('docker', ['compose', ...args], {
+    cwd: new URL('../../../', import.meta.url),
+    encoding: 'utf8',
+    timeout: 20000,
+  });
+}
+async function database<T>(
+  query: string,
+  values: unknown[] = [],
+): Promise<T[]> {
   // PostgreSQL is private inside the installation; use its restricted runtime
   // credentials without exporting passwords or exposing a database port.
-  const { stdout } = await execute(
-    'docker',
-    [
-      'compose',
-      'exec',
-      '-T',
-      '--user',
-      '0',
-      'clan-clog',
-      'clog',
-      'runtime',
-      'node',
-      '--input-type=module',
-      '-e',
-      queryInstallation,
-      JSON.stringify({ query, values }),
-    ],
-    {
-      cwd: new URL('../../../', import.meta.url),
-      encoding: 'utf8',
-      timeout: 20000,
-    },
-  );
+  const { stdout } = await stackCompose([
+    'exec',
+    '-T',
+    '--user',
+    '0',
+    'clan-clog',
+    'clog',
+    'runtime',
+    'node',
+    '--input-type=module',
+    '-e',
+    queryInstallation,
+    JSON.stringify({ query, values }),
+  ]);
   return JSON.parse(stdout) as T[];
 }
 async function capture(page: Page, name: string) {
@@ -124,14 +122,8 @@ async function capture(page: Page, name: string) {
   });
 }
 test.beforeEach(async ({ page, browser, browserName }, info) => {
-  if (
-    process.env.STACK_BROWSER_TEST !== '1' ||
-    !/^clog-checks-[a-z0-9-]+$/u.test(process.env.COMPOSE_PROJECT_NAME ?? '')
-  )
-    throw new Error('Disposable database required');
   // Each browser scenario verifies real login without inheriting another's budget.
-  await execute('docker', [
-    'compose',
+  await stackCompose([
     'exec',
     '-T',
     '--user',

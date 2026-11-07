@@ -102,7 +102,10 @@ export function AdminPage({
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const accessLost = useCallback(() => {
-    setAccess({ phase: 'expired' });
+    // An in-flight private request may finish after an explicit sign-out.
+    setAccess((previous) =>
+      previous.phase === 'authenticated' ? { phase: 'expired' } : previous,
+    );
     setError(undefined);
   }, []);
   const signedOut = useCallback(() => {
@@ -132,7 +135,7 @@ export function AdminPage({
           if (!next) accessLost();
           else
             setAccess((previous) =>
-              previous.phase === 'authenticated' &&
+              previous.phase !== 'authenticated' ||
               JSON.stringify(previous.session) === JSON.stringify(next)
                 ? previous
                 : { phase: 'authenticated', session: next },

@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import pg from 'pg';
 import { migrate } from '@clog/database/dist/migrate.js';
-import { provisionRuntimeRole } from '@clog/database/dist/runtime-role.js';
+import { createRuntimeTestPool } from './tests/runtime-pool.js';
 import {
   defaultRuneLiteRules,
   repeatCollectorRejected,
@@ -149,11 +149,7 @@ test(
       (await owner.query('SELECT * FROM audit_events')).rows,
       oldAudit,
     );
-    await provisionRuntimeRole(url.href, 'e'.repeat(64));
-    const runtimeUrl = new URL(url);
-    runtimeUrl.username = 'clog_runtime';
-    runtimeUrl.password = 'e'.repeat(64);
-    const runtime = new pg.Pool({ connectionString: runtimeUrl.href });
+    const runtime = await createRuntimeTestPool(url);
     resources.runtime = runtime;
     const backend = new PgStore(runtime),
       review = new PgReviewStore(runtime, backend),
