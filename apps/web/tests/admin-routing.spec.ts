@@ -274,12 +274,19 @@ test('dirty forms survive a declined leave; confirmed navigation discards the dr
   await page.goto('/admin/account');
   const currentPassword = page.getByLabel('Current password', { exact: true });
   await currentPassword.fill('unsaved-test-password');
-  page.once('dialog', (dialog) => dialog.dismiss());
-  await catalogLink(page).click();
+  await Promise.all([
+    page.waitForEvent('dialog').then((dialog) => dialog.dismiss()),
+    catalogLink(page).click(),
+  ]);
+  await expect(
+    page.getByRole('complementary', { name: 'Page navigation' }),
+  ).toHaveCount(0);
   await expect(currentPassword).toHaveValue('unsaved-test-password');
   expect(new URL(page.url()).pathname).toBe('/admin/account');
-  page.once('dialog', (dialog) => dialog.accept());
-  await catalogLink(page).click();
+  await Promise.all([
+    page.waitForEvent('dialog').then((dialog) => dialog.accept()),
+    catalogLink(page).click(),
+  ]);
   await expect(
     page.getByRole('heading', { name: 'Items catalog', exact: true }),
   ).toBeVisible();
