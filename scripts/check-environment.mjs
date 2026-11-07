@@ -48,6 +48,11 @@ const parse = (text) => {
   }
 };
 export async function collectEnvironment(root, execute = probe) {
+  const pluginVersion = async (...args) => {
+    const detect = async () => version(await execute('docker', args));
+    // Give Docker Desktop's plugins a second chance if startup is slow.
+    return (await detect()) ?? (await detect()) ?? unavailable;
+  };
   const [
     npm,
     docker,
@@ -63,8 +68,8 @@ export async function collectEnvironment(root, execute = probe) {
     execute(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['--version']),
     execute('docker', ['version', '--format', 'json']),
     execute('docker', ['info', '--format', '{{json .}}']),
-    execute('docker', ['compose', 'version', '--short']),
-    execute('docker', ['buildx', 'version']),
+    pluginVersion('compose', 'version', '--short'),
+    pluginVersion('buildx', 'version'),
     execute('docker', ['buildx', 'inspect']),
     read('/sys/fs/cgroup/cpu.max'),
     read('/sys/fs/cgroup/memory.max'),
@@ -124,8 +129,8 @@ export async function collectEnvironment(root, execute = probe) {
         'Driver',
         'CgroupVersion',
       ]),
-      compose: version(compose) ?? unavailable,
-      buildx: version(buildx) ?? unavailable,
+      compose,
+      buildx,
       buildkit:
         /BuildKit version:\s*(v?[\w.-]+)/u.exec(builder ?? '')?.[1] ??
         unavailable,
