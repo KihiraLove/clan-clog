@@ -303,7 +303,7 @@ export function AdminPage({
           !session.mustChangePassword &&
           client.eventPageClient && (
             <EventPageAssignments
-              key={session.username}
+              key={`event-page-assignments:${session.username}`}
               client={client}
               session={session}
               onAccessLost={accessLost}
@@ -313,7 +313,7 @@ export function AdminPage({
           !session.mustChangePassword &&
           client.catalogUpdateClient && (
             <CatalogUpdateNotice
-              key={session.username}
+              key={`catalog-update:${session.username}`}
               client={client}
               session={session}
               onAccessLost={accessLost}
