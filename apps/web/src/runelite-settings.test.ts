@@ -6,10 +6,12 @@ import { MemoryAdminClient } from '../tests/support/admin.ts';
 const signal = () => new AbortController().signal;
 test('private RuneLite adapter sends revisions and CSRF and validates canonical receipts', async () => {
   const rules = defaultRuneLiteRules('In-game Clan');
+  rules.clanNames = [' In-game Clan ', 'Sister Clan'];
   rules.playerWhitelist = ['Player_One', 'player one'];
   const receipt = {
     revision: 'runelite-2',
     ...rules,
+    clanNames: ['In-game Clan', 'Sister Clan'],
     playerWhitelist: ['player one'],
     clanKeyRequirement: { enabled: false, revision: 'clan-key-2' },
   };
@@ -25,6 +27,7 @@ test('private RuneLite adapter sends revisions and CSRF and validates canonical 
     assert.deepEqual(JSON.parse(String(options.body)), {
       expectedRevision: 'runelite-1',
       ...rules,
+      clanNames: ['In-game Clan', 'Sister Clan'],
       playerWhitelist: ['player one'],
       clanKeyRequirement: { enabled: false, expectedRevision: 'clan-key-1' },
     });
@@ -45,12 +48,23 @@ test('private RuneLite adapter sends revisions and CSRF and validates canonical 
   for (const bad of [
     { ...receipt, revision: 'bad' },
     { ...receipt, matchClanName: 1 },
+    { ...receipt, clanNames: ['In-game Clan', ' in-game clan '] },
     {
       ...receipt,
       clanKeyRequirement: { enabled: false, revision: 'runelite-1' },
     },
   ])
     assert.throws(() => parseRuneLiteSettings(bad));
+  await assert.rejects(
+    new LiveAdminClient(async () =>
+      Response.json({ ...receipt, clanNames: ['In-game Clan'] }),
+    ).saveRuneLiteSettings(
+      { expectedRevision: 'runelite-1', ...rules },
+      'csrf',
+      signal(),
+    ),
+    /Unexpected/u,
+  );
   await assert.rejects(
     new LiveAdminClient(async () =>
       Response.json(receipt),
@@ -71,16 +85,17 @@ test('preview RuneLite settings persist independently of display names, isolate 
     {
       expectedRevision: revision,
       ...rules,
-      clanName: 'Game Clan',
+      clanNames: ['Game Clan', 'Sister Clan'],
       playerWhitelist: ['Player'],
     },
     'csrf',
     signal(),
   );
   changed.playerWhitelist.push('Injected');
-  assert.deepEqual((await client.runeLiteSettings(signal())).playerWhitelist, [
-    'Player',
-  ]);
+  changed.clanNames.push('Injected');
+  const saved = await client.runeLiteSettings(signal());
+  assert.deepEqual(saved.playerWhitelist, ['Player']);
+  assert.deepEqual(saved.clanNames, ['Game Clan', 'Sister Clan']);
   assert.equal(client.publicSettings().clanName, 'Clan name');
   await assert.rejects(
     client.saveRuneLiteSettings(

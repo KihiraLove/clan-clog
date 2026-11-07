@@ -429,7 +429,7 @@ test('RuneLite submissions keeps one retryable Event assignment notice through s
     name: 'Assign existing Event collections to pages',
     exact: true,
   });
-  const settings = page.getByLabel('In-game clan name for matching', {
+  const settings = page.getByLabel('In-game clan name 1', {
     exact: true,
   });
   await expect(settings).toBeVisible();

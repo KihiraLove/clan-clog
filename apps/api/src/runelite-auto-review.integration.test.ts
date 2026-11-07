@@ -7,7 +7,11 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import pg from 'pg';
 import sharp from 'sharp';
-import { defaultRuneLiteRules, type RuneLiteSettings } from '@clog/domain';
+import {
+  defaultRuneLiteRules,
+  runeLiteClanNameLimit,
+  type RuneLiteSettings,
+} from '@clog/domain';
 import { createApp } from './app.js';
 import { PgStore } from './store.js';
 import { PgProofStore } from './proof-store.js';
@@ -15,6 +19,7 @@ import { PgReviewStore } from './review-store.js';
 import { ProofStorage } from './proof-storage.js';
 import { PgClanKeyStore, loadClanKeyRoot } from './clan-api-key.js';
 import { PgRuneLiteSettingsStore } from './runelite-settings.js';
+import { PgAccessControlStore } from './access-control.js';
 import { hashPassword } from './passwords.js';
 
 test(
@@ -50,6 +55,7 @@ test(
         proofs,
         proofStore,
         runeLiteSettings: settings,
+        accessControl: new PgAccessControlStore(pool),
         clanKeys,
         auth,
         logger: false,
@@ -110,12 +116,18 @@ test(
         revision: 'runelite-1',
         ...defaultRuneLiteRules('Clan name'),
       });
+      const legacyRules = {
+        ...(await pool.query('SELECT rules FROM runelite_settings')).rows[0]
+          .rules,
+        clanName: 'Legacy Clan',
+      };
+      await pool.query('UPDATE runelite_settings SET rules=$1', [legacyRules]);
+      rules = await settings.settings();
       const path = '/api/v1/admin/runelite-settings';
       assert.equal((await app.inject(path)).statusCode, 401);
-      assert.equal(
-        (await app.inject({ url: path, headers: moderator })).statusCode,
-        200,
-      );
+      const allowed = await app.inject({ url: path, headers: moderator });
+      assert.equal(allowed.statusCode, 200, allowed.body);
+      assert.deepEqual(allowed.json(), rules);
       const update = (payload: unknown, headers = owner) =>
         app.inject({
           method: 'PUT',
@@ -127,9 +139,21 @@ test(
         const { revision, ...rest } = rules;
         return { expectedRevision: revision, ...rest };
       };
-      const moderatorSave = await update(fields(), moderator);
-      assert.equal(moderatorSave.statusCode, 200, moderatorSave.body);
-      rules = moderatorSave.json();
+      await pool.query(
+        "UPDATE staff_page_access SET moderator_pages=array_remove(moderator_pages, 'runelite')",
+      );
+      assert.equal(
+        (await app.inject({ url: path, headers: moderator })).statusCode,
+        403,
+      );
+      assert.equal((await update(fields(), moderator)).statusCode, 403);
+      assert.equal(
+        (await app.inject({ url: path, headers: owner })).statusCode,
+        200,
+      );
+      await pool.query(
+        "UPDATE staff_page_access SET moderator_pages=array_append(moderator_pages, 'runelite')",
+      );
       assert.equal(
         (await update(fields(), { ...owner, 'x-csrf-token': 'bad' }))
           .statusCode,
@@ -152,10 +176,30 @@ test(
         ).statusCode,
         400,
       );
+      const { clanNames: baselineClanNames, ...otherFields } = fields();
+      assert.deepEqual(baselineClanNames, ['Legacy Clan']);
       assert.equal(
-        (await update({ ...fields(), clanName: 'Bad\nClan' })).statusCode,
-        422,
+        (await update({ ...otherFields, clanName: 'Clan name' })).statusCode,
+        400,
       );
+      for (const clanNames of [[], ['   '], ['Bad\nClan'], ['Clan', ' clan ']])
+        assert.equal(
+          (await update({ ...fields(), clanNames })).statusCode,
+          422,
+        );
+      for (const clanNames of [
+        [''],
+        [4],
+        ['a'.repeat(81)],
+        Array.from(
+          { length: runeLiteClanNameLimit + 1 },
+          (_, i) => `Clan ${i}`,
+        ),
+      ])
+        assert.equal(
+          (await update({ ...fields(), clanNames })).statusCode,
+          400,
+        );
       assert.equal(
         (
           await update({
@@ -221,12 +265,49 @@ test(
           ]),
         });
       };
-      assert.equal((await submit('MEMBERS')).json().status, 'pending');
-      await save({
-        clanName: 'Game Clan',
-        playerWhitelist: [' Trusted_Player ', 'trusted player'],
-      });
+      const legacyKey = randomUUID();
+      const legacySubmission = await submit(
+        'MEMBERS',
+        1,
+        'Collector',
+        ' Legacy Clan ',
+        legacyKey,
+      );
+      assert.equal(legacySubmission.statusCode, 201, legacySubmission.body);
+      assert.equal(legacySubmission.json().status, 'pending');
+      const moderatorSave = await update(
+        {
+          ...fields(),
+          clanNames: [' Game Clan ', 'Sister Clan'],
+          playerWhitelist: [' Trusted_Player ', 'trusted player'],
+        },
+        moderator,
+      );
+      assert.equal(moderatorSave.statusCode, 200, moderatorSave.body);
+      rules = moderatorSave.json();
+      assert.deepEqual(rules.clanNames, ['Game Clan', 'Sister Clan']);
       assert.deepEqual(rules.playerWhitelist, ['trusted player']);
+      const audit = (
+        await pool.query(
+          'SELECT actor_id,old_rules,new_rules FROM runelite_settings_audit WHERE version=2',
+        )
+      ).rows[0];
+      assert.equal(audit.actor_id, mod.id);
+      assert.deepEqual(audit.old_rules, legacyRules);
+      assert.deepEqual(audit.new_rules.clanNames, rules.clanNames);
+      assert.equal(audit.new_rules.clanName, undefined);
+      assert.equal(
+        (await submit('MEMBERS', 1, 'Collector', 'Legacy Clan')).statusCode,
+        403,
+      );
+      const legacyEvidence = (
+        await pool.query(
+          'SELECT r.response,s.submitted_clan_name FROM runelite_submission_requests r JOIN submissions s ON s.id=r.submission_id WHERE r.request_key=$1',
+          [legacyKey],
+        )
+      ).rows[0];
+      assert.deepEqual(legacyEvidence.response, legacySubmission.json());
+      assert.equal(legacyEvidence.submitted_clan_name, 'Legacy Clan');
       assert.equal((await submit('MEMBERS')).statusCode, 403);
       assert.equal(
         (await submit('MEMBERS', 1, 'Collector', ' game clan ')).statusCode,
@@ -234,6 +315,8 @@ test(
       );
       const publicSettings = (await app.inject('/api/v1/settings')).json();
       assert.equal(publicSettings.clanName, 'Clan name');
+      assert.equal(publicSettings.clanNames, undefined);
+      assert.ok(!JSON.stringify(publicSettings).includes('Sister Clan'));
       assert.ok(!JSON.stringify(publicSettings).includes('trusted player'));
       assert.ok(!JSON.stringify(publicSettings).includes('worldPolicies'));
       const blockedCount = (
@@ -551,7 +634,7 @@ test(
             'MEMBERS',
             15,
             'Collector',
-            'Game Clan',
+            ' sIsTeR cLaN ',
             randomUUID(),
             null,
           )
@@ -564,7 +647,7 @@ test(
             'MEMBERS',
             16,
             'Collector',
-            'Clan name',
+            'Game_Clan',
             randomUUID(),
             null,
           )
@@ -578,7 +661,7 @@ test(
             'MEMBERS',
             16,
             'Collector',
-            'Game Clan',
+            'Sister Clan',
             randomUUID(),
             null,
           )
@@ -590,10 +673,11 @@ test(
         403,
       );
       assert.equal(
-        (await submit('MEMBERS', 16, 'Collector', 'Game Clan')).statusCode,
+        (await submit('MEMBERS', 16, 'Collector', 'Sister Clan')).statusCode,
         201,
       );
       await matching(false, true);
+      assert.deepEqual(rules.clanNames, ['Game Clan', 'Sister Clan']);
       assert.equal(
         (
           await submit(
@@ -627,7 +711,7 @@ test(
         (
           await update({
             ...fields(),
-            clanName: 'Unsaved',
+            clanNames: ['Unsaved'],
             matchClanName: true,
             clanKeyRequirement: {
               enabled: false,

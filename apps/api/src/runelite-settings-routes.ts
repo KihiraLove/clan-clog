@@ -1,6 +1,9 @@
 import * as appText from '@clog/domain';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { RuneLiteSettingsUpdate } from '@clog/domain';
+import {
+  runeLiteClanNameLimit,
+  type RuneLiteSettingsUpdate,
+} from '@clog/domain';
 import type { RuneLiteSettingsStore } from './runelite-settings.js';
 import { ApiError, type AdminIdentity, type StaffAccount } from './types.js';
 
@@ -42,7 +45,7 @@ export function runeLiteSettingsRoutes(
           required: [
             'expectedRevision',
             'matchClanName',
-            'clanName',
+            'clanNames',
             'worldPolicies',
             'playerWhitelist',
           ],
@@ -66,7 +69,11 @@ export function runeLiteSettingsRoutes(
                 },
               },
             },
-            clanName: { type: 'string', minLength: 1, maxLength: 80 },
+            clanNames: {
+              type: 'array',
+              maxItems: runeLiteClanNameLimit,
+              items: { type: 'string', minLength: 1, maxLength: 80 },
+            },
             worldPolicies: {
               type: 'object',
               additionalProperties: false,

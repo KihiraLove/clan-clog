@@ -86,10 +86,10 @@ The shared clan API key is **required by default**, in the `X-Clan-API-Key`
 header. The API generates a cryptographically random 16-byte key written as
 32 hexadecimal characters on first startup
 and preserves it across restarts. An enabled requirement rejects missing/wrong
-keys with **401**, before reading uploads. A trimmed, case-insensitive clan-name mismatch returns
-**403** and creates no submission or image when clan matching is enabled. The
-comparison uses the separate **In-game clan name for matching** setting; it does
-not authenticate clan membership. All world policies default to staff review.
+keys with **401**, before reading uploads. When clan-name matching is enabled,
+the submitted name must exactly match one of the **In-game clan names for matching**
+after trimming surrounding spaces and ignoring case. A mismatch returns **403**
+and creates no submission or image. All world policies default to staff review.
 Configured auto allow policies and the player whitelist can grant automatic
 approval. Valid claims always receive **201** and a durable submission receipt
 with `status: "pending"`, `"approved"` or `"rejected"`. Configured world-policy
@@ -274,13 +274,20 @@ Rotations invalidate the previous key immediately, including uploads that
 started before rotation but have not committed.
 
 **Automatic review** on this page provides **Match Clan name or API**, a separate
-**In-game clan name for matching**, world-policy dropdowns and a player whitelist.
-Fresh setup uses Clan name as the in-game matching name;
-subsequent changes to either name do not affect the other. **Clan name** checks
-only this in-game name; **API key** checks only the key and retains the submitted
-clan name as provenance; **Both** requires both to match. Matching ignores case
-and surrounding spaces. **Save review settings** updates the selected name/key
-requirements together in one transaction with both revisions and audits.
+**In-game clan names for matching** list, world-policy dropdowns and a player
+whitelist. Administrators and moderators with RuneLite access can add, edit or
+remove up to 20 clan names. Each entry must contain 1 to 80 characters, with no
+control characters or duplicates after ignoring case and surrounding spaces.
+Fresh setup starts with `Clan name`. Existing installations carry their saved
+matching name forward as the first entry. This private list is separate from
+public branding.
+
+**Clan name** accepts any listed name. **Both** requires a listed name and the
+current key. These modes require at least one saved name. **API key** checks the
+key, keeps the saved list available for later use and retains the submitted name
+as provenance. **Save review settings** updates the rules and key requirement
+together with both revisions and audits. **Discard changes** restores the saved
+review settings.
 
 | World flags                    | Available policy                   |
 | ------------------------------ | ---------------------------------- |
@@ -304,7 +311,8 @@ original pending/approved/rejected receipt after policy, filter or whitelist
 changes. With **Filter out regular duplicates** enabled, a new Regular claim for
 an item with an approved Regular credit in that mode creates a rejected submission.
 
-Staff-only `GET /api/v1/admin/runelite-settings` returns private rules with a
+`GET /api/v1/admin/runelite-settings` returns private rules with a `clanNames`
+array for administrators and moderators with RuneLite access. It includes a
 `runelite-N` revision. CSRF-protected `PUT` replaces the complete rules and
 requires `expectedRevision`; stale writes return **409**. For example:
 
@@ -312,7 +320,7 @@ requires `expectedRevision`; stale writes return **409**. For example:
 {
   "expectedRevision": "runelite-1",
   "matchClanName": true,
-  "clanName": "In-game Clan",
+  "clanNames": ["Main Clan", "Sister Clan"],
   "worldPolicies": {
     "f2p": "reject",
     "pvp": "review",

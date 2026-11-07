@@ -4,6 +4,8 @@ import {
   defaultRuneLiteRules,
   normalizePlayerName,
   parseRuneLiteRules,
+  parseStoredRuneLiteRules,
+  runeLiteClanNameLimit,
   runeLiteDecision,
 } from './runelite-rules.js';
 import { blockedRuneLiteWorldTypes } from './world-types.js';
@@ -57,7 +59,7 @@ test('rule validation limits policies and canonicalizes whitelist names without 
   const rules = defaultRuneLiteRules(' In-game Clan ');
   rules.playerWhitelist = [' Player_One ', 'player one', 'Player\u00a0Two'];
   const parsed = parseRuneLiteRules(rules);
-  assert.equal(parsed.clanName, 'In-game Clan');
+  assert.deepEqual(parsed.clanNames, ['In-game Clan']);
   assert.deepEqual(parsed.playerWhitelist, ['player one', 'Player\u00a0Two']);
   assert.equal(normalizePlayerName('PLAYER_One'), 'player one');
   for (const input of [
@@ -66,12 +68,65 @@ test('rule validation limits policies and canonicalizes whitelist names without 
     { ...rules, worldPolicies: { ...rules.worldPolicies, pvp: 'approved' } },
     { ...rules, worldPolicies: { ...rules.worldPolicies, surprise: 'allow' } },
     { ...rules, matchClanName: 'false' },
-    { ...rules, clanName: 'Bad\nClan' },
-    { ...rules, clanName: 'a'.repeat(81) },
     { ...rules, surprise: true },
     { ...rules, playerWhitelist: ['___'] },
     { ...rules, playerWhitelist: ['bad\nname'] },
     { ...rules, playerWhitelist: Array.from({ length: 201 }, () => 'Player') },
   ])
     assert.throws(() => parseRuneLiteRules(input));
+});
+
+test('clan names trim, reject duplicates and invalid entries, and may be empty for key-only matching', () => {
+  const rules = defaultRuneLiteRules('Clan');
+  const clanNames = Array.from(
+    { length: runeLiteClanNameLimit },
+    (_, i) => `Clan ${i}`,
+  );
+  assert.deepEqual(
+    parseRuneLiteRules({ ...rules, clanNames }).clanNames,
+    clanNames,
+  );
+  assert.deepEqual(
+    parseRuneLiteRules({
+      ...rules,
+      clanNames: [' Main Clan ', ' Sister Clan '],
+    }).clanNames,
+    ['Main Clan', 'Sister Clan'],
+  );
+  assert.deepEqual(
+    parseRuneLiteRules({ ...rules, matchClanName: false, clanNames: [] })
+      .clanNames,
+    [],
+  );
+  assert.throws(
+    () => parseRuneLiteRules({ ...rules, clanNames: [] }),
+    /at least one/u,
+  );
+  assert.throws(
+    () =>
+      parseRuneLiteRules({ ...rules, clanNames: ['Main Clan', ' main clan '] }),
+    /unique/u,
+  );
+  assert.throws(
+    () => parseRuneLiteRules({ ...rules, clanNames: [...clanNames, 'Extra'] }),
+    /up to 20/u,
+  );
+  for (const name of ['', '  ', 'Bad\nClan', 'Bad\x7fClan', 'a'.repeat(81), 1])
+    assert.throws(
+      () =>
+        parseRuneLiteRules({
+          ...rules,
+          matchClanName: false,
+          clanNames: [name],
+        }),
+      /1 to 80/u,
+    );
+});
+
+test('stored legacy clan names read as a singleton list while writes use the list contract', () => {
+  const { clanNames, ...rules } = defaultRuneLiteRules('In-game Clan');
+  const legacy = { ...rules, clanName: ' In-game Clan ' };
+  assert.deepEqual(parseStoredRuneLiteRules(legacy), { ...rules, clanNames });
+  assert.throws(() => parseRuneLiteRules(legacy));
+  assert.throws(() => parseStoredRuneLiteRules({ ...legacy, clanNames }));
 });

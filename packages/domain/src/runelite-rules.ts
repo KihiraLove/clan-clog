@@ -5,9 +5,10 @@ import {
 } from './world-types.js';
 
 export type WorldPolicy = 'reject' | 'review' | 'allow';
+export const runeLiteClanNameLimit = 20;
 export interface RuneLiteRules {
   matchClanName: boolean;
-  clanName: string;
+  clanNames: string[];
   worldPolicies: {
     f2p: WorldPolicy;
     pvp: WorldPolicy;
@@ -27,7 +28,7 @@ export interface RuneLiteSettingsUpdate extends RuneLiteRules {
 export function defaultRuneLiteRules(clanName: string): RuneLiteRules {
   return {
     matchClanName: true,
-    clanName,
+    clanNames: clanName ? [clanName] : [],
     worldPolicies: {
       f2p: 'review',
       pvp: 'review',
@@ -58,6 +59,37 @@ const validName = (value: unknown): value is string =>
     (character) =>
       character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
   );
+export const normalizeRuneLiteClanName = (name: string) =>
+  name.trim().toLowerCase();
+
+export function parseRuneLiteClanNames(value: unknown, required: boolean) {
+  if (!Array.isArray(value) || value.length > runeLiteClanNameLimit)
+    throw new Error(
+      appText.domainRuneliteRulesClanNameLimit(runeLiteClanNameLimit),
+    );
+  if (required && value.length === 0)
+    throw new Error(appText.domainRuneliteRulesClanNameRequired);
+  const names = new Map<string, string>();
+  for (const name of value) {
+    if (!validName(name))
+      throw new Error(appText.domainRuneliteRulesInvalidClanName);
+    const normalized = normalizeRuneLiteClanName(name);
+    if (names.has(normalized))
+      throw new Error(appText.domainRuneliteRulesDuplicateClanName);
+    names.set(normalized, name.trim());
+  }
+  return [...names.values()];
+}
+
+export function parseStoredRuneLiteRules(value: unknown): RuneLiteRules {
+  const data = record(value);
+  if ('clanName' in data && !('clanNames' in data)) {
+    const { clanName, ...rules } = data;
+    return parseRuneLiteRules({ ...rules, clanNames: [clanName] });
+  }
+  return parseRuneLiteRules(data);
+}
+
 export function parseRuneLiteRules(value: unknown): RuneLiteRules {
   const data = record(value),
     policies = record(data.worldPolicies);
@@ -66,13 +98,12 @@ export function parseRuneLiteRules(value: unknown): RuneLiteRules {
       (key) =>
         ![
           'matchClanName',
-          'clanName',
+          'clanNames',
           'worldPolicies',
           'playerWhitelist',
         ].includes(key),
     ) ||
     typeof data.matchClanName !== 'boolean' ||
-    !validName(data.clanName) ||
     Object.keys(policies).some(
       (key) => !['f2p', 'pvp', 'members', 'hardcore'].includes(key),
     ) ||
@@ -98,7 +129,7 @@ export function parseRuneLiteRules(value: unknown): RuneLiteRules {
     names.set(normalizePlayerName(name), name.trim());
   return {
     matchClanName: data.matchClanName,
-    clanName: data.clanName.trim(),
+    clanNames: parseRuneLiteClanNames(data.clanNames, data.matchClanName),
     worldPolicies: {
       f2p: policies.f2p as WorldPolicy,
       pvp: policies.pvp as WorldPolicy,
