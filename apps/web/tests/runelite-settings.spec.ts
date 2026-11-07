@@ -14,6 +14,9 @@ test('RuneLite policies, independent clan matching and whitelist save on desktop
   const add = names.getByRole('button', { name: 'Add clan name' });
   const save = page.getByRole('button', { name: 'Save review settings' });
   const discard = page.getByRole('button', { name: 'Discard changes' });
+  const saved = page.getByText('RuneLite review settings saved.', {
+    exact: true,
+  });
   await expect(
     page.getByLabel('Match Clan name or API', { exact: true }),
   ).toBeEnabled();
@@ -71,9 +74,7 @@ test('RuneLite policies, independent clan matching and whitelist save on desktop
     .getByLabel('Player whitelist', { exact: true })
     .fill('Trusted_Player\ntrusted player\nSecond Player');
   await save.click();
-  await expect(page.getByRole('status')).toHaveText(
-    'RuneLite review settings saved.',
-  );
+  await expect(saved).toBeVisible();
   await expect(
     page.getByLabel('Player whitelist', { exact: true }),
   ).toHaveValue('trusted player\nSecond Player');
@@ -83,6 +84,7 @@ test('RuneLite policies, independent clan matching and whitelist save on desktop
     .getByLabel('Match Clan name or API', { exact: true })
     .selectOption('key');
   await save.click();
+  await expect(saved).toBeVisible();
   await expect(save).toBeDisabled();
   await page.getByRole('link', { name: 'Site settings', exact: true }).click();
   await expect(
@@ -99,6 +101,7 @@ test('RuneLite policies, independent clan matching and whitelist save on desktop
   await names.getByRole('button', { name: 'Remove clan name 1' }).click();
   await firstName.fill('Renamed Clan');
   await save.click();
+  await expect(saved).toBeVisible();
   await expect(save).toBeDisabled();
   await page.reload();
   await expect(firstName).toHaveValue('Renamed Clan');
