@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import pg from 'pg';
 import { PgStore } from './store.js';
 import { PgReviewStore } from './review-store.js';
+import { transaction } from './transaction.js';
 
 async function fixture(
   run: (pool: pg.Pool, review: PgReviewStore) => Promise<void>,
@@ -38,9 +39,13 @@ async function fixture(
 }
 const id = (n: number) =>
   '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
-async function claims(pool: pg.Pool, start: number, end: number) {
+async function claims(
+  database: pg.Pool | pg.PoolClient,
+  start: number,
+  end: number,
+) {
   // Equal timestamps and differences smaller than a JS millisecond exercise both key parts.
-  await pool.query(
+  await database.query(
     `INSERT INTO submissions(id,source,raw_item_text,collector_name,collected_on,date_source,proof_url,submitted_at)
     SELECT ('00000000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid,'manual','Evidence item','Collector',
       '2026-10-01','admin','',timestamptz '2026-10-01' + (n / 3) * interval '1 microsecond'
@@ -313,20 +318,24 @@ test(
   { skip: !process.env.TEST_DATABASE_URL },
   async (t) =>
     fixture(async (pool, review) => {
-      await claims(pool, 1, 60003);
-      await pool.query(
-        'UPDATE submissions SET item_id=42 WHERE id >= $1 AND id < $2',
-        [id(20002), id(40003)],
-      );
-      await pool.query(
-        "UPDATE submissions SET status='rejected',reviewed_by='staff',reviewed_at=now(),review_reason='Reviewed' WHERE id >= $1",
-        [id(40003)],
-      );
-      // A sparse history among unrelated events must seek its composite index.
-      await pool.query(
-        "INSERT INTO audit_events(submission_id,actor_discord_id,actor_name,action,old_values,new_values) SELECT $1,'staff','Other history','edit','{}','{}' FROM generate_series(1,100000)",
-        [id(2)],
-      );
+      await transaction(pool, 'write', async (seed) => {
+        // Bulk fixture writes run row triggers and share PostgreSQL with other tests.
+        await seed.query("SET LOCAL statement_timeout = '60s'");
+        await claims(seed, 1, 60003);
+        await seed.query(
+          'UPDATE submissions SET item_id=42 WHERE id >= $1 AND id < $2',
+          [id(20002), id(40003)],
+        );
+        await seed.query(
+          "UPDATE submissions SET status='rejected',reviewed_by='staff',reviewed_at=now(),review_reason='Reviewed' WHERE id >= $1",
+          [id(40003)],
+        );
+        // A sparse history among unrelated events must seek its composite index.
+        await seed.query(
+          "INSERT INTO audit_events(submission_id,actor_discord_id,actor_name,action,old_values,new_values) SELECT $1,'staff','Other history','edit','{}','{}' FROM generate_series(1,100000)",
+          [id(2)],
+        );
+      });
       await events(pool, review, 1, 5001);
       const auditAnchor =
         BigInt(

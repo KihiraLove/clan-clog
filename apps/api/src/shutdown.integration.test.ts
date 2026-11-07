@@ -29,7 +29,7 @@ for (const phase of ['query', 'commit'] as const)
     'SIGTERM during ' +
       phase +
       ' drains the durable receipt before closing the production API pool',
-    { skip: !process.env.TEST_DATABASE_URL, timeout: 30000 },
+    { skip: !process.env.TEST_DATABASE_URL, timeout: 60000 },
     async () => {
       const database = 'shutdown_' + randomUUID().replaceAll('-', ''),
         appName = 'clog_shutdown_' + database;
@@ -62,12 +62,19 @@ for (const phase of ['query', 'commit'] as const)
       let child: ReturnType<typeof spawn> | undefined,
         logs = '',
         blocker: pg.PoolClient | undefined;
-      const until = async (check: () => Promise<boolean>) => {
-        for (let n = 0; n < 100; n++) {
+      const until = async (
+        state: string,
+        waitMs: number,
+        check: () => Promise<boolean>,
+      ) => {
+        const deadline = performance.now() + waitMs;
+        while (performance.now() < deadline) {
+          if (child?.exitCode != null || child?.signalCode != null)
+            throw Error(`API exited while waiting for ${state}: ${logs}`);
           if (await check()) return;
           await delay(30);
         }
-        throw Error('State timeout: ' + logs);
+        throw Error(`Timed out waiting for ${state}: ${logs}`);
       };
       try {
         const dir = new URL(
@@ -112,13 +119,14 @@ for (const phase of ['query', 'commit'] as const)
         }>((resolve) =>
           child!.once('exit', (code, signal) => resolve({ code, signal })),
         );
-        await until(async () => {
+        await until('API startup', 15000, async () => {
           try {
             // The upload needs a fresh connection, not an idle health socket
             // that can expire while a busy runner prepares the request.
             return (
               await fetch(base + '/healthz', {
                 headers: { connection: 'close' },
+                signal: AbortSignal.timeout(1000),
               })
             ).ok;
           } catch {
@@ -146,6 +154,8 @@ for (const phase of ['query', 'commit'] as const)
           body: new Uint8Array(upload.payload),
         });
         await until(
+          `the ${phase} database lock`,
+          3000,
           async () =>
             !!(
               await root.query(
@@ -188,7 +198,7 @@ for (const phase of ['query', 'commit'] as const)
             .catch(() => {});
           blocker.release();
         }
-        if (child && child.exitCode === null) {
+        if (child && child.exitCode === null && child.signalCode === null) {
           child.kill('SIGKILL');
           await new Promise<void>((resolve) =>
             child!.once('exit', () => resolve()),
