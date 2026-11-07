@@ -1,5 +1,6 @@
 import * as appText from './text.js';
 import { collectorDisplayName } from './collector-names.js';
+import type { GameMode } from './game-modes.js';
 import { normalizePlayerName } from './runelite-rules.js';
 
 export const collectionHiScoreMetrics = [
@@ -18,6 +19,7 @@ export interface CollectionHiScoreQuery {
 export interface CollectionHiScoreRow {
   rank: number;
   name: string;
+  gameMode: GameMode | null;
   /** Decimal obtain count: never round a bigint through JSON numbers. */
   score: string;
 }

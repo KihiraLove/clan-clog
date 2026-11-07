@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import Fastify from 'fastify';
 import { collectionHiScoresRoutes } from './collection-hiscores-routes.js';
@@ -29,6 +30,18 @@ test('public HiScores validates bounded queries and scopes ETags to revision, me
       'public, max-age=0, must-revalidate',
     );
     const etag = String(first.headers.etag);
+    const legacyEtag =
+      '"' +
+      createHash('sha256')
+        .update(JSON.stringify(['hiscores-1-1-1', 'total', 1, null]))
+        .digest('hex') +
+      '"';
+    const upgraded = await app.inject({
+      url: '/api/v1/collections/hiscores',
+      headers: { 'if-none-match': legacyEtag },
+    });
+    assert.equal(upgraded.statusCode, 200);
+    assert.equal(upgraded.headers.etag, etag);
     assert.equal(
       (
         await app.inject({

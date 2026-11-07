@@ -171,9 +171,12 @@ an exact current name and jumps to that player's page; it does not filter the pa
 
 Every response has `revision`, `metric`, `page`, `pageSize: 25`, `totalPlayers`,
 `totalPages`, `hardcoreEnabled`, `players` and nullable `match`. Player rows contain
-only consecutive overall `rank`, current `name` and positive decimal-string
-`score`; the string keeps large counts exact. `match` contains the matched name
-and overall rank only when that player has a positive score in this category.
+consecutive overall `rank`, current `name`, nullable `gameMode` and a positive
+decimal-string `score` that keeps large counts exact. `gameMode` is the current
+account mode of the surviving collector, or `null` when unassigned. Clients
+treat an omitted `gameMode` in an older response as unassigned. `match` contains
+the matched name and overall rank only when that player has a positive score in
+this category.
 An absent/zero-score player has no match. Empty categories have page 1 of 1 and
 no players. Out-of-range pages clamp to the final page.
 
@@ -187,10 +190,12 @@ the surviving collector identity. Account game mode does not determine world sco
 
 Rows, ranks, page totals, search position and Hardcore visibility share one
 read-only repeatable-read snapshot. The revision includes collection projection
-and site settings versions/visibility; the ETag also distinguishes category,
-result page and normalized searched name. With public Hardcore disabled, its
-list/search response is empty and never exposes names or counts. Originating
-obtain/review evidence and stored request receipts are unchanged by these reads.
+and site settings versions/visibility. An account mode edit or removal advances
+the collection revision. The ETag also distinguishes the response format,
+category, result page and normalized searched name. With public Hardcore
+disabled, its list/search response is empty and never exposes names or counts.
+Originating obtain/review evidence and stored request receipts are unchanged by
+these reads.
 
 ## Repeat collector policy
 

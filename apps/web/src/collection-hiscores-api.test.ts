@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { gameModes } from '@clog/domain';
 import {
   CollectionHiScoresClient,
   parseCollectionHiScores,
@@ -40,6 +41,25 @@ test('ranking response preserves exact large scores and rejects inconsistent row
       ...snapshot(),
       metric: 'hardcore',
       hardcoreEnabled: false,
+    }),
+  );
+});
+test('ranking rows parse every account mode and allow unassigned or legacy rows', () => {
+  const data = snapshot();
+  const modes = [...gameModes, null, undefined];
+  const players = data.players.map((row, i) =>
+    modes[i] === undefined ? row : { ...row, gameMode: modes[i] },
+  );
+  assert.deepEqual(
+    parseCollectionHiScores({ ...data, players })
+      .players.slice(0, modes.length)
+      .map((row) => row.gameMode),
+    [...gameModes, null, null],
+  );
+  assert.throws(() =>
+    parseCollectionHiScores({
+      ...data,
+      players: [{ ...players[0], gameMode: 'hardcore' }, ...players.slice(1)],
     }),
   );
 });

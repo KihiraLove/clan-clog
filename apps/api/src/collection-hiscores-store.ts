@@ -19,7 +19,7 @@ export const collectionHiScoresSql = `WITH obtains AS (
     AND ($1<>'event' OR s.collection_type='event')
   GROUP BY s.collector_id,s.item_id
 ), scores AS (
-  SELECT c.id,c.display_name AS name,c.normalized_name,
+  SELECT c.id,c.display_name AS name,c.normalized_name,c.game_mode,
     CASE WHEN $1='unique' THEN count(DISTINCT o.item_id) ELSE sum(o.obtains)::bigint END AS score
   FROM obtains o JOIN collectors original ON original.id=o.collector_id
   JOIN collectors c ON c.id=COALESCE(original.merged_into,original.id)
@@ -34,7 +34,7 @@ export const collectionHiScoresSql = `WITH obtains AS (
 )
 SELECT players::text AS total,page::text,pages::text,
   (SELECT jsonb_build_object('name',name,'rank',position) FROM ranked WHERE position=n.found) AS match,
-  COALESCE((SELECT jsonb_agg(jsonb_build_object('rank',position,'name',name,'score',score::text) ORDER BY position)
+  COALESCE((SELECT jsonb_agg(jsonb_build_object('rank',position,'name',name,'gameMode',game_mode,'score',score::text) ORDER BY position)
     FROM ranked WHERE position BETWEEN (n.page-1)*25+1 AND n.page*25),'[]'::jsonb) AS rows
 FROM navigation n`;
 
