@@ -404,6 +404,56 @@ test('ambiguous frozen eligibility still requires a choice after another current
   ).toBeEnabled();
 });
 
+test('RuneLite submissions keeps one retryable Event assignment notice through session refreshes', async ({
+  page,
+}) => {
+  await mockApi(page);
+  const fixture = await adminFixtures();
+  let displayName = fixture.session.displayName;
+  await page.route('**/api/v1/auth/session', (route) =>
+    route.fulfill({ json: { ...fixture.session, displayName } }),
+  );
+  let reads = 0,
+    available = false;
+  await page.route('**/api/v1/admin/event-page-assignments', (route) => {
+    reads++;
+    return route.fulfill(
+      available
+        ? { json: fixture.eventPageAssignments }
+        : { status: 503, json: {} },
+    );
+  });
+  await page.clock.install();
+  await page.goto('/admin/runelite');
+  const notice = page.getByRole('heading', {
+    name: 'Assign existing Event collections to pages',
+    exact: true,
+  });
+  const settings = page.getByLabel('In-game clan name for matching', {
+    exact: true,
+  });
+  await expect(settings).toBeVisible();
+  await expect(notice.first()).toBeVisible();
+  for (const refresh of [1, 2, 3]) {
+    displayName = `Administrator ${refresh}`;
+    await Promise.all([
+      page.waitForResponse('**/api/v1/auth/session'),
+      page.clock.fastForward(25000),
+    ]);
+    await expect(page.locator('.admin-account')).toContainText(displayName);
+    await expect(
+      page.getByRole('complementary', { name: 'Page navigation' }),
+    ).toHaveCount(0);
+    await expect(notice).toHaveCount(1);
+    expect(reads).toBe(1);
+  }
+  available = true;
+  await page.getByRole('button', { name: 'Reload page assignments' }).click();
+  await expect(notice).toHaveCount(0);
+  await expect(settings).toBeVisible();
+  expect(reads).toBe(2);
+});
+
 test('fresh installs show no upgrade prompt and moderators make no migration review reads', async ({
   page,
   context,
