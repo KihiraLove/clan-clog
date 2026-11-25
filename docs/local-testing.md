@@ -196,6 +196,11 @@ Timestamps and tar entry order do not change the fingerprint. CRLF/LF or executa
 mode differences do; inspect Git checkout settings when comparing Windows/WSL/CI.
 Keep shell helpers and migration files at their declared LF endings.
 
+Build uploads wrap the captured tar in gzip so Buildx can recognize the archive
+even when native filesystem timestamps produce leading PAX metadata. Fingerprints
+and the accepted container source still use the original uncompressed bytes;
+transport compression does not change the tested source.
+
 For release comparison, replay an exact commit without stashing or modifying the
 current checkout:
 
