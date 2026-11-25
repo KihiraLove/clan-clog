@@ -1,8 +1,8 @@
 # Catalog and sources
 
 The pinned baseline contains 1,717 canonical items across 124 source pages.
-The Fractured Archive release adds 17 items and one raid page, for 1,734 items
-and 125 pages on a fresh installation. Its pet also belongs to All Pets.
+The release batches add 21 items and two pages, for 1,738 items and 126 pages
+on a fresh installation. The Fractured Archive's pet also belongs to All Pets.
 Items can occur on several pages without duplicating credit. Startup imports the
 pinned snapshot once; it does not fetch live game data or overwrite staff edits.
 
@@ -92,3 +92,33 @@ The first administrator login or restored session opens a review only when fixes
 remain. See [staff tools](staff-guide.md) for the grouped table, icons and Save/Cancel.
 Restarting or rescanning can refresh discovery but cannot apply pending additions.
 Exact save retries do not duplicate items, pages or reviewed corrections.
+
+### Extracting native cache artwork
+
+Pin a dated cache snapshot and hash each input archive before extraction. RuneLite
+flat caches need indexes 2 (definitions), 7 (models), 8 (sprites) and 9 (textures)
+for inventory artwork. Decode the collection-log structs and their item enums to
+verify page membership and slot order; an item can belong to a different page
+from the activity that awards it. Exclude placeholders and stack-appearance IDs
+from inventory identity aliases.
+
+The [cache extractor](../scripts/catalog-cache/ExtractCatalog.java) uses RuneLite's
+published `cache` library and its runtime dependencies. Put the reviewed JARs on
+`CLOG_CACHE_CP`, and use temporary directories for downloaded caches, compiled
+classes and extracted definitions/images:
+
+```bash
+mkdir -p "$CLOG_CACHE_CLASSES"
+java -cp "$CLOG_CACHE_CP" com.sun.tools.javac.Main -cp "$CLOG_CACHE_CP" \
+  -d "$CLOG_CACHE_CLASSES" scripts/catalog-cache/ExtractCatalog.java
+java -Djava.awt.headless=true -cp "$CLOG_CACHE_CP:$CLOG_CACHE_CLASSES" \
+  ExtractCatalog "$CLOG_FLAT_CACHE" "$CLOG_ICON_OUTPUT" <game-item-id>...
+```
+
+The extractor writes decoded item/enum/struct JSON and native 36×32 inventory
+PNGs with quantity 1, a one-pixel border and shadow colour 3153952. Trim only fully
+transparent outer rows/columns, then encode lossless WebP without scaling. Record
+the cache commit, archive/library/extractor hashes, render settings, crop and
+PNG/WebP hashes in the batch provenance. The
+[Prison of Ræun provenance](../catalog/updates/2026-11-25-prison-of-raeun.provenance.json)
+is a complete example. Keep intermediate dumps outside the shipped catalog.
