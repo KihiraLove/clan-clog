@@ -1,7 +1,7 @@
 {
   "format": 1,
-  "node": "24.21.0",
-  "npm": "11.19.0",
+  "node": "24.22.2",
+  "npm": "11.19.1",
   "platform": "linux/amd64",
   "hostedRunner": "ubuntu-24.04",
   "supported": {
@@ -11,7 +11,7 @@
   },
   "aptSnapshot": "20261102T000000Z",
   "images": {
-    "node": "node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
+    "node": "node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9",
     "docker": "docker:28.5.2-cli@sha256:625d9431a9f54c5a2bc90f24f0e1c3d55b1349fd857dd85035f98c2c9acbdd4d",
     "postgres": "postgres:17.11-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5",
     "actionlint": "rhysd/actionlint:1.7.7@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9",

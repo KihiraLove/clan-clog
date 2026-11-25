@@ -1,5 +1,5 @@
 # Install workspace dependencies once and compile all packages before splitting targets.
-FROM node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS dependencies
+FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
@@ -48,7 +48,7 @@ RUN npm prune --omit=dev --no-audit --no-fund \
   && node scripts/prune-runtime-tests.mjs node_modules > /opt/clog-runtime/runtime-dependency-cleanup.json
 
 # Shared compiled packages and SQL allow the API target to run the migration job too.
-FROM node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS service-base
+FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS service-base
 WORKDIR /app
 ENV NODE_ENV=production PATH="/usr/lib/postgresql/17/bin:${PATH}"
 COPY --from=postgres-runtime /usr/lib/postgresql/17 /usr/lib/postgresql/17
