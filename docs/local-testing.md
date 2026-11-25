@@ -148,7 +148,7 @@ node scripts/check-local.mjs
 ```
 
 The checked-in [toolchain specification](../scripts/check-toolchain.json) declares
-Node 24.21.0/npm 11.19.0, Linux/amd64 acceptance, Docker Engine 28–29,
+Node 24.22.2/npm 11.19.1, Linux/amd64 acceptance, Docker Engine 28–29,
 Compose 2.30.0 through 5.x and Buildx 0.17.0 or newer in the 0.x series.
 Use `.nvmrc` to select the host Node runtime. Docker Desktop must use Linux
 containers; an ARM host needs amd64 emulation, which is visible in the report.
