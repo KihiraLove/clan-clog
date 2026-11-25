@@ -25,6 +25,7 @@ import {
 import { suppliedImagePath } from '@clog/database/dist/catalog-update-model.js';
 import { updateHash } from '@clog/database/dist/catalog-update-model.js';
 import {
+  readCatalogUpdates,
   validateUpdateImage,
   type UpdateImage,
 } from '@clog/database/dist/catalog-update-bundle.js';
@@ -36,6 +37,10 @@ test(
   { skip },
   async (t) => {
     const baseline = await readBundledSnapshot();
+    const { batches } = await readCatalogUpdates();
+    const suppliedItems = new Set(
+      batches.flatMap((b) => b.items.map((i) => i.key)),
+    );
     for (const mode of ['fresh', 'interrupted', 'existing']) {
       const fresh = mode !== 'existing';
       const root = new pg.Client({
@@ -116,7 +121,9 @@ test(
           revision: review.revision,
           catalogRevision: review.catalogRevision,
           apply: review.proposals
-            .filter((p) => ['createItem', 'addLink'].includes(p.kind))
+            .filter((p) =>
+              ['createPage', 'createItem', 'addLink'].includes(p.kind),
+            )
             .map((p) => p.id),
           keep: [],
         });
@@ -133,7 +140,7 @@ test(
       );
       assert.equal(
         (await client.query('SELECT count(*)::int AS n FROM items')).rows[0].n,
-        baseline.items.length + 17,
+        baseline.items.length + suppliedItems.size,
       );
       assert.equal(
         (
@@ -168,7 +175,7 @@ test(
       assert.equal((await store.preview('owner')).autoOpen, false);
       assert.equal(
         (await client.query('SELECT count(*)::int AS n FROM items')).rows[0].n,
-        baseline.items.length + 17,
+        baseline.items.length + suppliedItems.size,
       );
     }
   },

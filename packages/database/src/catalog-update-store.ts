@@ -132,6 +132,13 @@ async function addMissingCatalogEntries(
   if (catalog.items.length > 10000 || catalog.pages.length > 2000)
     throw new Error(appText.databaseCatalogUpdateStoreCatalogCapacityExceeded);
   const summary = { addedItems: [] as string[], addedPages: [] as string[] };
+  const priorImages = new Map<string, Set<string>>();
+  for (const row of await batches(client))
+    for (const item of row.manifest.items) {
+      const paths = priorImages.get(item.key) ?? new Set<string>();
+      paths.add(suppliedImagePath(item.image.sha256));
+      priorImages.set(item.key, paths);
+    }
   const newPages = new Set<string>();
   for (const page of merged.pages) {
     const match = matches.find((m) => m.kind === 'page' && m.key === page.key)!;
@@ -215,6 +222,41 @@ async function addMissingCatalogEntries(
       match.localId = String(id);
       summary.addedItems.push(item.name);
     } else if (!match.candidate) {
+      // During unfinished bootstrap, a later batch can supersede artwork from
+      // an earlier batch. Only advance a bound, unmodified supplied default.
+      // Completed installations never enter this bootstrap-only operation.
+      const local = catalog.items.find((i) => String(i.id) === match.localId)!;
+      const path = suppliedImagePath(item.image.sha256);
+      if (
+        local.iconPath !== path &&
+        priorImages.get(item.key)?.has(local.iconPath ?? '') &&
+        catalog.bindings.some(
+          (b) =>
+            b.kind === 'item' &&
+            b.source_key === item.key &&
+            b.local_id === match.localId,
+        )
+      ) {
+        const image = (
+          await client.query(
+            'SELECT bytes,width,height FROM catalog_update_images WHERE sha256=$1',
+            [item.image.sha256],
+          )
+        ).rows[0];
+        await validateUpdateImage(image.bytes, item.image);
+        const updated = await client.query(
+          "UPDATE items SET icon_path=$2 WHERE id=$1 AND icon_path=$3 AND origin='source' AND icon_asset_id IS NULL AND NOT ('icon'=ANY(overrides))",
+          [local.id, path, local.iconPath],
+        );
+        if (updated.rowCount)
+          await audit(client, 'catalog-upgrade', updateHash(item), {
+            bootstrapImage: {
+              itemId: local.id,
+              before: local.iconPath,
+              after: path,
+            },
+          });
+      }
       for (const page of pages.filter((p) => newPages.has(p.localId!)))
         await client.query(
           'INSERT INTO page_items(page_id,item_id,slot) SELECT $1,$2,COALESCE(max(slot),-1)+1 FROM page_items WHERE page_id=$1',

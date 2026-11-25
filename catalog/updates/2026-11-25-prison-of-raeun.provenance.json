@@ -1,0 +1,790 @@
+{
+  "batchId": "2026-11-25-prison-of-raeun",
+  "retrievedAt": "2026-11-25T13:36:04.134Z",
+  "cache": {
+    "game": "oldschool",
+    "revision": 243,
+    "date": "2026-11-25",
+    "repository": "https://github.com/abextm/osrs-cache",
+    "commit": "c7bfd1fa7e99958a50750b555a88df63167626a0",
+    "commitTimestamp": "2026-11-25T11:34:52Z",
+    "archives": [
+      {
+        "index": 2,
+        "url": "https://raw.githubusercontent.com/abextm/osrs-cache/c7bfd1fa7e99958a50750b555a88df63167626a0/2.flatcache",
+        "size": 6409381,
+        "sha256": "1f7ff8e5b61b8f9051b446e0654014a1f2c1de39bc1af35db62cdd3afc7f2083"
+      },
+      {
+        "index": 7,
+        "url": "https://raw.githubusercontent.com/abextm/osrs-cache/c7bfd1fa7e99958a50750b555a88df63167626a0/7.flatcache",
+        "size": 93924334,
+        "sha256": "7e3ce2a58534d126a8eb86ba77482b21271b2ef871615692afb103d8113e8396"
+      },
+      {
+        "index": 8,
+        "url": "https://raw.githubusercontent.com/abextm/osrs-cache/c7bfd1fa7e99958a50750b555a88df63167626a0/8.flatcache",
+        "size": 6966431,
+        "sha256": "8628b968e32cc567df0a64be95a5892d40c3f800706aa48fdd4266f241310ad9"
+      },
+      {
+        "index": 9,
+        "url": "https://raw.githubusercontent.com/abextm/osrs-cache/c7bfd1fa7e99958a50750b555a88df63167626a0/9.flatcache",
+        "size": 3691,
+        "sha256": "0edbbdc1566e3e0498cfad7e9e36e112af30da4a979de2a9ba8f76b820407f7c"
+      }
+    ]
+  },
+  "collectionLog": {
+    "categoryStruct": {
+      "id": 475,
+      "params": {
+        "682": "Other",
+        "683": 2107,
+        "684": 4,
+        "685": 40697885,
+        "686": 40697890,
+        "687": 40697891,
+        "688": 40697886,
+        "2229": 21439
+      }
+    },
+    "categoryEnum": {
+      "id": 2107,
+      "intVals": [
+        540,
+        535,
+        6342,
+        2885,
+        528,
+        537,
+        1018,
+        546,
+        532,
+        533,
+        4553,
+        548,
+        526,
+        911,
+        6339,
+        1397,
+        530,
+        549,
+        6340,
+        1102,
+        538,
+        525,
+        547,
+        6343,
+        6341,
+        531,
+        2858,
+        529,
+        527,
+        969,
+        536,
+        534
+      ],
+      "keyType": "INTEGER",
+      "valType": "STRUCT",
+      "defaultString": "null",
+      "defaultInt": -1,
+      "size": 32,
+      "keys": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "defaultLong": 0
+    },
+    "pageStruct": {
+      "id": 1102,
+      "params": {
+        "689": "Prison of Ræun",
+        "690": 6095
+      }
+    },
+    "itemEnum": {
+      "id": 6095,
+      "intVals": [
+        35033,
+        35027,
+        35029
+      ],
+      "keyType": "INTEGER",
+      "valType": "NAMEDOBJ",
+      "defaultString": "null",
+      "defaultInt": -1,
+      "size": 3,
+      "keys": [
+        0,
+        1,
+        2
+      ],
+      "defaultLong": 0
+    },
+    "sailingPageStruct": {
+      "id": 6343,
+      "params": {
+        "689": "Sailing Miscellaneous",
+        "690": 5782
+      }
+    },
+    "sailingItemEnum": {
+      "id": 5782,
+      "intVals": [
+        31996,
+        31406,
+        31916,
+        31946,
+        31952,
+        31954,
+        31959,
+        31961,
+        31949,
+        32115,
+        31989,
+        33074,
+        35031
+      ],
+      "keyType": "INTEGER",
+      "valType": "NAMEDOBJ",
+      "defaultString": "null",
+      "defaultInt": -1,
+      "size": 13,
+      "keys": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "defaultLong": 0
+    }
+  },
+  "renderer": {
+    "name": "RuneLite cache ItemSpriteFactory",
+    "version": "1.13.8",
+    "url": "https://repo.runelite.net/net/runelite/cache/1.13.8/cache-1.13.8.jar",
+    "sha256": "93083f01cf52640926306de82e9b13a4bc237c27ca6a9d27b8c37c409339cadc",
+    "dependencies": [
+      {
+        "filename": "antlr4-runtime-4.13.1.jar",
+        "sha256": "54665d2838cc66458343468efc539e454fc95b46a8a04b13c6ac43fc9be63505"
+      },
+      {
+        "filename": "commons-cli-1.3.1.jar",
+        "sha256": "3a2f057041aa6a8813f5b59b695f726c5e85014a703d208d7e1689098e92d8c0"
+      },
+      {
+        "filename": "commons-compress-1.10.jar",
+        "sha256": "807c95293e41e8159477442077da6d0962a7f486d4b980be61f60a8db9cb290f"
+      },
+      {
+        "filename": "gson-2.8.5.jar",
+        "sha256": "233a0149fc365c9f6edbd683cfe266b19bdc773be98eabdaf6b3c924b48e7d81"
+      },
+      {
+        "filename": "guava-23.2-jre.jar",
+        "sha256": "5be9a7d05ba0ccd74708bc8018ae412255f85843c0b92302e9b9befa6ed52564"
+      },
+      {
+        "filename": "jna-5.9.0.jar",
+        "sha256": "eafcc780b445434d3c5ae7fa2fb6665de1a7560d537d2c408a8e80cd14d27161"
+      },
+      {
+        "filename": "slf4j-api-1.7.25.jar",
+        "sha256": "18c4a0095d5c1da6b817592e767bb23d29dd2f560ad74df75ff3961dbde25b79"
+      },
+      {
+        "filename": "slf4j-simple-1.7.25.jar",
+        "sha256": "0966e86fffa5be52d3d9e7b89dd674d98a03eed0a454fbaf7c1bd9493bd9d874"
+      }
+    ],
+    "quantity": 1,
+    "border": 1,
+    "shadowColor": 3153952,
+    "noted": false,
+    "width": 36,
+    "height": 32,
+    "extractor": {
+      "path": "scripts/catalog-cache/ExtractCatalog.java",
+      "sha256": "b0e94ff464eb39d32009ab91c528c297aa19d8372ba3b775c43f6ed7dd6dbbf6",
+      "javaVersion": "OpenJDK 25.0.5.1",
+      "arguments": [
+        "<flat-cache-directory>",
+        "<output-directory>",
+        "35033",
+        "35027",
+        "35029",
+        "35031",
+        "34717"
+      ]
+    }
+  },
+  "artwork": [
+    {
+      "gameItemId": 35033,
+      "renderedPngSha256": "14a889a02fa56d95ea9d679392a2f7586f2158813118c318982daf8a5b86c9e1",
+      "croppedPngSha256": "a51f72b1c8f01cf7cc5b8f6cd37e1148b0d36ace783821d55b581ec8398b32c6",
+      "sha256": "142762540edca1620fba39217f41c5694c54ff4eba141fad73df2dc30bae2769",
+      "width": 31,
+      "height": 29,
+      "name": "Sunken treasure",
+      "inventoryModelId": 62919,
+      "sourceDefinition": {
+        "id": 35033,
+        "name": "Sunken treasure",
+        "examine": "Some treasure recovered from a fleet that sailed to Acheron.",
+        "resizeX": 128,
+        "resizeY": 128,
+        "resizeZ": 128,
+        "xan2d": 315,
+        "yan2d": 1937,
+        "zan2d": 0,
+        "cost": 45,
+        "stackable": 1,
+        "inventoryModel": 62919,
+        "tradeable": false,
+        "geTradeable": false,
+        "bronzeman": false,
+        "wearPos1": -1,
+        "wearPos2": -1,
+        "wearPos3": -1,
+        "members": true,
+        "fullRecolor": -1,
+        "zoom2d": 921,
+        "xOffset2d": 3,
+        "yOffset2d": 14,
+        "ambient": 10,
+        "contrast": 15,
+        "countCo": [
+          2,
+          3,
+          4,
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "countObj": [
+          35035,
+          35036,
+          35037,
+          35038,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "groundOps": {
+          "ops": [
+            null,
+            null,
+            {
+              "text": "Take"
+            }
+          ],
+          "subOps": [],
+          "conditionalOps": [],
+          "conditionalSubOps": []
+        },
+        "interfaceOptions": [
+          "Inspect",
+          null,
+          null,
+          null,
+          "Drop"
+        ],
+        "maleModel0": -1,
+        "maleModel1": -1,
+        "maleModel2": -1,
+        "maleOffset": 0,
+        "maleHeadModel": -1,
+        "maleHeadModel2": -1,
+        "femaleModel0": -1,
+        "femaleModel1": -1,
+        "femaleModel2": -1,
+        "femaleOffset": 0,
+        "femaleHeadModel": -1,
+        "femaleHeadModel2": -1,
+        "category": 0,
+        "notedID": -1,
+        "notedTemplate": -1,
+        "team": 0,
+        "weight": 0,
+        "shiftClickDropIndex": -2,
+        "boughtId": -1,
+        "boughtTemplateId": -1,
+        "placeholderId": 35034,
+        "placeholderTemplateId": -1,
+        "params": {
+          "295": 1
+        }
+      },
+      "crop": {
+        "left": 0,
+        "top": 2,
+        "width": 31,
+        "height": 29
+      }
+    },
+    {
+      "gameItemId": 35027,
+      "renderedPngSha256": "1d72f8d4aa42b5bd817f4dc6f5fd26fc2a66404dc999195b377cc4a445484c92",
+      "croppedPngSha256": "c3b286824a834a21d4955d5149eba649aa5841655194b726bd13b4b1d1197335",
+      "sha256": "60fb566ad87ba81d13636e60bcf9ee96c789fe4a7defcaa19259e0d34733025a",
+      "width": 27,
+      "height": 28,
+      "name": "Fremennik graceful ornament kit",
+      "inventoryModelId": 62916,
+      "sourceDefinition": {
+        "id": 35027,
+        "name": "Fremennik graceful ornament kit",
+        "examine": "An ornament kit which can be used to redesign a piece of graceful clothing.",
+        "resizeX": 128,
+        "resizeY": 128,
+        "resizeZ": 128,
+        "xan2d": 238,
+        "yan2d": 78,
+        "zan2d": 0,
+        "cost": 500,
+        "stackable": 0,
+        "inventoryModel": 62916,
+        "tradeable": false,
+        "geTradeable": false,
+        "bronzeman": false,
+        "wearPos1": -1,
+        "wearPos2": -1,
+        "wearPos3": -1,
+        "members": true,
+        "fullRecolor": -1,
+        "zoom2d": 1414,
+        "xOffset2d": -1,
+        "yOffset2d": 24,
+        "ambient": 20,
+        "contrast": 0,
+        "groundOps": {
+          "ops": [
+            null,
+            null,
+            {
+              "text": "Take"
+            }
+          ],
+          "subOps": [],
+          "conditionalOps": [],
+          "conditionalSubOps": []
+        },
+        "interfaceOptions": [
+          "Inspect",
+          null,
+          null,
+          null,
+          "Drop"
+        ],
+        "maleModel0": -1,
+        "maleModel1": -1,
+        "maleModel2": -1,
+        "maleOffset": 0,
+        "maleHeadModel": -1,
+        "maleHeadModel2": -1,
+        "femaleModel0": -1,
+        "femaleModel1": -1,
+        "femaleModel2": -1,
+        "femaleOffset": 0,
+        "femaleHeadModel": -1,
+        "femaleHeadModel2": -1,
+        "category": 0,
+        "notedID": -1,
+        "notedTemplate": -1,
+        "team": 0,
+        "weight": 100,
+        "shiftClickDropIndex": -2,
+        "boughtId": -1,
+        "boughtTemplateId": -1,
+        "placeholderId": 35028,
+        "placeholderTemplateId": -1,
+        "params": {
+          "295": 1
+        }
+      },
+      "crop": {
+        "left": 3,
+        "top": 2,
+        "width": 27,
+        "height": 28
+      }
+    },
+    {
+      "gameItemId": 35029,
+      "renderedPngSha256": "71b3224e74aec60f9d062be8fa0c72bbe2a109efd64cbf78a63c126c21667d56",
+      "croppedPngSha256": "7598c37033e0ccc66e73f9b597b3304507cab1c3af19edfb243e8dbca90b6d7c",
+      "sha256": "9e0a313677ac04534a1a9e7901bdb47be91b154fc0f31ec8b6f36b39619d4bff",
+      "width": 27,
+      "height": 24,
+      "name": "Fremennik sail fabric",
+      "inventoryModelId": 62917,
+      "sourceDefinition": {
+        "id": 35029,
+        "name": "Fremennik sail fabric",
+        "examine": "A fabric that can be used to change the design of your sails.",
+        "resizeX": 128,
+        "resizeY": 128,
+        "resizeZ": 128,
+        "xan2d": 173,
+        "yan2d": 1707,
+        "zan2d": 0,
+        "cost": 500,
+        "stackable": 0,
+        "inventoryModel": 62917,
+        "tradeable": false,
+        "geTradeable": false,
+        "bronzeman": false,
+        "wearPos1": -1,
+        "wearPos2": -1,
+        "wearPos3": -1,
+        "members": true,
+        "fullRecolor": -1,
+        "colorFind": [
+          -10304,
+          21440,
+          -24636
+        ],
+        "colorReplace": [
+          423,
+          8282,
+          10320
+        ],
+        "zoom2d": 1446,
+        "xOffset2d": -1,
+        "yOffset2d": -11,
+        "ambient": 0,
+        "contrast": 0,
+        "groundOps": {
+          "ops": [
+            null,
+            null,
+            {
+              "text": "Take"
+            }
+          ],
+          "subOps": [],
+          "conditionalOps": [],
+          "conditionalSubOps": []
+        },
+        "interfaceOptions": [
+          "Inspect",
+          null,
+          null,
+          null,
+          "Drop"
+        ],
+        "maleModel0": -1,
+        "maleModel1": -1,
+        "maleModel2": -1,
+        "maleOffset": 0,
+        "maleHeadModel": -1,
+        "maleHeadModel2": -1,
+        "femaleModel0": -1,
+        "femaleModel1": -1,
+        "femaleModel2": -1,
+        "femaleOffset": 0,
+        "femaleHeadModel": -1,
+        "femaleHeadModel2": -1,
+        "category": 0,
+        "notedID": -1,
+        "notedTemplate": -1,
+        "team": 0,
+        "weight": 500,
+        "shiftClickDropIndex": -2,
+        "boughtId": -1,
+        "boughtTemplateId": -1,
+        "placeholderId": 35030,
+        "placeholderTemplateId": -1,
+        "params": {
+          "295": 1
+        }
+      },
+      "crop": {
+        "left": 3,
+        "top": 4,
+        "width": 27,
+        "height": 24
+      }
+    },
+    {
+      "gameItemId": 35031,
+      "renderedPngSha256": "8655e2c2994dc79f9d601fffe018c1d2058289eeac1e900c01fd188b8e6c38a7",
+      "croppedPngSha256": "fdd98be10132a836d47799d326cbc57d3ce7adff5bb620ec2c7948e8d0276d67",
+      "sha256": "c31394c81cb0b0a011d62638e9b92cbb20ac09f69d4a5a0628e2c13db987bda5",
+      "width": 27,
+      "height": 24,
+      "name": "Ghostly sail fabric",
+      "inventoryModelId": 62918,
+      "sourceDefinition": {
+        "id": 35031,
+        "name": "Ghostly sail fabric",
+        "examine": "A fabric that can be used to change the design of your sails.",
+        "resizeX": 128,
+        "resizeY": 128,
+        "resizeZ": 128,
+        "xan2d": 173,
+        "yan2d": 1707,
+        "zan2d": 0,
+        "cost": 500,
+        "stackable": 0,
+        "inventoryModel": 62918,
+        "tradeable": false,
+        "geTradeable": false,
+        "bronzeman": false,
+        "wearPos1": -1,
+        "wearPos2": -1,
+        "wearPos3": -1,
+        "members": true,
+        "fullRecolor": -1,
+        "zoom2d": 1446,
+        "xOffset2d": -1,
+        "yOffset2d": -11,
+        "ambient": 0,
+        "contrast": 0,
+        "groundOps": {
+          "ops": [
+            null,
+            null,
+            {
+              "text": "Take"
+            }
+          ],
+          "subOps": [],
+          "conditionalOps": [],
+          "conditionalSubOps": []
+        },
+        "interfaceOptions": [
+          "Inspect",
+          null,
+          null,
+          null,
+          "Drop"
+        ],
+        "maleModel0": -1,
+        "maleModel1": -1,
+        "maleModel2": -1,
+        "maleOffset": 0,
+        "maleHeadModel": -1,
+        "maleHeadModel2": -1,
+        "femaleModel0": -1,
+        "femaleModel1": -1,
+        "femaleModel2": -1,
+        "femaleOffset": 0,
+        "femaleHeadModel": -1,
+        "femaleHeadModel2": -1,
+        "category": 0,
+        "notedID": -1,
+        "notedTemplate": -1,
+        "team": 0,
+        "weight": 500,
+        "shiftClickDropIndex": -2,
+        "boughtId": -1,
+        "boughtTemplateId": -1,
+        "placeholderId": 35032,
+        "placeholderTemplateId": -1,
+        "params": {
+          "295": 1
+        }
+      },
+      "crop": {
+        "left": 3,
+        "top": 4,
+        "width": 27,
+        "height": 24
+      }
+    },
+    {
+      "gameItemId": 34717,
+      "renderedPngSha256": "1803dadad20b624b3c19ea162652d6d3b9627de43bc1e060da5302fbe81c86d0",
+      "croppedPngSha256": "6cc752f4e259aeb383b0c730efa57c7c3c38b00ccf8ef40fa319973dd22c88a1",
+      "sha256": "e1ab4558ebfe2b4b17d62fbdbc9a103b4022db80e130ed9d0711d0f8f335b13a",
+      "width": 34,
+      "height": 32,
+      "name": "Obligator (uncharged)",
+      "inventoryModelId": 51420,
+      "sourceDefinition": {
+        "id": 34717,
+        "name": "Obligator (uncharged)",
+        "examine": "A huge mace on a writhing vine.",
+        "resizeX": 128,
+        "resizeY": 128,
+        "resizeZ": 128,
+        "xan2d": 612,
+        "yan2d": 2039,
+        "zan2d": 0,
+        "cost": 4000000,
+        "stackable": 0,
+        "inventoryModel": 51420,
+        "tradeable": true,
+        "geTradeable": true,
+        "bronzeman": true,
+        "wearPos1": 3,
+        "wearPos2": 5,
+        "wearPos3": -1,
+        "members": true,
+        "fullRecolor": -1,
+        "zoom2d": 1415,
+        "xOffset2d": -7,
+        "yOffset2d": 5,
+        "ambient": 0,
+        "contrast": 0,
+        "groundOps": {
+          "ops": [
+            null,
+            null,
+            {
+              "text": "Take"
+            }
+          ],
+          "subOps": [],
+          "conditionalOps": [],
+          "conditionalSubOps": []
+        },
+        "interfaceOptions": [
+          null,
+          "Wield",
+          null,
+          "Charge",
+          "Drop"
+        ],
+        "maleModel0": 62545,
+        "maleModel1": -1,
+        "maleModel2": -1,
+        "maleOffset": 0,
+        "maleHeadModel": -1,
+        "maleHeadModel2": -1,
+        "femaleModel0": 62546,
+        "femaleModel1": -1,
+        "femaleModel2": -1,
+        "femaleOffset": 0,
+        "femaleHeadModel": -1,
+        "femaleHeadModel2": -1,
+        "holdingWhitelist": [
+          15118,
+          15119,
+          15120,
+          15121,
+          15122,
+          15123,
+          15126,
+          15127,
+          15128,
+          15129,
+          15130,
+          15131,
+          15133,
+          15134
+        ],
+        "category": 2543,
+        "notedID": 34718,
+        "notedTemplate": -1,
+        "team": 0,
+        "weight": 4989,
+        "shiftClickDropIndex": -2,
+        "boughtId": -1,
+        "boughtTemplateId": -1,
+        "placeholderId": -1,
+        "placeholderTemplateId": -1,
+        "params": {
+          "0": 22,
+          "1": -8,
+          "2": 120,
+          "5": 0,
+          "6": 16,
+          "7": 0,
+          "8": 3,
+          "9": 8,
+          "10": 40,
+          "11": 3,
+          "13": 0,
+          "14": 5,
+          "434": 0,
+          "436": 85,
+          "451": "Charge",
+          "1564": 3,
+          "2680": 34715,
+          "2681": 34717
+        }
+      },
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 34,
+        "height": 32
+      }
+    }
+  ],
+  "excluded": {
+    "placeholderIds": [
+      35028,
+      35030,
+      35032,
+      35034
+    ],
+    "stackAppearanceIds": [
+      35035,
+      35036,
+      35037,
+      35038
+    ],
+    "reason": "Placeholder and stack-appearance definitions are not distinct inventory item identities."
+  },
+  "transformation": "Rendered directly from decoded cache item definitions and inventory models using RuneLite. Removed only fully transparent outer rows/columns; no scaling or colour changes. Encoded lossless WebP with sharp 0.35.5. Historical batches and image bytes remain immutable.",
+  "attribution": "Old School RuneScape names and game artwork are copyright Jagex Ltd. Cache snapshot captured by RuneLite maintainer abextm; icons decoded and rendered locally with RuneLite cache tooling, licensed under BSD-2-Clause.",
+  "coverage": {
+    "newItems": 4,
+    "updatedItems": 1,
+    "newPages": 1,
+    "extendedPages": 1,
+    "pageMemberships": 5
+  }
+}

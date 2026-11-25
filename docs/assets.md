@@ -72,6 +72,11 @@ at immutable hash URLs. The Fractured Archive's 17 native icons and their exact
 source/delivered-byte hashes are recorded in its
 [artwork provenance](../catalog/updates/2026-10-20-fractured-archive.provenance.json).
 Lossless WebP conversion preserves native dimensions and transparency.
+Cache-rendered artwork records the pinned input archives, item definitions,
+render settings and transparent-edge crop in the
+[Prison of Ræun provenance](../catalog/updates/2026-11-25-prison-of-raeun.provenance.json).
+See [cache extraction](catalog-import.md#extracting-native-cache-artwork) for the
+offline maintainer workflow.
 Replacing a hosted item's image requires the administrator's
 review unless it is a newly inserted item. Retaining a custom icon does not delete
 its uploaded bytes, and normal database backups include the retained bundled bytes.
