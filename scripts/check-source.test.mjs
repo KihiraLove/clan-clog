@@ -2,18 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawn } from 'node:child_process';
 import { createReadStream } from 'node:fs';
-import {
-  copyFile,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { gunzipSync } from 'node:zlib';
 import {
   captureSource,
+  compressSourceArchive,
   fingerprintFile,
   fingerprintTar,
   sha256,
@@ -130,6 +125,43 @@ test('application builds reject a changed or unidentified accepted archive befor
   );
 });
 
+test('gzip transport identifies leading-PAX archives without changing accepted source bytes', async (t) => {
+  const data = await fixture(t);
+  const body = 'comment=' + 'x'.repeat(4096) + '\n';
+  let size = body.length;
+  while (size !== body.length + String(size).length + 1)
+    size = body.length + String(size).length + 1;
+  const original = archive([
+    { name: 'PaxHeaders/source', type: 'x', text: size + ' ' + body },
+    { name: 'Dockerfile', text: 'FROM scratch\nCOPY source.txt /source.txt\n' },
+    { name: 'source.txt', text: 'accepted\r\n' },
+  ]);
+  assert.throws(() => fingerprintTar(original.subarray(0, 1024)), /Truncated/);
+  const input = path.join(data.temporary, 'accepted.tar');
+  const output = input + '.gz';
+  await writeFile(input, original);
+  await compressSourceArchive(input, output);
+  const compressed = await readFile(output);
+  assert.deepEqual([...compressed.subarray(0, 3)], [0x1f, 0x8b, 0x08]);
+  assert.deepEqual(gunzipSync(compressed), original);
+  assert.equal(
+    fingerprintTar(gunzipSync(compressed)).fingerprint,
+    fingerprintTar(original).fingerprint,
+  );
+  await verifyAcceptedSource(input, fingerprintTar(original).fingerprint);
+  await assert.rejects(compressSourceArchive(input, output), {
+    code: 'EEXIST',
+  });
+  assert.deepEqual(await readFile(output), compressed);
+  await assert.rejects(
+    compressSourceArchive(
+      input + '.missing',
+      path.join(data.temporary, 'missing.gz'),
+    ),
+    { code: 'ENOENT' },
+  );
+});
+
 async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), 'clog-source-test-'));
   t.after(async () => {
@@ -172,6 +204,10 @@ async function fixture(t) {
     '{"format":1}',
   );
   await writeFile(path.join(project, 'compose.yaml'), 'services: {}\n');
+  await writeFile(
+    path.join(project, 'Dockerfile'),
+    'FROM scratch\nCOPY source.txt /source.txt\n',
+  );
   await writeFile(path.join(project, 'source.txt'), 'committed\n');
   await run('git', ['init', '-q']);
   await run('git', ['add', '.']);
@@ -194,8 +230,11 @@ test('clean-ref archive isolates dirty and unrelated untracked files without cha
     ...fixtureData,
     ref: 'HEAD',
     docker: async (_args, { input }) => {
-      assert.ok(input.endsWith('commit.tar'));
-      await copyFile(input, path.join(fixtureData.temporary, 'source.tar'));
+      assert.ok(input.endsWith('commit.tar.gz'));
+      await writeFile(
+        path.join(fixtureData.temporary, 'source.tar'),
+        gunzipSync(await readFile(input)),
+      );
     },
   });
   const actual = await fingerprintFile(captured.archive, {
@@ -206,6 +245,10 @@ test('clean-ref archive isolates dirty and unrelated untracked files without cha
   assert.equal(captured.manifest.mode, 'clean-ref');
   assert.equal(captured.manifest.workingTree.trackedDirty, true);
   assert.deepEqual(captured.manifest.untrackedParticipants, []);
+  assert.deepEqual(
+    gunzipSync(await readFile(captured.buildArchive)),
+    await readFile(captured.archive),
+  );
   assert.equal(
     await readFile(path.join(fixtureData.root, 'source.txt'), 'utf8'),
     'dirty\n',
@@ -238,6 +281,26 @@ if (process.env.CHECK_SOURCE_DOCKER_TEST === '1')
       'participates',
     );
     assert.equal(dirty.manifest.untrackedParticipants.length, 2);
+    const built = path.join(data.temporary, 'built.tar');
+    await data.run(
+      'docker',
+      [
+        'buildx',
+        'build',
+        '--file',
+        'Dockerfile',
+        '--output',
+        `type=tar,dest=${built}`,
+        '-',
+      ],
+      { input: dirty.buildArchive },
+    );
+    assert.equal(
+      (await fingerprintFile(built, { select: ['source.txt'] })).contents
+        .get('source.txt')
+        .toString(),
+      'dirty\r\n',
+    );
     assert.ok(
       dirty.manifest.untrackedParticipants.includes(sha256(' leading.txt')),
     );

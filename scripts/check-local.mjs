@@ -315,7 +315,7 @@ export async function main(args = process.argv.slice(2)) {
         config.runnerImage,
         '-',
       ],
-      { input: source.archive },
+      { input: source.buildArchive },
     );
     manifest.images = {
       runner: await imageEvidence(config.runnerImage),

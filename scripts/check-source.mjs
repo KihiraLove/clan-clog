@@ -1,7 +1,10 @@
 /** Fingerprint Docker's exported context, not an approximation of .dockerignore. */
 import { createHash } from 'node:crypto';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
+import { createGzip } from 'node:zlib';
 import { toolchain } from './check-toolchain.mjs';
 
 export const sha256 = (bytes) =>
@@ -142,6 +145,16 @@ export async function fingerprintFile(file, options) {
   return fingerprintTar(await readFile(file), options);
 }
 
+// Buildx only peeks a bounded prefix of stdin. A leading PAX record can hide
+// the first regular tar header beyond that window; gzip has an explicit magic.
+export async function compressSourceArchive(input, output) {
+  await pipeline(
+    createReadStream(input),
+    createGzip(),
+    createWriteStream(output, { flags: 'wx' }),
+  );
+}
+
 export async function captureSource({
   root,
   temporary,
@@ -238,6 +251,8 @@ export async function captureSource({
       ],
       { quiet: true },
     );
+  const inputArchive = input ? input + '.gz' : undefined;
+  if (input) await compressSourceArchive(input, inputArchive);
   await docker(
     [
       'buildx',
@@ -250,7 +265,7 @@ export async function captureSource({
       `type=tar,dest=${archive}`,
       ...(input ? ['-'] : [root]),
     ],
-    { input },
+    { input: inputArchive },
   );
   const source = await fingerprintFile(archive, {
     select: [
@@ -287,5 +302,13 @@ export async function captureSource({
       ? sha256(source.contents.get('package-lock.json'))
       : undefined,
   };
-  return { archive, composeRoot, manifest, toolchain: JSON.parse(spec) };
+  const buildArchive = archive + '.gz';
+  await compressSourceArchive(archive, buildArchive);
+  return {
+    archive,
+    buildArchive,
+    composeRoot,
+    manifest,
+    toolchain: JSON.parse(spec),
+  };
 }
